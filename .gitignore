@@ -3,3 +3,7 @@
 /nb-configuration.xml
 /unicentaopos.iml
 *.jar
+# Generated/local files
+/backup/
+derby.log
+*.backup
