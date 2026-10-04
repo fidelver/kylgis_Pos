@@ -87,7 +87,7 @@ GROUP BY categories.NAME]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement key="staticText-6" mode="Transparent" x="160" y="33" width="10" height="15" uuid="330aadca-d0f0-4844-962c-68bde20d553b"/>
@@ -116,7 +116,7 @@ GROUP BY categories.NAME]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
 			</textField>
 			<rectangle radius="5">
 				<reportElement key="rectangle-1" mode="Opaque" x="0" y="50" width="782" height="2" forecolor="#33CCFF" backcolor="#33CCFF" uuid="618299eb-99bb-42b7-bd70-53fe43f20329"/>
@@ -165,7 +165,7 @@ GROUP BY categories.NAME]]>
 				<categoryDataset>
 					<categorySeries>
 						<seriesExpression><![CDATA[$F{NAME}]]></seriesExpression>
-						<categoryExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{CATTOTAL})]]></categoryExpression>
+						<categoryExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{CATTOTAL})]]></categoryExpression>
 						<valueExpression><![CDATA[$F{QTY}]]></valueExpression>
 					</categorySeries>
 				</categoryDataset>

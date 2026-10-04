@@ -46,7 +46,7 @@ ORDER BY RECEIPTS.DATENEW]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement key="staticText-6" mode="Transparent" x="160" y="33" width="10" height="15" uuid="4f751d23-25e3-4bfc-b135-a0acd912ba26"/>
@@ -74,7 +74,7 @@ ORDER BY RECEIPTS.DATENEW]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-18" mode="Transparent" x="0" y="0" width="375" height="30" forecolor="#33CCFF" backcolor="#FFFFFF" uuid="fa8d2953-7956-4002-ae8a-00f887878248"/>
@@ -237,7 +237,7 @@ ORDER BY RECEIPTS.DATENEW]]>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{AMOUNT})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{AMOUNT})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField-27" x="275" y="0" width="100" height="13" uuid="0a678cce-d96a-490f-b04f-7434a8374058"/>
@@ -258,14 +258,14 @@ ORDER BY RECEIPTS.DATENEW]]>
 				<textElement>
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue($F{DATENEW})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue($F{DATENEW})]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.00" isBlankWhenNull="false">
 				<reportElement key="textField-28" x="375" y="0" width="80" height="13" uuid="b9e5d39f-ee78-42f3-a795-b86a1788b3de"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{BASE})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{BASE})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-25" x="181" y="0" width="80" height="13" uuid="eb9d4b13-735d-4ae9-b376-839b1d226f89"/>
@@ -351,7 +351,7 @@ ORDER BY RECEIPTS.DATENEW]]>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="11" isBold="true" pdfFontName="Helvetica-Bold"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{BIGTOTALTAXES})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($V{BIGTOTALTAXES})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-30" mode="Opaque" x="250" y="7" width="110" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="55829902-f71e-405c-8e07-d096ac20751a"/>
@@ -372,7 +372,7 @@ ORDER BY RECEIPTS.DATENEW]]>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="11" isBold="true" pdfFontName="Helvetica-Bold"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{BIGTOTALBASE})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($V{BIGTOTALBASE})]]></textFieldExpression>
 			</textField>
 		</band>
 	</summary>

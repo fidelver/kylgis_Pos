@@ -23,9 +23,9 @@
 // To use in the sales screen: Highlight the line you want to discount
 // Then Tap in the %Discount amount and touch the % button
 
-import com.openbravo.format.Formats;
-import com.openbravo.pos.ticket.TicketLineInfo;
-import com.openbravo.pos.ticket.TicketProductInfo;
+import com.mx.kylgis.pos.format.Formats;
+import com.mx.kylgis.pos.ticket.TicketLineInfo;
+import com.mx.kylgis.pos.ticket.TicketProductInfo;
 
 discountrate = sales.getInputValue() / 100.0;
 

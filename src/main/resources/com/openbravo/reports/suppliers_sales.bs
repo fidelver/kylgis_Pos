@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Suppliers.Reports.Sales");
 report.setReport("/com/openbravo/reports/suppliers_sales");
@@ -41,23 +41,23 @@ report.setSentence("SELECT " +
 report.addParameter("receipts.datenew");
 report.addParameter("receipts.datenew");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
 
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
 report.addParameter("suppliers.id");
 report.addParameter("suppliers.name");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsSuppliers());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsSuppliers());
 
-report.addField("SNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("PNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("TICKETID", com.openbravo.data.loader.Datas.STRING);
-report.addField("TICKETTYPE", com.openbravo.data.loader.Datas.INT);
-report.addField("UNITS", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("DATENEW", com.openbravo.data.loader.Datas.TIMESTAMP);
+report.addField("SNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TICKETID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TICKETTYPE", com.mx.kylgis.pos.data.loader.Datas.INT);
+report.addField("UNITS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("DATENEW", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
 
 report;

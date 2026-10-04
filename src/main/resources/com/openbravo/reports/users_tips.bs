@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.UserTip");
 report.setReport("/com/openbravo/reports/users_tips");
@@ -29,15 +29,15 @@ report.setSentence("SELECT people.NAME, MIN(receipts.DATENEW) AS STARTDATE, MAX(
 
 report.addParameter("people.ID");
 report.addParameter("people.NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsUser());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsUser());
 
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsDatesInterval());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsDatesInterval());
 
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("STARTDATE", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("ENDDATE", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("STARTDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("ENDDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

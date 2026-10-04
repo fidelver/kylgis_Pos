@@ -87,7 +87,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{UNITS_LOC})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($V{UNITS_LOC})]]></textFieldExpression>
 				</textField>
 				<line>
 					<reportElement key="line-3" mode="Opaque" x="455" y="5" width="80" height="1" forecolor="#000000" backcolor="#FFFFFF" uuid="91f5e30d-aba6-4e8c-a748-13955567755b"/>
@@ -131,7 +131,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{UNITS_CAT})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($V{UNITS_CAT})]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupFooter>
@@ -323,7 +323,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{STOCKSECURITY})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{STOCKSECURITY})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-4" mode="Opaque" x="455" y="0" width="80" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="7e7f326f-79bc-41e6-b768-018ea67f08ff">
@@ -340,7 +340,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-4" mode="Opaque" x="455" y="0" width="80" height="15" forecolor="#FF0033" backcolor="#FFFFFF" uuid="a3bc9920-c2f6-4cea-b8a4-2eb55f299b4f">
@@ -356,7 +356,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-4" mode="Opaque" x="455" y="0" width="80" height="15" forecolor="#3300CC" backcolor="#FFFFFF" uuid="86c9b988-c875-4501-a340-b27695ecb220">
@@ -372,7 +372,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-4" mode="Opaque" x="322" y="0" width="80" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="b98460c4-9aab-40eb-8d76-d650bb5ab732"/>
@@ -386,7 +386,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{STOCKMAXIMUM})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{STOCKMAXIMUM})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="402" y="0" width="54" height="15" uuid="263bcebd-dd6a-4b52-98a3-b41f41a82180"/>
@@ -464,7 +464,7 @@ ORDER BY CATEGORIES.NAME, PRODUCTS.NAME, stockcurrent.LOCATION]]>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="11" isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{UNITS_TOTAL})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($V{UNITS_TOTAL})]]></textFieldExpression>
 			</textField>
 			<line>
 				<reportElement key="line-3" mode="Opaque" x="455" y="5" width="80" height="1" forecolor="#000000" backcolor="#FFFFFF" uuid="458c3e42-4baf-411c-876c-e200222b2798"/>

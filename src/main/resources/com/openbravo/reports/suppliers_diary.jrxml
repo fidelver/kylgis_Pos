@@ -128,7 +128,7 @@
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font fontName="SansSerif" size="11" isBold="true" pdfFontName="Helvetica"/>
 					</textElement>
-					<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{UNITS_TOTAL})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($V{UNITS_TOTAL})]]></textFieldExpression>
 				</textField>
 				<line>
 					<reportElement key="line-2" x="329" y="5" width="205" height="1" uuid="c60433a4-e675-4f9b-aaa5-7fa3d4c99825"/>
@@ -147,7 +147,7 @@
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{TOTALP_2})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($V{TOTALP_2})]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupFooter>
@@ -184,14 +184,14 @@
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{UNITS_1})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($V{UNITS_1})]]></textFieldExpression>
 				</textField>
 				<textField>
 					<reportElement x="457" y="7" width="77" height="16" uuid="e026774a-a827-462a-8ab9-d457e17987dc"/>
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{TOTALP_1})]]></textFieldExpression>
+					<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($V{TOTALP_1})]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupFooter>
@@ -216,7 +216,7 @@
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
 				<reportElement key="textField-2" mode="Transparent" x="170" y="33" width="110" height="15" uuid="2d336def-e94f-408d-9f97-0c46a89c8a45"/>
@@ -230,7 +230,7 @@
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement key="staticText-1" mode="Transparent" x="160" y="33" width="10" height="15" uuid="3e3f0b74-da2c-4206-8722-1f690f4851a7"/>
@@ -318,7 +318,7 @@
 				<textElement>
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue($F{DATENEW})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue($F{DATENEW})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField" x="207" y="0" width="140" height="15" uuid="f993a965-39b9-49f5-a597-4ee2ddf6653e"/>
@@ -344,7 +344,7 @@
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{UNITS})]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.000" isBlankWhenNull="false">
 				<reportElement key="textField" x="387" y="0" width="70" height="15" uuid="3093ce78-807e-4ab8-b444-38ab81accfff"/>
@@ -357,7 +357,7 @@
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{PRICE})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICE})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField" x="61" y="0" width="70" height="15" uuid="8f1831fd-83f7-4216-a74b-b1c211fb9f6c"/>
@@ -379,7 +379,7 @@
 			<textField pattern="##0.000">
 				<reportElement x="457" y="0" width="78" height="15" uuid="3c05e094-4ea9-4e8e-ba80-79c57199de27"/>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{TOTALP})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{TOTALP})]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>

@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Suppliers.Reports.Products");
 report.setReport("/com/openbravo/reports/suppliers_products");
@@ -38,14 +38,14 @@ report.setSentence("SELECT "
 
 report.addParameter("SUPPLIERS.ID");
 report.addParameter("SUPPLIERS.NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsSuppliers());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsSuppliers());
 
-report.addField("SUPPLIERNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("REFERENCE", com.openbravo.data.loader.Datas.STRING);
-report.addField("CODE", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRODUCTNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRICEBUY", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("PRICESELL", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("SUPPLIERNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODUCTNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRICEBUY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("PRICESELL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 
 report;

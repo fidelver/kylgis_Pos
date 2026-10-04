@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.ClosedProducts");
 report.setReport("/com/openbravo/reports/sales_closedproducts_1");
@@ -47,26 +47,26 @@ report.setSentence("SELECT categories.NAME AS catname, " +
 
 report.addParameter("closedcash.DATEEND");
 report.addParameter("closedcash.DATEEND");
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 report.addQBFFilter(paramdates);
 
 report.addParameter("products.NAME");
 report.addParameter("products.CATEGORY");
 report.addParameter("products.CODE");
 report.addParameter("stockcurrent.UNITS");
-report.addQBFFilter(new com.openbravo.pos.ticket.ProductFilter1());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter1());
 
-report.addField("catname", com.openbravo.data.loader.Datas.STRING);
-report.addField("prodref", com.openbravo.data.loader.Datas.STRING);
-report.addField("prodname", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRICESELL", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("totalunits", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("totalprice", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("taxrate", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("totaltax", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("totaltotal", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("catname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("prodref", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("prodname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRICESELL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("totalunits", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("totalprice", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("taxrate", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("totaltax", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("totaltotal", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

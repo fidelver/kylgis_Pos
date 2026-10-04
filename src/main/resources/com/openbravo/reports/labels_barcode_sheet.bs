@@ -1,5 +1,5 @@
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.BarcodeSheet");
 report.setReport("/com/openbravo/reports/labels_barcode_sheet");
@@ -16,11 +16,11 @@ report.setSentence("SELECT "
 report.addParameter("products.NAME");
 report.addParameter("products.CATEGORY");
 report.addParameter("products.CODE");
-report.addQBFFilter(new com.openbravo.pos.ticket.ProductFilter4());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter4());
 
-report.addField("CODE", com.openbravo.data.loader.Datas.STRING);
-report.addField("CODETYPE", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
+report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CODETYPE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;
 

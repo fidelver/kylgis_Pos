@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.InventoryQtyUpdate");
 report.setReport("/com/openbravo/reports/tools_inventoryqtyupdate");
@@ -28,10 +28,10 @@ report.setSentence("SELECT ROWNUMBER, CSVERROR, REFERENCE, CODE, PRICEBUY " +
         "WHERE CSVERROR = 'Qty update'" +
         "ORDER BY ROWNUMBER");
 
-report.addField("rownumber", com.openbravo.data.loader.Datas.STRING);
-report.addField("csverror", com.openbravo.data.loader.Datas.STRING);
-report.addField("reference", com.openbravo.data.loader.Datas.STRING);
-report.addField("code", com.openbravo.data.loader.Datas.STRING);
-report.addField("pricebuy", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("rownumber", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("csverror", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("reference", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("code", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("pricebuy", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

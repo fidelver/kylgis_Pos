@@ -149,28 +149,28 @@ WHERE CSVERROR ='Updated Price Details']]>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{previousbuy})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{previousbuy})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="379" y="0" width="52" height="13" uuid="372130d7-e057-4030-8b59-6e66948f9153"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{PRICEBUY})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICEBUY})]]></textFieldExpression>
 			</textField>
 			<textField pattern="###0.00">
 				<reportElement x="431" y="0" width="52" height="13" uuid="c5f412ca-2845-42ad-958a-cdd37373f526"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{previoussell})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{previoussell})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="483" y="0" width="52" height="13" uuid="23cbe7ef-9be3-45eb-baa5-3c4eae4bf891"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{pricesell})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{pricesell})]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>

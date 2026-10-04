@@ -130,14 +130,14 @@ WHERE CSVERROR ='New product']]>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{pricebuy})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{pricebuy})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="483" y="0" width="52" height="13" uuid="f03eaf85-0022-436c-b095-e290486b7eb3"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{pricesell})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{pricesell})]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>

@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.TaxCatSales");
 report.setReport("/com/openbravo/reports/sales_taxcatsales_2");
@@ -53,20 +53,20 @@ report.setSentence("SELECT " +
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
 
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
-report.addField("DATEEND", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("TAXNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("QTY", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("CATPRICE", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("CATTAX", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("CATTOTAL", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("DATEEND", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("TAXNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("QTY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATPRICE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATTAX", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATTOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

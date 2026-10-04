@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Customers.Reports.Report");
 report.setReport("/com/openbravo/reports/customers");
@@ -32,21 +32,21 @@ report.setSentence("SELECT ID, TAXID, " +
 
 report.addParameter("ID");
 report.addParameter("NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsCustomer());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsCustomer());
 
-report.addField("ID", com.openbravo.data.loader.Datas.STRING);
-report.addField("TAXID", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("ADDRESS", com.openbravo.data.loader.Datas.STRING);
-report.addField("ADDRESS2", com.openbravo.data.loader.Datas.STRING);
-report.addField("CITY", com.openbravo.data.loader.Datas.STRING);
-report.addField("POSTAL", com.openbravo.data.loader.Datas.STRING);
-report.addField("NOTES", com.openbravo.data.loader.Datas.STRING);
-report.addField("CARD", com.openbravo.data.loader.Datas.STRING);
-report.addField("MAXDEBT", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("CURDATE", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("CURDEBT", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("FIRSTNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("LASTNAME", com.openbravo.data.loader.Datas.STRING);
+report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TAXID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("ADDRESS", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("ADDRESS2", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CITY", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("POSTAL", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NOTES", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CARD", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("MAXDEBT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CURDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("CURDEBT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("FIRSTNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("LASTNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;

@@ -30,10 +30,10 @@
 
 
 <permissions>
-    <class name="com.openbravo.pos.customers.CustomersPayment"/>
-    <class name="com.openbravo.pos.panels.JPanelPayments"/>
-    <class name="com.openbravo.pos.sales.JPanelTicketEdits"/>
-    <class name="com.openbravo.pos.sales.JPanelTicketSales"/>
+    <class name="com.mx.kylgis.pos.customers.CustomersPayment"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelPayments"/>
+    <class name="com.mx.kylgis.pos.sales.JPanelTicketEdits"/>
+    <class name="com.mx.kylgis.pos.sales.JPanelTicketSales"/>
 
     <class name="payment.cash"/>
     <class name="payment.cheque"/>
@@ -61,22 +61,22 @@
     <class name="button.scharge"/>
     <class name="button.sendorder"/>
 
-<class name="com.openbravo.pos.forms.MenuCustomers"/>
-    <class name="com.openbravo.pos.customers.CustomersPanel"/>
+<class name="com.mx.kylgis.pos.forms.MenuCustomers"/>
+    <class name="com.mx.kylgis.pos.customers.CustomersPanel"/>
             <class name="/com/openbravo/reports/customers.bs"/>
             <class name="/com/openbravo/reports/customers_cards.bs"/>
             
-<class name="com.openbravo.pos.forms.MenuSuppliers"/>
-    <class name="com.openbravo.pos.suppliers.SuppliersPanel"/>
+<class name="com.mx.kylgis.pos.forms.MenuSuppliers"/>
+    <class name="com.mx.kylgis.pos.suppliers.SuppliersPanel"/>
             <class name="/com/openbravo/reports/suppliers.bs"/>
 
-<class name="com.openbravo.pos.forms.MenuMaintenance"/>
-    <class name="com.openbravo.pos.voucher.VoucherPanel"/>       
+<class name="com.mx.kylgis.pos.forms.MenuMaintenance"/>
+    <class name="com.mx.kylgis.pos.voucher.VoucherPanel"/>       
 
 <!-- EPM -->
-<class name="com.openbravo.pos.forms.MenuEmployees" />
+<class name="com.mx.kylgis.pos.forms.MenuEmployees" />
     <class name="Menu.ChangePassword"/>
-    <class name="com.openbravo.pos.panels.JPanelPrinter"/>
-    <class name="com.openbravo.pos.config.JPanelConfiguration"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelPrinter"/>
+    <class name="com.mx.kylgis.pos.config.JPanelConfiguration"/>
 
 </permissions>

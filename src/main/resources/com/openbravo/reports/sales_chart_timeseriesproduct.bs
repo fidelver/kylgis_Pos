@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.TimeSeriesProduct");
 report.setReport("/com/openbravo/reports/sales_chart_timeseriesproduct");
@@ -45,11 +45,11 @@ report.setSentence("SELECT "
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
 
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
@@ -60,14 +60,14 @@ report.addParameter("products.PRICEBUY");
 report.addParameter("products.PRICESELL");
 report.addParameter("products.CODE");
 
-report.addQBFFilter(new com.openbravo.pos.ticket.ProductFilter2());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter2());
 
-report.addField("code", com.openbravo.data.loader.Datas.STRING);
-report.addField("codetype", com.openbravo.data.loader.Datas.STRING);
-report.addField("prodref", com.openbravo.data.loader.Datas.STRING);
-report.addField("prodname", com.openbravo.data.loader.Datas.STRING);
-report.addField("datesold", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("datestamp", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("unitssold", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("code", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("codetype", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("prodref", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("prodname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("datesold", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("datestamp", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("unitssold", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

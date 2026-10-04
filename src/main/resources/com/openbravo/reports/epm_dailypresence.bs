@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.EPM.DailyPresenceReport");
 report.setReport("/com/openbravo/reports/epm_dailypresence");
@@ -37,17 +37,17 @@ report.setSentence("SELECT " +
 report.addParameter("shifts.STARTSHIFT");
 report.addParameter("shifts.ENDSHIFT");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
 
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("STARTSHIFT", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("ENDSHIFT", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("TOTAL", com.openbravo.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("STARTSHIFT", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("ENDSHIFT", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;

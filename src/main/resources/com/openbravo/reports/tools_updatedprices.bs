@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.UpdatedPrices");
 report.setReport("/com/openbravo/reports/tools_updatedprices");
@@ -28,12 +28,12 @@ report.setSentence("SELECT csvimport.REFERENCE, csvimport.CODE,"+
         " FROM csvimport WHERE csvimport.CSVERROR='Updated Price Details' ");
 
 
-report.addField("REFERENCE", com.openbravo.data.loader.Datas.STRING);
-report.addField("CODE", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRICEBUY", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("pricesell", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("previousbuy", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("previoussell", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRICEBUY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("pricesell", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("previousbuy", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("previoussell", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

@@ -93,7 +93,7 @@ ORDER BY
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement key="staticText-1" mode="Transparent" x="160" y="33" width="10" height="15" uuid="89d6c90c-cae6-4cce-b522-567439026d8a"/>
@@ -122,7 +122,7 @@ ORDER BY
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
 			</textField>
 			<rectangle radius="5">
 				<reportElement key="rectangle-2" mode="Opaque" x="0" y="50" width="535" height="2" forecolor="#33CCFF" backcolor="#33CCFF" uuid="dddf65d2-d40f-407d-b1b0-00207c11558b"/>
@@ -210,7 +210,7 @@ ORDER BY
 				<pieDataset>
 					<keyExpression><![CDATA[$F{CAT}]]></keyExpression>
 					<valueExpression><![CDATA[$F{UNITS}]]></valueExpression>
-					<labelExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue(new Double($F{UNITS}.doubleValue()))]]></labelExpression>
+					<labelExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue(new Double($F{UNITS}.doubleValue()))]]></labelExpression>
 				</pieDataset>
 				<pie3DPlot isCircular="true">
 					<plot>
@@ -257,7 +257,7 @@ ORDER BY
 				<pieDataset>
 					<keyExpression><![CDATA[$F{CAT}]]></keyExpression>
 					<valueExpression><![CDATA[$F{TOTAL}]]></valueExpression>
-					<labelExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{TOTAL}).toString()]]></labelExpression>
+					<labelExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{TOTAL}).toString()]]></labelExpression>
 				</pieDataset>
 				<pie3DPlot isShowLabels="true" isCircular="true">
 					<plot>

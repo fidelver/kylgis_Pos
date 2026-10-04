@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Suppliers.Reports.Creditors");
 report.setReport("/com/openbravo/reports/suppliers_creditors");
@@ -30,21 +30,21 @@ report.setSentence("SELECT ID, TAXID, NAME, ADDRESS, CURDEBT, CURDATE " +
 
 report.addParameter("ID");
 report.addParameter("NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsSuppliers());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsSuppliers());
 
 report.addParameter("CURDATE");
 report.addParameter("CURDATE");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 report.addQBFFilter(paramdates);
 
-report.addField("ID", com.openbravo.data.loader.Datas.STRING);
-report.addField("TAXID", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("ADDRESS", com.openbravo.data.loader.Datas.STRING);
-report.addField("CURDEBT", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("CURDATE", com.openbravo.data.loader.Datas.TIMESTAMP);
+report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TAXID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("ADDRESS", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CURDEBT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CURDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
 
 report;

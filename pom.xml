@@ -334,7 +334,7 @@
             <manifest> 
               <addClasspath>true</addClasspath>  
               <classpathPrefix>lib/</classpathPrefix>  
-              <mainClass>com.openbravo.pos.forms.StartPOS</mainClass> 
+              <mainClass>com.mx.kylgis.pos.forms.StartPOS</mainClass> 
             </manifest> 
           </archive> 
         </configuration> 

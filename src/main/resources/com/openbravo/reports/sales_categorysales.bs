@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.CategorySales");
 report.setReport("/com/openbravo/reports/sales_categorysales");
@@ -45,20 +45,20 @@ report.setSentence("SELECT " +
 report.addParameter("R.DATENEW");
 report.addParameter("R.DATENEW");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 report.addQBFFilter(paramdates);
 
 report.addParameter("C.id");
-report.addQBFFilter(new com.openbravo.pos.ticket.CategoryFilter());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.CategoryFilter());
 
-report.addField("DATENEW", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("ID", com.openbravo.data.loader.Datas.STRING);
-report.addField("CATNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("BASE", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("AMOUNT", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("UNITS", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("DATENEW", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("BASE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("AMOUNT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("UNITS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

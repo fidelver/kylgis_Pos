@@ -65,7 +65,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<graphicElement fill="Solid">
 					<pen lineWidth="0.0" lineStyle="Solid"/>
 				</graphicElement>
-				<imageExpression><![CDATA[com.openbravo.pos.util.BarcodeImage.getBarcode128($F{CARD})]]></imageExpression>
+				<imageExpression><![CDATA[com.mx.kylgis.pos.util.BarcodeImage.getBarcode128($F{CARD})]]></imageExpression>
 			</image>
 			<textField isBlankWhenNull="true">
 				<reportElement key="textField-12" x="60" y="95" width="175" height="13" uuid="92c1886d-da74-43e7-afa1-cf499e7d7e69"/>

@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Inventory.Reports.Diary");
 report.setReport("/com/openbravo/reports/inventory_diary");
@@ -42,28 +42,28 @@ report.setSentence("SELECT "
 
 report.addParameter("stockdiary.DATENEW");
 report.addParameter("stockdiary.DATENEW");
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 report.addQBFFilter(paramdates);
 
 report.addParameter("stockdiary.REASON");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsReason());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsReason());
 
 report.addParameter("suppliers.ID");
 report.addParameter("suppliers.NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsSuppliers());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsSuppliers());
 
-report.addField("DATENEW", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("REASON", com.openbravo.data.loader.Datas.INT);
-report.addField("SUPPLIERDOC", com.openbravo.data.loader.Datas.STRING);
-report.addField("UNITS", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("PRICE", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TOTALP", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("SUPPLIERNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRODUCTNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("REFERENCE", com.openbravo.data.loader.Datas.STRING);
-report.addField("CODE", com.openbravo.data.loader.Datas.STRING);
-report.addField("LOCATION", com.openbravo.data.loader.Datas.STRING);
+report.addField("DATENEW", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("REASON", com.mx.kylgis.pos.data.loader.Datas.INT);
+report.addField("SUPPLIERDOC", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("UNITS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("PRICE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALP", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("SUPPLIERNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODUCTNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("LOCATION", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;

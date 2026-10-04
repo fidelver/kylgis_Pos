@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.PaymentReport");
 report.setReport("/com/openbravo/reports/sales_payments");
@@ -37,18 +37,18 @@ report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
 //report.addParameter("payments.PAYMENT");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
 
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
-report.addField("GROUPDATE", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("DATENEW", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("PAYMENT", com.openbravo.data.loader.Datas.STRING);
-report.addField("NOTES", com.openbravo.data.loader.Datas.STRING);
-report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("GROUPDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("DATENEW", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("PAYMENT", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NOTES", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

@@ -203,7 +203,7 @@ ORDER BY NAME]]>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{CURDEBT})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{CURDEBT})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="370" y="0" width="85" height="15" uuid="5f2075d6-ad81-4987-b4cc-adb3e92b9c63"/>
@@ -281,7 +281,7 @@ ORDER BY NAME]]>
 				<textElement textAlignment="Right">
 					<font size="12" isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{CURDEBT_1})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($V{CURDEBT_1})]]></textFieldExpression>
 			</textField>
 			<line>
 				<reportElement key="line-2" x="435" y="2" width="100" height="1" uuid="10c851be-e86f-4cbb-b1f5-f9c52bd80c16"/>

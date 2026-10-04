@@ -53,7 +53,7 @@
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
 				<reportElement key="textField-3" mode="Transparent" x="170" y="33" width="110" height="15" uuid="b8440b59-f6e6-4367-919e-9eaa6b328261"/>
@@ -67,7 +67,7 @@
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement key="staticText-1" mode="Transparent" x="160" y="33" width="10" height="15" uuid="08ce72be-51c1-4d3b-b5d7-3cf6aea719f2"/>
@@ -170,7 +170,7 @@
 						<seriesExpression><![CDATA[$R{label.units}]]></seriesExpression>
 						<categoryExpression><![CDATA[$F{NAME}]]></categoryExpression>
 						<valueExpression><![CDATA[$F{UNITS}]]></valueExpression>
-						<labelExpression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue(new Double($F{UNITS}.doubleValue()))]]></labelExpression>
+						<labelExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue(new Double($F{UNITS}.doubleValue()))]]></labelExpression>
 					</categorySeries>
 				</categoryDataset>
 				<bar3DPlot isShowLabels="true">

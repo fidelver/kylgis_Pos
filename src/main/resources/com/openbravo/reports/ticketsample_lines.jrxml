@@ -24,7 +24,7 @@
  
  
  	<field name="productName" class="java.lang.String"/>
- 	<field name="_THIS" class="com.openbravo.pos.ticket.TicketLineInfo"/>
+ 	<field name="_THIS" class="com.mx.kylgis.pos.ticket.TicketLineInfo"/>
  
  		<background>
  			<band height="31"  isSplitAllowed="true" >

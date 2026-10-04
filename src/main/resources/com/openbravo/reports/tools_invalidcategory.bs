@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.InvalidCategory");
 report.setReport("/com/openbravo/reports/tools_invalidcategory");
@@ -30,11 +30,11 @@ report.setSentence("SELECT "
         + "WHERE (CSVERROR = 'Bad category details') "
         + "ORDER BY csvimport.CATEGORY");
 
-report.addField("reference", com.openbravo.data.loader.Datas.STRING);
-report.addField("code", com.openbravo.data.loader.Datas.STRING);
-report.addField("name", com.openbravo.data.loader.Datas.STRING);
-report.addField("rownumber", com.openbravo.data.loader.Datas.STRING);
-report.addField("csverror", com.openbravo.data.loader.Datas.STRING);
-report.addField("category", com.openbravo.data.loader.Datas.STRING);
+report.addField("reference", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("code", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("name", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("rownumber", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("csverror", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("category", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;

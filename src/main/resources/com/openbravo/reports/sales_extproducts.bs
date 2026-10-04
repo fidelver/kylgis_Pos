@@ -19,7 +19,7 @@
 
 // *** NOT SUITABLE FOR DERBY DB'S***
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.ExtendedByProducts");
 report.setReport("/com/openbravo/reports/sales_extproducts");
@@ -48,13 +48,13 @@ report.setSentence("SELECT " +
 
 report.addParameter("customers.ID");
  report.addParameter("customers.NAME");
- report.addQBFFilter(new com.openbravo.pos.reports.JParamsCustomer());
+ report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsCustomer());
 
  report.addParameter("receipts.DATENEW");
  report.addParameter("receipts.DATENEW");
- paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
- paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
- paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+ paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+ paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+ paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
  report.addQBFFilter(paramdates);
 
 report.addParameter("products.NAME");
@@ -62,15 +62,15 @@ report.addParameter("products.PRICEBUY");
 report.addParameter("products.PRICESELL");
 report.addParameter("products.CATEGORY");
 report.addParameter("products.CODE");
-report.addQBFFilter(new com.openbravo.pos.ticket.ProductFilter());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter());
 
-report.addField("CUSTname", com.openbravo.data.loader.Datas.STRING);
-report.addField("CATname", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRODref", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRODname", com.openbravo.data.loader.Datas.STRING);
-report.addField("TOTALunits", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TOTALnet", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TOTALtax", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TOTALgross", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("CUSTname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODref", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TOTALunits", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALnet", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALtax", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALgross", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

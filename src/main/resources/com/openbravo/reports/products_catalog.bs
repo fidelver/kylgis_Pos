@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Catalog");
 report.setReport("/com/openbravo/reports/products");
@@ -35,17 +35,17 @@ report.setSentence("SELECT " +
             "ORDER BY categories.NAME, products.NAME");
 
 report.addParameter("categories.ID");
-report.addQBFFilter(new com.openbravo.pos.ticket.CategoryFilter());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.CategoryFilter());
 
-report.addField("ID", com.openbravo.data.loader.Datas.STRING);
-report.addField("REFERENCE", com.openbravo.data.loader.Datas.STRING);
-report.addField("CODE", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("PRICEBUY", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("PRICESELL", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TAXCAT", com.openbravo.data.loader.Datas.STRING);
-report.addField("TAXCATNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("CATEGORY", com.openbravo.data.loader.Datas.STRING);
-report.addField("CATEGORYNAME", com.openbravo.data.loader.Datas.STRING);
+report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRICEBUY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("PRICESELL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TAXCAT", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TAXCATNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATEGORY", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATEGORYNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;

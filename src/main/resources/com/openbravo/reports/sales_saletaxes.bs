@@ -23,7 +23,7 @@
 // where the sum is obtained. It is therefore important to show on this 
 // report the taxes that were charged on a receipt but later refunded
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.SaleTaxes");
 report.setReport("/com/openbravo/reports/sales_saletaxes");
@@ -42,17 +42,17 @@ report.setSentence(
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
 
-paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
-paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
-report.addField("TICKETID", com.openbravo.data.loader.Datas.INT);
-report.addField("DATENEW", com.openbravo.data.loader.Datas.TIMESTAMP);
-report.addField("PAYMENT", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("AMOUNT", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("BASE", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("TICKETID", com.mx.kylgis.pos.data.loader.Datas.INT);
+report.addField("DATENEW", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("PAYMENT", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("AMOUNT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("BASE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 report;

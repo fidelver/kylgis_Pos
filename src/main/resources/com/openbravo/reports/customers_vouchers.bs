@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Customers.Reports.Vouchers");
 report.setReport("/com/openbravo/reports/customers_vouchers");
@@ -45,14 +45,14 @@ report.setSentence("SELECT customers.name AS CNAME, " +
 
 report.addParameter("ID");
 report.addParameter("NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsCustomer());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsCustomer());
 
-report.addField("CNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("VNUM", com.openbravo.data.loader.Datas.STRING);
-report.addField("VAMOUNT", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("VSTATUS", com.openbravo.data.loader.Datas.STRING);
-report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("TICKETID", com.openbravo.data.loader.Datas.STRING);
-report.addField("TDATE", com.openbravo.data.loader.Datas.TIMESTAMP);
+report.addField("CNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("VNUM", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("VAMOUNT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("VSTATUS", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TICKETID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
 
 report;

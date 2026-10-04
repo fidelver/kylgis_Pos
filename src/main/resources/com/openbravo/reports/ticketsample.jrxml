@@ -11,7 +11,7 @@
 	<parameter name="SUBREPORT_DIR" class="java.lang.String">
 		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
 	</parameter>
-	<field name="TICKET" class="com.openbravo.pos.ticket.TicketInfo"/>
+	<field name="TICKET" class="com.mx.kylgis.pos.ticket.TicketInfo"/>
 	<field name="PLACE" class="java.lang.String"/>
 	<field name="TAXESLOGIC" class="java.lang.Object"/>
 	<background>

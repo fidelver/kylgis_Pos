@@ -22,7 +22,7 @@
 
         import java.awt.Font;
         import javax.swing.plaf.FontUIResource;
-        import com.openbravo.pos.payment.PaymentInfo;
+        import com.mx.kylgis.pos.payment.PaymentInfo;
         import javax.swing.JOptionPane;
         import javax.swing.JDialog;
         import java.awt.Window;

@@ -111,7 +111,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<graphicElement fill="Solid">
 					<pen lineWidth="0.0" lineStyle="Solid"/>
 				</graphicElement>
-				<imageExpression><![CDATA[com.openbravo.pos.util.BarcodeImage.getBarcode128($F{CARD})]]></imageExpression>
+				<imageExpression><![CDATA[com.mx.kylgis.pos.util.BarcodeImage.getBarcode128($F{CARD})]]></imageExpression>
 			</image>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField-6" x="270" y="10" width="100" height="15" uuid="fdec424d-5787-4b48-8848-d52a8ef0381c"/>
@@ -137,7 +137,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{MAXDEBT})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{MAXDEBT})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField-8" x="270" y="30" width="100" height="15" uuid="b1839f2d-fbfd-445e-be72-b6cabb538eae"/>
@@ -163,7 +163,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{CURDEBT})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{CURDEBT})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField-10" x="270" y="50" width="100" height="15" uuid="1c747f91-2f14-4ea3-a86c-fecb25e65baf"/>
@@ -189,7 +189,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.DATE.formatValue($F{CURDATE})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue($F{CURDATE})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
 				<reportElement key="textField-12" x="27" y="53" width="195" height="13" uuid="716c3b29-6d49-474e-b0d1-ea7d2d650f92"/>

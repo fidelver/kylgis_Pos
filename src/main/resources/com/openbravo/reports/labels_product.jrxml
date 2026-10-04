@@ -134,7 +134,7 @@
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="32" isBold="true" isItalic="false" pdfFontName="Helvetica-Bold"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{PRICESELL} * $F{TAXRATE})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICESELL} * $F{TAXRATE})]]></textFieldExpression>
 			</textField>
 			<image scaleImage="RetainShape" hAlign="Center" vAlign="Middle">
 				<reportElement key="barcode-1" x="13" y="167" width="150" height="46" uuid="d9809aed-66b1-4e81-a15f-22233dd9f695"/>
@@ -147,12 +147,12 @@
 				<graphicElement fill="Solid">
 					<pen lineWidth="0.0" lineStyle="Solid"/>
 				</graphicElement>
-				<imageExpression><![CDATA[($F{CODETYPE}.equalsIgnoreCase("EAN-13") ? com.openbravo.pos.util.BarcodeImage.getBarcodeEAN13($F{CODE}) :
-    ($F{CODETYPE}.equalsIgnoreCase("EAN-8") ? com.openbravo.pos.util.BarcodeImage.getBarcodeEAN8($F{CODE}) :
-        ($F{CODETYPE}.equalsIgnoreCase("UPC-A") ? com.openbravo.pos.util.BarcodeImage.getBarcodeUPCA($F{CODE}) :
-            ($F{CODETYPE}.equalsIgnoreCase("UPC-E") ? com.openbravo.pos.util.BarcodeImage.getBarcodeUPCE($F{CODE}) :
-                ($F{CODETYPE}.equalsIgnoreCase("CODE128") ? com.openbravo.pos.util.BarcodeImage.getBarcode128($F{CODE}) :
-                    com.openbravo.pos.util.BarcodeImage.getBarcodeUPCE($F{CODE})
+				<imageExpression><![CDATA[($F{CODETYPE}.equalsIgnoreCase("EAN-13") ? com.mx.kylgis.pos.util.BarcodeImage.getBarcodeEAN13($F{CODE}) :
+    ($F{CODETYPE}.equalsIgnoreCase("EAN-8") ? com.mx.kylgis.pos.util.BarcodeImage.getBarcodeEAN8($F{CODE}) :
+        ($F{CODETYPE}.equalsIgnoreCase("UPC-A") ? com.mx.kylgis.pos.util.BarcodeImage.getBarcodeUPCA($F{CODE}) :
+            ($F{CODETYPE}.equalsIgnoreCase("UPC-E") ? com.mx.kylgis.pos.util.BarcodeImage.getBarcodeUPCE($F{CODE}) :
+                ($F{CODETYPE}.equalsIgnoreCase("CODE128") ? com.mx.kylgis.pos.util.BarcodeImage.getBarcode128($F{CODE}) :
+                    com.mx.kylgis.pos.util.BarcodeImage.getBarcodeUPCE($F{CODE})
                 )
             )
         )
@@ -170,7 +170,7 @@
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{PRICESELL})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICESELL})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField-10" x="91" y="103" width="72" height="18" uuid="85db9fd0-3824-4c93-b277-4091f0764c92"/>
@@ -183,7 +183,7 @@
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
-				<textFieldExpression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue(($F{PRICESELL} * $F{TAXRATE}) - $F{PRICESELL})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue(($F{PRICESELL} * $F{TAXRATE}) - $F{PRICESELL})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="14" y="85" width="77" height="18" uuid="942bf3ae-6b02-4b16-ad31-b5bc0afbc28d"/>

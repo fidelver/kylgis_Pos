@@ -40,4 +40,4 @@ REM
 
 
 
-start /B javaw -cp %CP% com.openbravo.pos.config.JFrmConfig
+start /B javaw -cp %CP% com.mx.kylgis.pos.config.JFrmConfig

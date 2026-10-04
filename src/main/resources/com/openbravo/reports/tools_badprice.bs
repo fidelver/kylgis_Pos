@@ -18,7 +18,7 @@
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
 
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.BadPrice");
 report.setReport("/com/openbravo/reports/tools_badprice");
@@ -31,10 +31,10 @@ report.setSentence("SELECT "
         + "WHERE csvimport.CSVERROR='New product' "
         + "ORDER BY csvimport.REFERENCE");
 
-report.addField("reference", com.openbravo.data.loader.Datas.STRING);
-report.addField("code", com.openbravo.data.loader.Datas.STRING);
-report.addField("name", com.openbravo.data.loader.Datas.STRING);
-report.addField("pricebuy", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("pricesell", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("reference", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("code", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("name", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("pricebuy", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("pricesell", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

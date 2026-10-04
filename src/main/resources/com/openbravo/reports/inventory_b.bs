@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
 
 report.setTitleKey("Menu.Inventory");
 report.setReport("/com/openbravo/reports/inventory_b");
@@ -50,33 +50,33 @@ report.setSentence("SELECT " +
     "ORDER BY LOCATIONID ASC, CATEGORYNAME ASC, PRODUCTNAME ASC");
 
 report.addParameter("stockcurrent.LOCATION");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsLocationWithFirst());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsLocationWithFirst());
 
 report.addParameter("suppliers.ID");
 report.addParameter("suppliers.NAME");
-report.addQBFFilter(new com.openbravo.pos.reports.JParamsSuppliers());
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsSuppliers());
 
 report.addParameter("products.NAME");
 report.addParameter("products.CATEGORY");
 report.addParameter("products.CODE");
 report.addParameter("stockcurrent.UNITS");
-report.addQBFFilter(new com.openbravo.pos.ticket.ProductFilter1());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter1());
 
-report.addField("LOCATIONID", com.openbravo.data.loader.Datas.STRING);
-report.addField("LOCATIONNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("REFERENCE", com.openbravo.data.loader.Datas.STRING);
-report.addField("NAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("CATEGORY", com.openbravo.data.loader.Datas.STRING);
-report.addField("CATEGORYNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("SUPPLIER", com.openbravo.data.loader.Datas.STRING);
-report.addField("UNITS", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("PRICEBUY", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("PRICESELL", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("STOCKVOLUME", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("STOCKCOST", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("STOCKSECURITY", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("STOCKMAXIMUM", com.openbravo.data.loader.Datas.DOUBLE);
-report.addField("SUPPLIERNAME", com.openbravo.data.loader.Datas.STRING);
-report.addField("UOM", com.openbravo.data.loader.Datas.STRING);
+report.addField("LOCATIONID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("LOCATIONNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATEGORY", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATEGORYNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("SUPPLIER", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("UNITS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("PRICEBUY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("PRICESELL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("STOCKVOLUME", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("STOCKCOST", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("STOCKSECURITY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("STOCKMAXIMUM", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("SUPPLIERNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("UOM", com.mx.kylgis.pos.data.loader.Datas.STRING);
 
 report;

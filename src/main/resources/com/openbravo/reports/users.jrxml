@@ -116,7 +116,7 @@ FROM PEOPLE, ROLES WHERE PEOPLE.ROLE = ROLES.ID AND PEOPLE.VISIBLE = TRUE AND PE
 				<graphicElement fill="Solid">
 					<pen lineWidth="0.0" lineStyle="Solid"/>
 				</graphicElement>
-				<imageExpression><![CDATA[com.openbravo.pos.util.BarcodeImage.getBarcode128($F{CARD})]]></imageExpression>
+				<imageExpression><![CDATA[com.mx.kylgis.pos.util.BarcodeImage.getBarcode128($F{CARD})]]></imageExpression>
 			</image>
 			<textField isBlankWhenNull="false">
 				<reportElement key="textField" x="88" y="51" width="125" height="15" uuid="58406b53-7c5c-469a-88b0-cc7c2d1442b8"/>
