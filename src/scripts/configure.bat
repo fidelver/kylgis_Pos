@@ -22,4 +22,4 @@ set DIRNAME=%~dp0
 set CP="%DIRNAME%unicentaopos.jar"
 set CP=%CP%;"%DIRNAME%locales/"
 
-start /B javaw -cp %CP% com.openbravo.pos.config.JFrmConfig
+start /B javaw -cp %CP% com.mx.kylgis.pos.config.JFrmConfig

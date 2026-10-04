@@ -87,7 +87,7 @@ group = menu.addGroup("Menu.Backoffice");
 
 
     submenu = group.addSubmenu("/com/openbravo/images/maintain.png", "Menu.Maintenance", "com.mx.kylgis.pos.forms.MenuMaintenance");
-    submenu.addTitle("Menu.Panel.Maintenance.Forms");        
+    submenu.addTitle("Menu.Panel.Maintenance.Forms");
         submenu.addPanel("/com/openbravo/images/resources.png", "Menu.Resources", "com.mx.kylgis.pos.admin.ResourcesPanel");
         submenu.addPanel("/com/openbravo/images/roles.png", "Menu.Roles", "com.mx.kylgis.pos.admin.RolesPanel");
         submenu.addPanel("/com/openbravo/images/user.png", "Menu.Users", "com.mx.kylgis.pos.admin.PeoplePanel");
@@ -116,9 +116,9 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.DailyScheduleReport", "/com/openbravo/reports/epm_dailyschedule.bs");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.PerformanceReport", "/com/openbravo/reports/epm_performance.bs");
 
- 
+
     group = menu.addGroup("Menu.Utilities");
-    submenu = group.addSubmenu("/com/openbravo/images/utilities.png", "Menu.Tools", "com.mx.kylgis.pos.imports.JPanelCSV");	
+    submenu = group.addSubmenu("/com/openbravo/images/utilities.png", "Menu.Tools", "com.mx.kylgis.pos.imports.JPanelCSV");
     submenu.addTitle("Menu.Import");
         submenu.addPanel("/com/openbravo/images/import.png", "Menu.CSVImport", "com.mx.kylgis.pos.imports.JPanelCSVImport");
         submenu.addPanel("/com/openbravo/images/import.png", "Menu.CSVStockQty", "com.mx.kylgis.pos.imports.StockQtyImport");
@@ -142,7 +142,7 @@ group = menu.addGroup("Menu.Backoffice");
 
 // Deprecated options. Only required with Openbravo ERP software
 //       submenu.addTitle("Menu.Maintenance.ERP");
-//       submenu.addExecution("/com/openbravo/images/openbravo.png", "Menu.ERPProducts", "com.openbravo.possync.ProductsSyncCreate");
-//       submenu.addExecution("/com/openbravo/images/openbravo.png", "Menu.ERPOrders", "com.openbravo.possync.OrdersSyncCreate");
+//       submenu.addExecution("/com/openbravo/images/openbravo.png", "Menu.ERPProducts", "com.mx.kylgis.pos.sync.ProductsSyncCreate");
+//       submenu.addExecution("/com/openbravo/images/openbravo.png", "Menu.ERPOrders", "com.mx.kylgis.pos.sync.OrdersSyncCreate");
 
     group.addExitAction();

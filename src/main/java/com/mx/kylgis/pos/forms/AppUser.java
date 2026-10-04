@@ -241,8 +241,8 @@ public class AppUser {
         m_oldclasses.put("net.adrianromero.tpv.inventory.LocationsPanel", "com.mx.kylgis.pos.inventory.LocationsPanel");
         m_oldclasses.put("net.adrianromero.tpv.mant.JPanelFloors", "com.mx.kylgis.pos.mant.JPanelFloors");
         m_oldclasses.put("net.adrianromero.tpv.mant.JPanelPlaces", "com.mx.kylgis.pos.mant.JPanelPlaces");
-        m_oldclasses.put("com.openbravo.possync.ProductsSync", "com.openbravo.possync.ProductsSyncCreate");
-        m_oldclasses.put("com.openbravo.possync.OrdersSync", "com.openbravo.possync.OrdersSyncCreate");
+        m_oldclasses.put("com.mx.kylgis.pos.sync.ProductsSync", "com.mx.kylgis.pos.sync.ProductsSyncCreate");
+        m_oldclasses.put("com.mx.kylgis.pos.sync.OrdersSync", "com.mx.kylgis.pos.sync.OrdersSyncCreate");
 
         m_oldclasses.put("Menu.ChangePassword", "Menu.ChangePassword");
         m_oldclasses.put("net.adrianromero.tpv.panels.JPanelPrinter", "com.mx.kylgis.pos.panels.JPanelPrinter");
