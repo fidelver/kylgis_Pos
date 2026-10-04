@@ -7,3 +7,5 @@
 /backup/
 derby.log
 *.backup
+
+*.backup-*
