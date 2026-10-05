@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.forms;
 
 import java.io.File;
@@ -278,7 +279,7 @@ public class AppConfig implements AppProperties {
 // primary DB
         m_propsconfig.setProperty("db.name", "Main DB");
         m_propsconfig.setProperty("db.URL", "jdbc:mysql://localhost:3306/"); 
-        m_propsconfig.setProperty("db.schema", "unicentaopos");
+        m_propsconfig.setProperty("db.schema", "kylgispos");
         m_propsconfig.setProperty("db.options", "?zeroDateTimeBehavior=convertToNull");        
         m_propsconfig.setProperty("db.user", "username");
         m_propsconfig.setProperty("db.password", "password");     
@@ -286,7 +287,7 @@ public class AppConfig implements AppProperties {
 // secondary DB        
         m_propsconfig.setProperty("db1.name", "");        
         m_propsconfig.setProperty("db1.URL", "jdbc:mysql://localhost:3306/"); 
-        m_propsconfig.setProperty("db1.schema", "unicentaopos");
+        m_propsconfig.setProperty("db1.schema", "kylgispos");
         m_propsconfig.setProperty("db1.options", "?zeroDateTimeBehavior=convertToNull");        
         m_propsconfig.setProperty("db1.user", "");
         m_propsconfig.setProperty("db1.password", ""); 
@@ -342,15 +343,20 @@ public class AppConfig implements AppProperties {
         m_propsconfig.setProperty("paper.standard.height", "698");
         m_propsconfig.setProperty("paper.standard.mediasizename", "A4");
 
-        m_propsconfig.setProperty("tkt.header1", "uniCenta oPOS");
-        m_propsconfig.setProperty("tkt.header2", "Touch Friendly Point Of Sale");
-        m_propsconfig.setProperty("tkt.header3", "Copyright (c) 2009-2018 uniCenta");
-        m_propsconfig.setProperty("tkt.header4", "Change header text in Configuration");                
-        
-        m_propsconfig.setProperty("tkt.footer1", "Change footer text in Configuration");        
-        m_propsconfig.setProperty("tkt.footer2", "Thank you for your custom");
-        m_propsconfig.setProperty("tkt.footer3", "Please Call Again");
-        
+        m_propsconfig.setProperty("tkt.header1", "Nombre o Razón Social");
+        m_propsconfig.setProperty("tkt.header2", "RFC");
+        m_propsconfig.setProperty("tkt.header3", "Régimen Fiscal");
+        m_propsconfig.setProperty("tkt.header4", "Dirección 1");
+        m_propsconfig.setProperty("tkt.header5", "Dirección 2");
+        m_propsconfig.setProperty("tkt.header6", "Dirección 3");
+
+        m_propsconfig.setProperty("tkt.footer1", "Nombre del Negocio");
+        m_propsconfig.setProperty("tkt.footer2", "Gracias por su preferencia");
+        m_propsconfig.setProperty("tkt.footer3", "Quejas o sugerencias:");
+        m_propsconfig.setProperty("tkt.footer4", "Teléfono");
+        m_propsconfig.setProperty("tkt.footer5", "Correo Electrónico");
+        m_propsconfig.setProperty("tkt.footer6", "Página Web");
+
         m_propsconfig.setProperty("table.showcustomerdetails", "true");
         m_propsconfig.setProperty("table.customercolour", "#58B000");        
         m_propsconfig.setProperty("table.showwaiterdetails", "true");
