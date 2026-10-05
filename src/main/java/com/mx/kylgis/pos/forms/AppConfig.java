@@ -316,7 +316,8 @@ public class AppConfig implements AppProperties {
         m_propsconfig.setProperty("machine.scanner", "Not defined");
         m_propsconfig.setProperty("machine.iButton", "false");  
         m_propsconfig.setProperty("machine.iButtonResponse","5");
-        m_propsconfig.setProperty("machine.uniqueinstance", "true");        
+        m_propsconfig.setProperty("machine.uniqueinstance", "true");
+        m_propsconfig.setProperty("machine.maxinstances", "2");
         
         m_propsconfig.setProperty("payment.gateway", "external");
         m_propsconfig.setProperty("payment.magcardreader", "Not defined");

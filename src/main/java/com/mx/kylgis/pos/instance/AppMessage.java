@@ -32,5 +32,8 @@ public interface AppMessage extends Remote {
      *
      * @throws RemoteException
      */
-    public void restoreWindow() throws RemoteException;    
+    public void restoreWindow() throws RemoteException;
+
+    /** Verifies that the registered instance is still alive. */
+    public boolean isAlive() throws RemoteException;
 }

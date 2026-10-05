@@ -1,51 +1,50 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
-//
-//    This file is part of uniCenta oPOS
-//
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//   uniCenta oPOS is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
 package com.mx.kylgis.pos.instance;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- *
- * @author adrianromero
- */
+/** Discovers independent RMI instance slots belonging to one APP_ID. */
 public class InstanceQuery {
-    
-    private final AppMessage m_appstub;
-    
-    /** Creates a new instance of InstanceQuery
-     * @throws java.rmi.RemoteException
-     * @throws java.rmi.NotBoundException */
-    public InstanceQuery() throws RemoteException, NotBoundException {
-        
-        Registry registry = LocateRegistry.getRegistry();           
-        m_appstub = (AppMessage) registry.lookup("AppMessage");
+
+    private static final int BASE_PORT = 20000;
+    private static final int APP_BUCKETS = 1000;
+    private static final int PORTS_PER_APP = 20;
+
+    private InstanceQuery() {
     }
-    
-    /**
-     *
-     * @return
-     */
-    public AppMessage getAppMessage() {
-        return m_appstub;
+
+    public static int getPort(String appId, int slot) {
+        int bucket = (appId.hashCode() & 0x7fffffff) % APP_BUCKETS;
+        return BASE_PORT + (bucket * PORTS_PER_APP) + (slot - 1);
+    }
+
+    public static List<AppMessage> getLiveInstances(String appId, int maxInstances) {
+        List<AppMessage> instances = new ArrayList<>();
+        for (int slot = 1; slot <= maxInstances; slot++) {
+            try {
+                Registry registry = LocateRegistry.getRegistry("127.0.0.1", getPort(appId, slot));
+                AppMessage message = (AppMessage) registry.lookup(InstanceManager.BINDING_NAME);
+                if (message.isAlive()) {
+                    instances.add(message);
+                }
+            } catch (NotBoundException | RemoteException ignored) {
+            }
+        }
+        return instances;
+    }
+
+    public static boolean restoreFirst(String appId, int maxInstances) {
+        for (AppMessage message : getLiveInstances(appId, maxInstances)) {
+            try {
+                message.restoreWindow();
+                return true;
+            } catch (RemoteException ignored) {
+            }
+        }
+        return false;
     }
 }

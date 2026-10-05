@@ -67,13 +67,15 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
         m_rootapp = new JRootApp();
 
         if (m_rootapp.initApp(m_props)) {
-
-            if ("true".equals(props.getProperty("machine.uniqueinstance"))) {
-                // Register the running application
-                try {
-                    m_instmanager = new InstanceManager(this);
-                } catch (RemoteException | AlreadyBoundException e) {
-                }
+            // Atomically claim one of the configured instance slots for this APP_ID.
+            try {
+                m_instmanager = new InstanceManager(this, AppLocal.APP_ID, StartPOS.getMaxInstances(props));
+            } catch (AlreadyBoundException e) {
+                // The configured instance limit was reached; an existing window was restored.
+                System.exit(1);
+                return;
+            } catch (RemoteException e) {
+                // If RMI itself is unavailable, keep the POS usable rather than blocking startup.
             }
 
             // Show the application
@@ -115,14 +117,28 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
      * @throws RemoteException
      */
     @Override
+    public boolean isAlive() throws RemoteException {
+        return true;
+    }
+
+    @Override
     public void restoreWindow() throws RemoteException {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                if (getExtendedState() == JFrame.ICONIFIED) {
-                    setExtendedState(JFrame.NORMAL);
+                // Make the existing instance visible and ask the desktop to activate it.
+                if (!isVisible()) {
+                    setVisible(true);
                 }
+
+                int state = getExtendedState();
+                if ((state & JFrame.ICONIFIED) != 0) {
+                    setExtendedState(state & ~JFrame.ICONIFIED);
+                }
+
+                toFront();
                 requestFocus();
+                requestFocusInWindow();
             }
         });
     }

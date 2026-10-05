@@ -21,8 +21,6 @@ package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.instance.InstanceQuery;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,29 +42,39 @@ public class StartPOS {
     private StartPOS() {
     }
 
-    public static boolean registerApp() {
-                       
-        InstanceQuery i = null;
+    public static int getMaxInstances(AppProperties config) {
+        if ("true".equals(config.getProperty("machine.uniqueinstance"))) {
+            return 1;
+        }
         try {
-            i = new InstanceQuery();
-            i.getAppMessage().restoreWindow();
-            return false;
-        } catch (RemoteException | NotBoundException e) {
+            return Math.max(2, Integer.parseInt(config.getProperty("machine.maxinstances")));
+        } catch (NumberFormatException | NullPointerException ex) {
+            return 2;
+        }
+    }
+
+    private static boolean instanceLimitReached(AppProperties config) {
+        int maxInstances = getMaxInstances(config);
+        if (InstanceQuery.getLiveInstances(AppLocal.APP_ID, maxInstances).size() >= maxInstances) {
+            InstanceQuery.restoreFirst(AppLocal.APP_ID, maxInstances);
             return true;
-        }  
+        }
+        return false;
     }
 
     public static void main (final String args[]) {
 
         SwingUtilities.invokeLater (() -> {
-            if (!registerApp()) {
-                System.exit(1);
-            } 
-            
             AppConfig config = new AppConfig(args);
-            
             config.load();
-            
+
+            // Fast path: if all slots are already occupied, activate an existing
+            // instance before initializing the database and the rest of the UI.
+            if (instanceLimitReached(config)) {
+                System.exit(1);
+                return;
+            }
+
             String slang = config.getProperty("user.language");
             String scountry = config.getProperty("user.country");
             String svariant = config.getProperty("user.variant");

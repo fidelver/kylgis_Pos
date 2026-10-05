@@ -47,6 +47,8 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
         
         jTextAutoLogoffTime.getDocument().addDocumentListener(dirty);
         jchkInstance.addActionListener(dirty);
+        jMaxInstances.addChangeListener(e -> dirty.actionPerformed(null));
+        jchkInstance.addActionListener(e -> updateMaxInstancesState());
         jchkTextOverlay.addActionListener(dirty);
         jchkAutoLogoff.addActionListener(dirty);
         jchkAutoLogoffToTables.addActionListener(dirty);
@@ -111,7 +113,15 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
         }
         jTxtautoRefreshTimer.setText(config.getProperty("till.autoRefreshTimer"));
 
-        jchkInstance.setSelected(Boolean.parseBoolean(config.getProperty("machine.uniqueinstance"))); 
+        jchkInstance.setSelected(Boolean.parseBoolean(config.getProperty("machine.uniqueinstance")));
+        int maxInstances = 2;
+        try {
+            maxInstances = Math.max(2, Integer.parseInt(config.getProperty("machine.maxinstances") == null ? "2" : config.getProperty("machine.maxinstances")));
+        } catch (NumberFormatException ex) {
+            maxInstances = 2;
+        }
+        jMaxInstances.setValue(maxInstances);
+        updateMaxInstancesState();
 
         jchkTextOverlay.setSelected(Boolean.parseBoolean(config.getProperty("payments.textoverlay")));        
         jchkAutoLogoff.setSelected(Boolean.parseBoolean(config.getProperty("till.autoLogoff")));    
@@ -216,6 +226,7 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
         
         config.setProperty("till.autotimer",jTextAutoLogoffTime.getText());
         config.setProperty("machine.uniqueinstance", Boolean.toString(jchkInstance.isSelected()));
+        config.setProperty("machine.maxinstances", jMaxInstances.getValue().toString());
         config.setProperty("table.showcustomerdetails", Boolean.toString(jchkShowCustomerDetails.isSelected()));
         config.setProperty("table.showwaiterdetails", Boolean.toString(jchkShowWaiterDetails.isSelected()));        
         config.setProperty("payments.textoverlay", Boolean.toString(jchkTextOverlay.isSelected()));         
@@ -260,6 +271,8 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         jchkInstance = new javax.swing.JCheckBox();
+        jLabelMaxInstances = new javax.swing.JLabel();
+        jMaxInstances = new javax.swing.JSpinner();
         jLabelInactiveTime = new javax.swing.JLabel();
         jTextAutoLogoffTime = new javax.swing.JTextField();
         jLabelTimedMessage = new javax.swing.JLabel();
@@ -320,6 +333,14 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
         jchkInstance.setMinimumSize(new java.awt.Dimension(0, 0));
         jchkInstance.setOpaque(false);
         jchkInstance.setPreferredSize(new java.awt.Dimension(250, 25));
+
+        jLabelMaxInstances.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelMaxInstances.setText(bundle.getString("label.maxinstances")); // NOI18N
+        jLabelMaxInstances.setPreferredSize(new java.awt.Dimension(140, 25));
+
+        jMaxInstances.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jMaxInstances.setModel(new javax.swing.SpinnerNumberModel(2, 2, 20, 1));
+        jMaxInstances.setPreferredSize(new java.awt.Dimension(60, 25));
 
         jLabelInactiveTime.setBackground(new java.awt.Color(255, 255, 255));
         jLabelInactiveTime.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -641,7 +662,12 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
                                     .addGroup(layout.createSequentialGroup()
                                         .addGap(10, 10, 10)
                                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addComponent(jchkInstance, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addGroup(layout.createSequentialGroup()
+                                                .addComponent(jchkInstance, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(jLabelMaxInstances, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(jMaxInstances, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE))
                                             .addComponent(jTaxIncluded, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                             .addComponent(jchkTextOverlay, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                             .addComponent(jchkPriceUpdate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -674,6 +700,8 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jchkInstance, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabelMaxInstances, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jMaxInstances, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jMoveAMountBoxToTop, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -731,6 +759,12 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
                 .addGap(32, 32, 32))
         );
     }// </editor-fold>//GEN-END:initComponents
+
+    private void updateMaxInstancesState() {
+        boolean multiInstance = !jchkInstance.isSelected();
+        jLabelMaxInstances.setEnabled(multiInstance);
+        jMaxInstances.setEnabled(multiInstance);
+    }
 
     private void jchkAutoLogoffActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jchkAutoLogoffActionPerformed
         if (jchkAutoLogoff.isSelected()){
@@ -805,6 +839,7 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabelInactiveTime;
+    private javax.swing.JLabel jLabelMaxInstances;
     private javax.swing.JLabel jLabelInactiveTime1;
     private javax.swing.JLabel jLabelSCRate;
     private javax.swing.JLabel jLabelSCRatePerCent;
@@ -812,6 +847,7 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
     private javax.swing.JLabel jLabelTimedMessage;
     private javax.swing.JLabel jLblautoRefresh;
     private javax.swing.JCheckBox jMoveAMountBoxToTop;
+    private javax.swing.JSpinner jMaxInstances;
     private javax.swing.JCheckBox jTaxIncluded;
     private javax.swing.JTextField jTextAutoLogoffTime;
     private javax.swing.JTextField jTextSCRate;

@@ -1,52 +1,57 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
-//
-//    This file is part of uniCenta oPOS
-//
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//   uniCenta oPOS is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
 package com.mx.kylgis.pos.instance;
 
 import java.rmi.AlreadyBoundException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 /**
- *
- * @author adrianromero
+ * Owns one independent RMI registry/slot for a running POS instance.
+ * Each APP_ID receives its own deterministic range of local ports.
  */
 public class InstanceManager {
-    
-    private final Registry m_registry;
-    private final AppMessage m_message;
-    
-    /** Creates a new instance of InstanceManager
-     * @param message
-     * @throws java.rmi.RemoteException
-     * @throws java.rmi.AlreadyBoundException */
-    public InstanceManager(AppMessage message) throws RemoteException, AlreadyBoundException {
 
-        m_registry = LocateRegistry.createRegistry(Registry.REGISTRY_PORT);
+    public static final String BINDING_NAME = "AppMessage";
+    private final AppMessage message;
+    private Registry registry;
+    private int slot;
+    private int port;
 
-        m_message = message;
+    public InstanceManager(AppMessage message, String appId, int maxInstances)
+            throws RemoteException, AlreadyBoundException {
+        this.message = message;
+        AppMessage stub = (AppMessage) UnicastRemoteObject.exportObject(this.message, 0);
 
-        AppMessage stub = (AppMessage) UnicastRemoteObject.exportObject(m_message, 0);
-        m_registry.bind("AppMessage", stub); 
+        for (int candidateSlot = 1; candidateSlot <= maxInstances; candidateSlot++) {
+            int candidatePort = InstanceQuery.getPort(appId, candidateSlot);
+            try {
+                Registry candidateRegistry = LocateRegistry.createRegistry(candidatePort);
+                candidateRegistry.bind(BINDING_NAME, stub);
+                registry = candidateRegistry;
+                slot = candidateSlot;
+                port = candidatePort;
+                return;
+            } catch (RemoteException | AlreadyBoundException occupied) {
+                // Another live process owns this slot/port. Try the next one.
+            }
+        }
 
-        // jLabel1.setText("Server ready");
-    }    
+        // No free slot: restore the first live instance and reject this process.
+        InstanceQuery.restoreFirst(appId, maxInstances);
+        try {
+            UnicastRemoteObject.unexportObject(this.message, true);
+        } catch (Exception ignored) {
+        }
+        throw new AlreadyBoundException("Maximum number of instances reached for " + appId);
+    }
+
+    public int getSlot() {
+        return slot;
+    }
+
+    public int getPort() {
+        return port;
+    }
 }
