@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    KylGis POS Punto de Venta Táctil
+    Copyright (c) 2026 KylGis POS
+    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+
+    This file is part of KylGis POS
+
+    KylGis POS is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    KylGis POS is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!--
+    The Administrator Role Permissions has full access to all KylGis POS
+    functionality.
+    The Administrator Role should only be used to make system changes.
+
+    *** Do not change unless you know what you are doing ***
+-->
+
+
+<permissions>
+    <class name="com.mx.kylgis.pos.customers.CustomersPayment"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelCloseMoney"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelCloseMoneyReprint"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelPayments"/>
+    <class name="com.mx.kylgis.pos.sales.JPanelTicketEdits"/>
+    <class name="com.mx.kylgis.pos.sales.JPanelTicketSales"/>
+
+    <class name="payment.bank"/>
+    <class name="payment.cash"/>
+    <class name="payment.cheque"/>
+    <class name="payment.debt"/>
+    <class name="payment.free"/>
+    <class name="payment.magcard"/>
+    <class name="payment.slip"/>
+    <class name="payment.voucher"/>
+    <class name="refund.cash"/>
+    <class name="refund.cheque"/>
+    <class name="refund.magcard"/>
+    <class name="refund.voucher"/>
+    <class name="sales.ChangeTaxOptions"/>
+    <class name="sales.DeleteLines"/>
+    <class name="sales.DeleteTicket"/>
+    <class name="sales.EditLines"/>
+    <class name="sales.EditTicket"/>
+    <class name="sales.Layout"/>
+    <class name="sales.Override"/>
+    <class name="sales.PrintRemote"/>
+    <class name="sales.PrintTicket"/>
+    <class name="sales.RefundTicket"/>
+    <class name="sales.ShowList"/>
+    <class name="sales.Total"/>
+    <class name="sales.ViewSharedTicket"/>
+
+<!-- Standard button scripts -->
+    <class name="button.opendrawer"/>
+    <class name="button.print"/>
+    <class name="button.Totaldiscount"/>
+
+<!-- Additional button scripts -->
+    <class name="button.keyboard"/>
+    <class name="button.Linediscount"/>
+    <class name="button.refundit"/>
+    <class name="button.scharge"/>
+    <class name="button.sendorder"/>
+
+<class name="com.mx.kylgis.pos.forms.MenuCustomers"/>
+    <class name="com.mx.kylgis.pos.customers.CustomersPanel"/>
+            <class name="/com/mx/kylgis/pos/reports/customers.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_cards.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_debtors.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_diary.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_export.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_list.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_sales.bs"/>
+
+
+<class name="com.mx.kylgis.pos.forms.MenuSuppliers"/>
+    <class name="com.mx.kylgis.pos.suppliers.SuppliersPanel"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers_creditors.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers_diary.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers_export.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers_list.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers_products.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers_sales.bs"/>
+
+<class name="com.mx.kylgis.pos.forms.MenuStockManagement"/>
+    <class name="com.mx.kylgis.pos.inventory.AttributeSetsPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.AttributesPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.AttributeUsePanel"/>
+    <class name="com.mx.kylgis.pos.inventory.AttributeValuesPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.AuxiliarPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.BundlePanel"/>
+    <class name="com.mx.kylgis.pos.inventory.CategoriesPanel"/>
+
+    <class name="com.mx.kylgis.pos.inventory.ProductsPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.ProductsWarehousePanel"/>
+    <class name="com.mx.kylgis.pos.inventory.StockDiaryPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.StockManagement"/>
+    <class name="com.mx.kylgis.pos.inventory.TaxCategoriesPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.TaxCustCategoriesPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.TaxPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.UomPanel"/>
+
+            <class name="/com/mx/kylgis/pos/reports/inventory.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/inventory_b.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/inventory_broken.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/inventory_diary.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/inventory_diff.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/inventory_diffdetail.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/inventory_listdetail.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/labels_barcode_sheet.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/labels_barcode_shelfedge.bs"/>            <class name="/com/mx/kylgis/pos/reports/products_catalog.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/labels_product.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/products.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/salecatalog.bs"/>
+
+<class name="com.mx.kylgis.pos.forms.MenuSalesManagement"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_cashflow.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_cashregisterlog.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_categorysales.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_categorysales_1.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_closedpos.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_closedpos_1.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_closedproducts.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_closedproducts_1.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_extendedcashregisterlog.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_extproducts.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_payments.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_productsalesprofit.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_saletaxes.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_taxcatsales.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_taxes.bs"/>
+
+            <class name="/com/mx/kylgis/pos/reports/sales_chart_piesalescat.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_chart_productsales.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_chart_sales.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_chart_timeseriesproduct.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/sales_chart_top10.bs"/>
+
+<class name="com.mx.kylgis.pos.forms.MenuMaintenance"/>
+    <class name="com.mx.kylgis.pos.admin.PeoplePanel"/>
+    <class name="com.mx.kylgis.pos.admin.ResourcesPanel"/>
+    <class name="com.mx.kylgis.pos.admin.RolesPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.LocationsPanel"/>
+    <class name="com.mx.kylgis.pos.mant.JPanelFloors"/>
+    <class name="com.mx.kylgis.pos.mant.JPanelPlaces"/>
+    <class name="com.mx.kylgis.pos.voucher.VoucherPanel"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_vouchers.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/users.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/users_nosales.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/users_sales.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/users_tips.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/users_voids.bs"/>
+
+<class name="com.mx.kylgis.pos.imports.JPanelCSV"/>
+    <class name="com.mx.kylgis.pos.imports.CustomerCSVImport"/>
+    <class name="com.mx.kylgis.pos.imports.JPanelCSVCleardb"/>
+    <class name="com.mx.kylgis.pos.imports.JPanelCSVImport"/>
+    <class name="com.mx.kylgis.pos.imports.StockQtyImport"/>
+    <class name="com.mx.kylgis.pos.transfer.Transfer"/>
+        <class name="/com/mx/kylgis/pos/reports/tools_invalidcategory.bs"/>
+        <class name="/com/mx/kylgis/pos/reports/tools_invaliddata.bs"/>
+        <class name="/com/mx/kylgis/pos/reports/tools_inventoryqtyupdate.bs"/>
+        <class name="/com/mx/kylgis/pos/reports/tools_missingdata.bs"/>
+        <class name="/com/mx/kylgis/pos/reports/tools_newproducts.bs"/>
+        <class name="/com/mx/kylgis/pos/reports/tools_updatedprices.bs"/>
+//        <class name="/com/mx/kylgis/pos/reports/tools_badprice.bs"/>
+
+<!-- EPM -->
+<class name="com.mx.kylgis.pos.forms.MenuEmployees" />
+    <class name="com.mx.kylgis.pos.epm.BreaksPanel" />
+    <class name="com.mx.kylgis.pos.epm.JPanelEmployeePresence" />
+    <class name="com.mx.kylgis.pos.epm.LeavesPanel" />
+        <class name="/com/mx/kylgis/pos/reports/epm_dailypresence.bs" />
+        <class name="/com/mx/kylgis/pos/reports/epm_dailyschedule.bs" />
+        <class name="/com/mx/kylgis/pos/reports/epm_performance.bs" />
+
+<!--    <class name="com.mx.kylgis.pos.sync.ProductsSyncCreate"/> -->
+<!--    <class name="com.mx.kylgis.pos.sync.OrdersSyncCreate"/> -->
+    <class name="Menu.ChangePassword"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelPrinter"/>
+    <class name="com.mx.kylgis.pos.config.JPanelConfiguration"/>
+
+</permissions>

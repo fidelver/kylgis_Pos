@@ -108,7 +108,7 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
             try {     
                 
                 // Archivo de recursos
-                String res = "com/openbravo/reports/voucher_messages";//getResourceBundle();  
+                String res = "com/mx/kylgis/pos/reports/voucher_messages";//getResourceBundle();  
                 
                 // Parametros y los datos
 //                Object params = (editor == null) ? null : editor.createValue();                
@@ -162,8 +162,8 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
         jPanel4.add(reportviewer, BorderLayout.CENTER);
         
         try {     
-            jr = JasperCompileManager.compileReport("com/openbravo/reports/voucher" + ".jrxml");   
-//                jr = JasperCompileManager.compileReport(getClass().getResourceAsStream("reports" +  "/com/openbravo/reports/voucher" + ".jrxml"));   
+            jr = JasperCompileManager.compileReport("com/mx/kylgis/pos/reports/voucher" + ".jrxml");   
+//                jr = JasperCompileManager.compileReport(getClass().getResourceAsStream("reports" +  "/com/mx/kylgis/pos/reports/voucher" + ".jrxml"));   
         } catch (JRException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadreport"), e);
             msg.show(this);
@@ -228,7 +228,7 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
 
         jPanel8.setLayout(new java.awt.BorderLayout());
 
-        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jcmdOK.setText(AppLocal.getIntString("Button.OK")); // NOI18N
         jcmdOK.setEnabled(false);
         jcmdOK.setFocusPainted(false);
@@ -242,7 +242,7 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
         });
         jPanel1.add(jcmdOK);
 
-        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/cancel.png"))); // NOI18N
         jcmdCancel.setText(AppLocal.getIntString("Button.Cancel")); // NOI18N
         jcmdCancel.setFocusPainted(false);
         jcmdCancel.setFocusable(false);

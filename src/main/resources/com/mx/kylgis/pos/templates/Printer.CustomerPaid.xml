@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    KylGis POS Punto de Venta Táctil
+    Copyright (c) 2026 KylGis POS
+    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+
+    This file is part of KylGis POS
+
+    KylGis POS is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    KylGis POS is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<output>
+    <display>
+        <line>
+            <text align="left" length="10">Total pagado</text>
+            <text align="right" length="10">${ticket.printTotalPaid()}</text>
+        </line>
+        <line>
+            <text align="center" length="20">Gracias por su preferencia</text>
+        </line>
+    </display>
+    <ticket>
+        <image>Printer.Ticket.Logo</image>
+        <line></line>
+        <line>
+            <text align="center" length="42">Pago de cliente</text>
+        </line>
+        <line>
+            <text align="center" length="42">Puede cambiar esta plantilla</text>
+        </line>
+        <line>
+            <text align="center" length="42">en el panel de Recursos</text>
+        </line>
+        <line></line>
+        <line>
+            <text align="left" length="15">Recibo:</text>
+            <text>${ticket.printId()}</text>
+        </line>
+        <line>
+            <text align="left" length="15">Fecha:</text>
+            <text>${ticket.printDate()}</text>
+        </line>
+        
+        #if ($ticket.getCustomer())
+            <line>
+                <text align="left" length="15">Cuenta:</text>
+                <text>${ticket.getCustomer().printTaxid()}</text>
+            </line>
+            <line>
+                <text align="left" length="15">Cliente:</text>
+                <text>${ticket.getCustomer().printName()}</text>
+            </line>
+
+        #end
+
+        <line></line>
+        <line size="1">
+            <text align ="left" length="32" bold="true">Total pagado</text>
+            <text align ="right" length="10" bold="true">${ticket.printTotalPaid()}</text>
+        </line>
+        <line></line>
+        <line>
+            <text align ="left" length="32" bold="true">Saldo de cuenta</text>
+            <text align ="right" length="10" bold="true">${customer.printCurDebt()}</text>
+        </line>
+
+    #foreach ($paymentline in $ticket.payments)
+        #if ($paymentline.name == "cash")
+            <line></line>
+            <line>
+                <text bold="true">Efectivo</text>
+            </line>
+            <line>
+                <text align="left" length="22">Recibido:</text>
+                <text align ="right" length="20">${paymentline.printPaid()}</text>
+            </line>
+            <line>
+                <text align="left" length="22">Cambio:</text>
+                <text align ="right" length="20">${paymentline.printChange()}</text>
+            </line>
+        #end
+
+        #if ($paymentline.name == "ccard")
+            <line></line>
+            <line>
+                <text bold="true">Tarjeta</text>
+            </line>
+            <line>
+            <text align ="right" length="42">${paymentline.printTotal()}</text>
+            </line>
+            <line>
+                <text align ="left" length="22">Número:</text>
+                <text>${paymentline.printCardNumber()}</text>
+            </line>
+            <line>
+                <text align ="left" length="22">Vencimiento:</text>
+                <text>${paymentline.printExpirationDate()}</text>
+            </line>
+            <line>
+                <text align ="left" length="22">Operación:</text>
+                <text>${paymentline.printTransactionID()}</text>
+            </line>
+            <line>
+                <text align ="left" length="22">Autorización:</text>
+                <text>${paymentline.printAuthorization()}</text>
+            </line>
+        #end
+
+        #if ($paymentline.name == "cheque")
+            <line></line>
+            <line>
+                <text bold="true">Cheque</text>
+            </line>
+            <line>
+                <text align ="right" length="42">${paymentline.printTotal()}</text>
+            </line>
+        #end
+
+        #if ($paymentline.name == "voucherin")
+            <line></line>
+            <line>
+                <text bold="true">Vale</text>
+            </line>
+            <line>
+                <text align ="right" length="42">${paymentline.printTotal()}</text>
+            </line>
+        #end
+    #end
+       <line></line>
+        <line>
+            <text align="left" length="15">Cajero:</text>
+            <text>${ticket.printUser()}</text>
+        </line>
+        <line></line>
+        <line>
+            <text align="center" length="42">Gracias por su preferencia</text>
+        </line>
+    </ticket>
+
+    #foreach ($paymentline in $ticket.payments)
+        #if ($paymentline.name == "cash")
+            <opendrawer/>
+        #end
+    
+        #if ($paymentline.name == "cashrefund")
+            <opendrawer/>
+        #end
+    #end
+</output>

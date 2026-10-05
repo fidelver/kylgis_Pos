@@ -39,7 +39,7 @@ public class VideoPlayer extends Application {
         
 @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("uniCenta Media Player");
+        primaryStage.setTitle("KylGis POS Media Player");
         Group root = new Group();
         Scene scene = new Scene(root, 540, 310);
 // create media player

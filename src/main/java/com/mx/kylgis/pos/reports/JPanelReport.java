@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.reports;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -276,11 +277,11 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
 
         jPanel1.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
 
-        jToggleFilter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1downarrow.png"))); // NOI18N
+        jToggleFilter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1downarrow.png"))); // NOI18N
         jToggleFilter.setSelected(true);
         jToggleFilter.setToolTipText("Hide/Show Filter");
         jToggleFilter.setPreferredSize(new java.awt.Dimension(80, 45));
-        jToggleFilter.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1uparrow.png"))); // NOI18N
+        jToggleFilter.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1uparrow.png"))); // NOI18N
         jToggleFilter.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jToggleFilterActionPerformed(evt);
@@ -289,7 +290,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         jPanel1.add(jToggleFilter);
 
         jButton1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jButton1.setText(AppLocal.getIntString("button.executereport")); // NOI18N
         jButton1.setToolTipText("Execute Report");
         jButton1.setPreferredSize(new java.awt.Dimension(150, 45));

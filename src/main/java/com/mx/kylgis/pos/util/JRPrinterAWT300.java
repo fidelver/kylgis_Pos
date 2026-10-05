@@ -26,11 +26,12 @@
  * http://www.jaspersoft.com
  */
 
-//    Portions:
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2017 uniCenta
-//    https://unicenta.com
-//    author Jack Gerrard
+//    Portions / modifications:
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+//    Modifications credited in the original source to Jack Gerrard
 // This class is a copy of net.sf.jasperreports.engine.print.JRPrinterAWT
 // The modifications are:
 // Added to the constructor the service, instead of isDialog
@@ -165,7 +166,7 @@ public class JRPrinterAWT300 implements Printable
 		PageFormat pageFormat = printJob.defaultPage();
 		Paper paper = pageFormat.getPaper();
 
-		printJob.setJobName("uniCentaReport - " + jasperPrint.getName());
+		printJob.setJobName("KylGis POSReport - " + jasperPrint.getName());
 		
 		switch (jasperPrint.getOrientationValue())
 		{

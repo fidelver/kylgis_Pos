@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.sales;
 
 import com.mx.kylgis.pos.customers.DataLogicCustomers;
@@ -151,7 +152,7 @@ public class ReceiptSplit extends javax.swing.JDialog {
         jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
 
         m_jButtonCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/cancel.png"))); // NOI18N
         m_jButtonCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
         m_jButtonCancel.setFocusPainted(false);
         m_jButtonCancel.setFocusable(false);
@@ -166,7 +167,7 @@ public class ReceiptSplit extends javax.swing.JDialog {
         jPanel2.add(m_jButtonCancel);
 
         m_jButtonOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        m_jButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         m_jButtonOK.setText(AppLocal.getIntString("button.OK")); // NOI18N
         m_jButtonOK.setFocusPainted(false);
         m_jButtonOK.setFocusable(false);
@@ -191,7 +192,7 @@ public class ReceiptSplit extends javax.swing.JDialog {
         jPanel4.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jPanel4.setLayout(new java.awt.GridBagLayout());
 
-        jBtnToRightAll.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/2rightarrow.png"))); // NOI18N
+        jBtnToRightAll.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2rightarrow.png"))); // NOI18N
         jBtnToRightAll.setToolTipText("Split All Line Items");
         jBtnToRightAll.setFocusPainted(false);
         jBtnToRightAll.setFocusable(false);
@@ -207,7 +208,7 @@ public class ReceiptSplit extends javax.swing.JDialog {
         gridBagConstraints.gridy = 0;
         jPanel4.add(jBtnToRightAll, gridBagConstraints);
 
-        jBtnToRightOne.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1rightarrow.png"))); // NOI18N
+        jBtnToRightOne.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1rightarrow.png"))); // NOI18N
         jBtnToRightOne.setToolTipText("Split only one of the Line Items");
         jBtnToRightOne.setFocusPainted(false);
         jBtnToRightOne.setFocusable(false);
@@ -224,7 +225,7 @@ public class ReceiptSplit extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
         jPanel4.add(jBtnToRightOne, gridBagConstraints);
 
-        jBtnToLeftOne.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1leftarrow.png"))); // NOI18N
+        jBtnToLeftOne.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1leftarrow.png"))); // NOI18N
         jBtnToLeftOne.setToolTipText("Un-Split only one of the Line Items");
         jBtnToLeftOne.setFocusPainted(false);
         jBtnToLeftOne.setFocusable(false);
@@ -241,7 +242,7 @@ public class ReceiptSplit extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
         jPanel4.add(jBtnToLeftOne, gridBagConstraints);
 
-        jBtnToLeftAll.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/2leftarrow.png"))); // NOI18N
+        jBtnToLeftAll.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2leftarrow.png"))); // NOI18N
         jBtnToLeftAll.setToolTipText("Un-Split All Line Items");
         jBtnToLeftAll.setFocusPainted(false);
         jBtnToLeftAll.setFocusable(false);

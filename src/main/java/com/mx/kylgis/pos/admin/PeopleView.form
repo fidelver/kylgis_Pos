@@ -111,7 +111,7 @@
           <Font name="Arial" size="14" style="0"/>
         </Property>
         <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-          <Image iconType="3" name="/com/openbravo/images/info.png"/>
+          <Image iconType="3" name="/com/mx/kylgis/pos/images/info.png"/>
         </Property>
         <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
           <ResourceString bundle="pos_messages.properties" key="label.peoplenamem" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
@@ -186,7 +186,7 @@
           <Font name="Arial" size="14" style="0"/>
         </Property>
         <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-          <Image iconType="3" name="/com/openbravo/images/password.png"/>
+          <Image iconType="3" name="/com/mx/kylgis/pos/images/password.png"/>
         </Property>
         <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
           <ResourceString bundle="pos_messages.properties" key="button.peoplepassword" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>

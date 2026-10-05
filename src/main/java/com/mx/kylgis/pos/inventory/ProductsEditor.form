@@ -271,7 +271,7 @@
                   <Font name="Arial" size="14" style="0"/>
                 </Property>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/info.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/info.png"/>
                 </Property>
                 <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="label.prodrefm" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
@@ -646,7 +646,7 @@
                   <Font name="Arial" size="12" style="0"/>
                 </Property>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/customer_add_sml.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/customer_add_sml.png"/>
                 </Property>
                 <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="label.supplier" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
@@ -1281,7 +1281,7 @@
             <Component class="javax.swing.JButton" name="m_jbtndate">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/date.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/date.png"/>
                 </Property>
                 <Property name="toolTipText" type="java.lang.String" value="Open Calendar"/>
               </Properties>
@@ -1771,7 +1771,7 @@
                   <Font name="Arial" size="12" style="0"/>
                 </Property>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/reload.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/reload.png"/>
                 </Property>
                 <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="button.prodhtmldisplayReset" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>

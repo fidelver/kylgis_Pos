@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.data.gui;
 
 import com.mx.kylgis.pos.data.loader.LocalRes;
@@ -337,7 +338,7 @@ public class JImageEditor extends javax.swing.JPanel {
 
         m_jImage.setBackground(new java.awt.Color(255, 255, 255));
         m_jImage.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jImage.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/no_photo.png"))); // NOI18N
+        m_jImage.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/no_photo.png"))); // NOI18N
         m_jImage.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         m_jScr.setViewportView(m_jImage);
 
@@ -353,7 +354,7 @@ public class JImageEditor extends javax.swing.JPanel {
         jPanel2.setOpaque(false);
         jPanel2.setLayout(new java.awt.GridLayout(0, 1, 0, 2));
 
-        m_jbtnopen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/camera.png"))); // NOI18N
+        m_jbtnopen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/camera.png"))); // NOI18N
         m_jbtnopen.setToolTipText("Open Folder");
         m_jbtnopen.setPreferredSize(new java.awt.Dimension(50, 45));
         m_jbtnopen.addActionListener(new java.awt.event.ActionListener() {
@@ -363,7 +364,7 @@ public class JImageEditor extends javax.swing.JPanel {
         });
         jPanel2.add(m_jbtnopen);
 
-        m_jbtnclose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/fileclose.png"))); // NOI18N
+        m_jbtnclose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/fileclose.png"))); // NOI18N
         m_jbtnclose.setToolTipText("Remove Picture");
         m_jbtnclose.setPreferredSize(new java.awt.Dimension(50, 45));
         m_jbtnclose.addActionListener(new java.awt.event.ActionListener() {
@@ -373,7 +374,7 @@ public class JImageEditor extends javax.swing.JPanel {
         });
         jPanel2.add(m_jbtnclose);
 
-        m_jbtnzoomin.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/viewmag+.png"))); // NOI18N
+        m_jbtnzoomin.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/viewmag+.png"))); // NOI18N
         m_jbtnzoomin.setToolTipText("Zoom In");
         m_jbtnzoomin.setPreferredSize(new java.awt.Dimension(50, 45));
         m_jbtnzoomin.addActionListener(new java.awt.event.ActionListener() {
@@ -389,7 +390,7 @@ public class JImageEditor extends javax.swing.JPanel {
         m_jPercent.setPreferredSize(new java.awt.Dimension(10, 30));
         jPanel2.add(m_jPercent);
 
-        m_jbtnzoomout.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/viewmag-.png"))); // NOI18N
+        m_jbtnzoomout.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/viewmag-.png"))); // NOI18N
         m_jbtnzoomout.setToolTipText("Zoom Out");
         m_jbtnzoomout.setPreferredSize(new java.awt.Dimension(50, 45));
         m_jbtnzoomout.addActionListener(new java.awt.event.ActionListener() {

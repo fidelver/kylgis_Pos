@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.inventory;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -1251,7 +1252,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         jPanel1.setPreferredSize(new java.awt.Dimension(0, 0));
 
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/info.png"))); // NOI18N
+        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/info.png"))); // NOI18N
         jLabel1.setText(AppLocal.getIntString("label.prodrefm")); // NOI18N
         jLabel1.setPreferredSize(new java.awt.Dimension(110, 30));
         jLabel1.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -1393,7 +1394,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         m_jSupplier.setPreferredSize(new java.awt.Dimension(200, 30));
 
         jBtnSupplier.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jBtnSupplier.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer_add_sml.png"))); // NOI18N
+        jBtnSupplier.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/customer_add_sml.png"))); // NOI18N
         jBtnSupplier.setText(bundle.getString("label.supplier")); // NOI18N
         jBtnSupplier.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1691,7 +1692,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         jLblDate.setText(bundle.getString("label.proddate")); // NOI18N
         jLblDate.setPreferredSize(new java.awt.Dimension(130, 30));
 
-        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         m_jbtndate.setToolTipText("Open Calendar");
         m_jbtndate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -2014,7 +2015,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         });
 
         jBtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jBtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jBtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jBtnReset.setText(bundle.getString("button.prodhtmldisplayReset")); // NOI18N
         jBtnReset.setPreferredSize(new java.awt.Dimension(100, 35));
         jBtnReset.addActionListener(new java.awt.event.ActionListener() {

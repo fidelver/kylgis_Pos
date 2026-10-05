@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2016 uniCenta
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.transfer;
 
 
@@ -249,9 +250,9 @@ public final class Transfer extends JPanel implements JPanelView {
     public Boolean createTargetDB() {
 // Transfer is into current MySQL database in unicentaopos.properties 
         
-        targetCreate = "/com/openbravo/pos/scripts/" + sDB_target + "-create-transfer.sql";
-        targetFKadd = "/com/openbravo/pos/scripts/MySQL-FKeys.sql";
-        targetFKdrop = "/com/openbravo/pos/scripts/MySQL-dropFKeys.sql";
+        targetCreate = "/com/mx/kylgis/pos/scripts/" + sDB_target + "-create-transfer.sql";
+        targetFKadd = "/com/mx/kylgis/pos/scripts/MySQL-FKeys.sql";
+        targetFKdrop = "/com/mx/kylgis/pos/scripts/MySQL-dropFKeys.sql";
         
         if ("".equals(targetCreate)) {
             return (false);
@@ -341,7 +342,7 @@ public final class Transfer extends JPanel implements JPanelView {
 */
 
         if("true".equals(m_props.getProperty("db.multi"))) {
-            ImageIcon icon = new ImageIcon("/com/openbravo/images/unicentaopos.png");
+            ImageIcon icon = new ImageIcon("/com/mx/kylgis/pos/images/kylgis_pos.png");
             Object[] dbs = {
                 "0 - " + m_props.getProperty("db.name"),
                 "1 - " + m_props.getProperty("db1.name")};
@@ -1702,9 +1703,9 @@ public final class Transfer extends JPanel implements JPanelView {
                     } else {
                         SQL = "INSERT INTO suppliers("
                             + "ID, NAME, SEARCHKEY)"
-                            + " VALUES ('0', 'uniCenta', 'unicenta')";
+                            + " VALUES ('0', 'KylGis POS', 'kylgispos')";
                         pstmt.executeUpdate(SQL);                            
-                        txtOut.append("Added Supplier... uniCenta" + "\n");
+                        txtOut.append("Added Supplier... KylGis POS" + "\n");
                     }
                     rs.close();                                
 
@@ -2297,7 +2298,7 @@ public final class Transfer extends JPanel implements JPanelView {
         jtxtDbDriverLib.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jtxtDbDriverLib.setPreferredSize(new java.awt.Dimension(360, 30));
 
-        jbtnDbDriverLib.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/fileopen.png"))); // NOI18N
+        jbtnDbDriverLib.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/fileopen.png"))); // NOI18N
         jbtnDbDriverLib.setToolTipText(bundle.getString("tooltip.openfile")); // NOI18N
         jbtnDbDriverLib.setMaximumSize(new java.awt.Dimension(64, 32));
         jbtnDbDriverLib.setMinimumSize(new java.awt.Dimension(64, 32));
@@ -2356,7 +2357,7 @@ public final class Transfer extends JPanel implements JPanelView {
         jLabel9.setPreferredSize(new java.awt.Dimension(160, 30));
 
         jbtnConnect.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnConnect.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn1.png"))); // NOI18N
+        jbtnConnect.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn1.png"))); // NOI18N
         jbtnConnect.setText(bundle.getString("Button.Test")); // NOI18N
         jbtnConnect.setToolTipText(bundle.getString("tooltip.dbtest")); // NOI18N
         jbtnConnect.setActionCommand(bundle.getString("Button.Test")); // NOI18N
@@ -2453,7 +2454,7 @@ public final class Transfer extends JPanel implements JPanelView {
         jtxtDbName.setPreferredSize(new java.awt.Dimension(0, 0));
 
         jbtnTransfer.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnTransfer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn3.png"))); // NOI18N
+        jbtnTransfer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn3.png"))); // NOI18N
         jbtnTransfer.setText(AppLocal.getIntString("button.transfer")); // NOI18N
         jbtnTransfer.setToolTipText(bundle.getString("tooltip.transferdb")); // NOI18N
         jbtnTransfer.setEnabled(false);
@@ -2489,7 +2490,7 @@ public final class Transfer extends JPanel implements JPanelView {
         jLabel15.setPreferredSize(new java.awt.Dimension(150, 30));
 
         jbtnSet.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnSet.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn2.png"))); // NOI18N
+        jbtnSet.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn2.png"))); // NOI18N
         jbtnSet.setText(AppLocal.getIntString("button.setTransfer")); // NOI18N
         jbtnSet.setToolTipText(bundle.getString("tooltip.checkTransfer")); // NOI18N
         jbtnSet.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -2504,7 +2505,7 @@ public final class Transfer extends JPanel implements JPanelView {
         });
 
         jbtnReset1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset1.setToolTipText(bundle.getString("tooltip.transferReset")); // NOI18N
         jbtnReset1.setMaximumSize(new java.awt.Dimension(70, 33));
         jbtnReset1.setMinimumSize(new java.awt.Dimension(70, 33));
@@ -2590,7 +2591,7 @@ public final class Transfer extends JPanel implements JPanelView {
         );
 
         jbtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset.setToolTipText(bundle.getString("tooltip.transferReset")); // NOI18N
         jbtnReset.setMaximumSize(new java.awt.Dimension(70, 33));
         jbtnReset.setMinimumSize(new java.awt.Dimension(70, 33));
@@ -2771,7 +2772,7 @@ public final class Transfer extends JPanel implements JPanelView {
                 String driver = jtxtDbDriver.getText();
                 
                 if ("Derby".equals(cbSource.getSelectedItem())) {
-                    jtxtDbName.setText("/unicentaopos-database");
+                    jtxtDbName.setText("/kylgispos-database");
                 }
                 
                 String url = jtxtDbType.getText() + 

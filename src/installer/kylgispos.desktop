@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=4.2
+Encoding=UTF-8
+Name=KylGis POS
+Terminal=false
+Exec=kylgispos
+Icon=kylgispos
+Type=Application
+InitialPreference=6
+Categories=Application;Office;
+StartupNotify=false
+GenericName=KylGis POS
+Comment=KylGis POS Punto de Venta Táctil
+Name[en_US]=KylGis POS
+GenericName[en_US]=KylGis POS

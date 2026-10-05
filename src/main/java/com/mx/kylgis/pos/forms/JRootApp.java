@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -199,10 +200,23 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         m_aBeanFactories = new HashMap<>();
         
         initComponents ();            
+        configureTopBranding();
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(30, 30));
         serverMonitor.setVisible(false);
         webMemoryBar1.setShowMaximumMemory ( true );
     }
+    private void configureTopBranding() {
+        java.net.URL logoUrl = getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png");
+        if (logoUrl != null) {
+            javax.swing.ImageIcon source = new javax.swing.ImageIcon(logoUrl);
+            java.awt.Image scaled = source.getImage().getScaledInstance(54, 36, java.awt.Image.SCALE_SMOOTH);
+            poweredby.setIcon(new javax.swing.ImageIcon(scaled));
+        }
+        poweredby.setPreferredSize(new java.awt.Dimension(100, 38));
+        poweredby.setMaximumSize(new java.awt.Dimension(100, 38));
+        m_jPanelTitle.setPreferredSize(new java.awt.Dimension(449, 44));
+    }
+
     private DSPortAdapter m_oneWireAdapter;
     private DeviceMonitor m_oneWireMonitor;
         
@@ -510,7 +524,7 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         String newLogo = m_props.getProperty("start.logo");
         if (newLogo != null) {
            if ("".equals(newLogo)){
-                jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logo.png")));
+                jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png")));
            }else{
                 jLabel1.setIcon(new javax.swing.ImageIcon (newLogo));
             }
@@ -519,7 +533,7 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         String newText = m_props.getProperty("start.text");
         if (newText != null) {
             if (newText.equals("")){
-                jLabel1.setText("<html><center>uniCenta oPOS - Touch Friendly Point of Sale<br>" +
+                jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
                 "Copyright \u00A9  uniCenta <br>" +
                 "https://unicenta.com/<br>" +
                 "<br>" +
@@ -724,20 +738,20 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
     private static void initOldClasses() {
         m_oldclasses = new HashMap<>();
         
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomers", "/com/openbravo/reports/customers.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomersB", "/com/openbravo/reports/customersb.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedPos", "/com/openbravo/reports/closedpos.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedProducts", "/com/openbravo/reports/closedproducts.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JChartSales", "/com/openbravo/reports/chartsales.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory", "/com/openbravo/reports/inventory.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory2", "/com/openbravo/reports/inventoryb.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryBroken", "/com/openbravo/reports/inventorybroken.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryDiff", "/com/openbravo/reports/inventorydiff.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportPeople", "/com/openbravo/reports/people.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportTaxes", "/com/openbravo/reports/taxes.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportUserSales", "/com/openbravo/reports/usersales.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportProducts", "/com/openbravo/reports/products.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCatalog", "/com/openbravo/reports/productscatalog.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomers", "/com/mx/kylgis/pos/reports/customers.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomersB", "/com/mx/kylgis/pos/reports/customers_b.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedPos", "/com/mx/kylgis/pos/reports/sales_closedpos.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedProducts", "/com/mx/kylgis/pos/reports/sales_closedproducts.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JChartSales", "/com/mx/kylgis/pos/reports/sales_chart_sales.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory", "/com/mx/kylgis/pos/reports/inventory.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory2", "/com/mx/kylgis/pos/reports/inventory_b.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryBroken", "/com/mx/kylgis/pos/reports/inventory_broken.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryDiff", "/com/mx/kylgis/pos/reports/inventory_diff.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportPeople", "/com/mx/kylgis/pos/reports/users.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportTaxes", "/com/mx/kylgis/pos/reports/sales_taxes.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportUserSales", "/com/mx/kylgis/pos/reports/users_sales.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportProducts", "/com/mx/kylgis/pos/reports/products.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCatalog", "/com/mx/kylgis/pos/reports/products_catalog.bs");
         
         m_oldclasses.put("com.mx.kylgis.pos.panels.JPanelTax", "com.mx.kylgis.pos.inventory.TaxPanel");
        
@@ -1001,7 +1015,7 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         m_jPanelTitle.add(m_jLblTitle, java.awt.BorderLayout.CENTER);
 
         poweredby.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        poweredby.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/poweredby_uni.png"))); // NOI18N
+        poweredby.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png"))); // NOI18N
         poweredby.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5));
         poweredby.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
         poweredby.setMaximumSize(new java.awt.Dimension(180, 34));
@@ -1023,8 +1037,8 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
 
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/unicenta.png"))); // NOI18N
-        jLabel1.setText("<html><center>uniCenta oPOS - Touch Friendly Point of Sale<br>" +
+        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png"))); // NOI18N
+        jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
             "Copyright \u00A9 2009-2017 uniCenta <br>" +
             "https://unicenta.com<br>" +
             "<br>" +
@@ -1068,7 +1082,7 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         });
 
         m_jClose.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/exit.png"))); // NOI18N
+        m_jClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/exit.png"))); // NOI18N
         m_jClose.setText(AppLocal.getIntString("button.close")); // NOI18N
         m_jClose.setFocusPainted(false);
         m_jClose.setFocusable(false);
@@ -1140,7 +1154,7 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         m_jPanelDown.setLayout(new java.awt.BorderLayout());
 
         m_jHost.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        m_jHost.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/display.png"))); // NOI18N
+        m_jHost.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/display.png"))); // NOI18N
         m_jHost.setText("*Hostname");
         panelTask.add(m_jHost);
 

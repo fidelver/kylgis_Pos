@@ -1,0 +1,70 @@
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+//
+//    This file is part of KylGis POS
+//
+//    KylGis POS is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    KylGis POS is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+// *** NOT SUITABLE FOR DERBY DB'S***
+
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
+
+report.setTitleKey("Menu.ExtendedByProducts");
+report.setReport("/com/mx/kylgis/pos/reports/sales_extproducts");
+report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
+
+report.setSentence("SELECT " +
+        "customers.TAXID,  " +
+        "customers.NAME AS CUSTOMER, " +
+        "categories.NAME AS CATEGORY, " +
+        "products.REFERENCE AS REFERENCE,  " +
+        "products.NAME AS PRODUCT, " +
+        "SUM(ticketlines.UNITS) AS UNIT,  " +
+        "SUM(ticketlines.UNITS * ticketlines.PRICE) AS TOTAL, " +
+        "SUM(ticketlines.UNITS * ticketlines.PRICE) / SUM(ticketlines.UNITS) AS MEANPRICE " +
+        "FROM tickets  " +
+            "LEFT OUTER JOIN customers ON tickets.CUSTOMER = customers.ID, ticketlines " +
+            "LEFT OUTER JOIN products ON ticketlines.PRODUCT = products.ID " +
+            "LEFT OUTER JOIN categories ON products.CATEGORY = categories.ID, receipts " +
+        "WHERE receipts.ID = tickets.ID AND tickets.ID = ticketlines.TICKET AND ?(QBF_FILTER) " +
+        "GROUP BY customers.ID, categories.ID, products.ID " +
+        "ORDER BY customers.NAME, categories.NAME, products.NAME");
+
+report.addParameter("receipts.DATENEW");
+report.addParameter("receipts.DATENEW");
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsDatesInterval());
+
+report.addParameter("products.NAME");
+report.addParameter("products.PRICEBUY");
+report.addParameter("products.PRICESELL");
+report.addParameter("products.CATEGORY");
+report.addParameter("products.CODE");
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter());
+
+report.addParameter("customers.ID");
+report.addParameter("customers.NAME");
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsCustomer());
+
+report.addField("TAXID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CUSTOMER", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATEGORY", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODUCT", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("UNIT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("MEANPRICE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+
+report;

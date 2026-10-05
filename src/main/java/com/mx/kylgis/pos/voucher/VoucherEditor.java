@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2017 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.voucher;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -159,7 +160,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             } else switch (m_jStatus.getText()) {
                 case "A":
                     jLblStatus.setIcon(new javax.swing.ImageIcon(getClass()
-                            .getResource("/com/openbravo/images/OK.png")));
+                            .getResource("/com/mx/kylgis/pos/images/ok.png")));
                     m_jNumber.setEnabled(true);
                     m_jAmount.setEnabled(true); 
                     jCBCustomer.setEnabled(true);
@@ -167,7 +168,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
                     break;
                 case "D":
                     jLblStatus.setIcon(new javax.swing.ImageIcon(getClass()
-                            .getResource("/com/openbravo/images/refundit.png")));
+                            .getResource("/com/mx/kylgis/pos/images/refundit.png")));
                     m_jNumber.setEnabled(false);
                     m_jAmount.setEnabled(false);
                     jCBCustomer.setEnabled(false);                    
@@ -252,7 +253,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
         jLabel5.setPreferredSize(new java.awt.Dimension(100, 30));
 
         jButtonPrint.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jButtonPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer24.png"))); // NOI18N
+        jButtonPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/printer24.png"))); // NOI18N
         jButtonPrint.setToolTipText(AppLocal.getIntString("button.print")); // NOI18N
         jButtonPrint.setFocusPainted(false);
         jButtonPrint.setFocusable(false);
@@ -266,7 +267,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
         });
 
         jLblStatus.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLblStatus.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jLblStatus.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jLblStatus.setText(AppLocal.getIntString("label.Status")); // NOI18N
         jLblStatus.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
         jLblStatus.setPreferredSize(new java.awt.Dimension(100, 30));

@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.gui.JMessageDialog;
@@ -354,7 +355,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jtxtDbDriverLib.setToolTipText(bundle.getString("tooltip.config.db.driverlib")); // NOI18N
         jtxtDbDriverLib.setPreferredSize(new java.awt.Dimension(500, 30));
 
-        jbtnDbDriverLib.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/fileopen.png"))); // NOI18N
+        jbtnDbDriverLib.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/fileopen.png"))); // NOI18N
         jbtnDbDriverLib.setText("  ");
         jbtnDbDriverLib.setToolTipText(bundle.getString("tooltip.config.db.file")); // NOI18N
         jbtnDbDriverLib.setMaximumSize(new java.awt.Dimension(64, 32));
@@ -403,13 +404,15 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jtxtDbPassword.setPreferredSize(new java.awt.Dimension(160, 30));
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/uniCenta_logo_vert_100.png"))); // NOI18N
+        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png"))); // NOI18N
         jLabel5.setText(bundle.getString("message.DBDefault")); // NOI18N
+        jLabel5.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        jLabel5.setIconTextGap(18);
         jLabel5.setToolTipText("");
-        jLabel5.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        jLabel5.setPreferredSize(new java.awt.Dimension(889, 120));
-        jLabel5.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
+        jLabel5.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel5.setPreferredSize(new java.awt.Dimension(889, 110));
+        jLabel5.setVerticalTextPosition(javax.swing.SwingConstants.CENTER);
 
         jLblDBName.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         jLblDBName.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -489,7 +492,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jtxtDbPassword1.setPreferredSize(new java.awt.Dimension(160, 30));
 
         jbtnConnect1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnConnect1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn1.png"))); // NOI18N
+        jbtnConnect1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn1.png"))); // NOI18N
         jbtnConnect1.setText(bundle.getString("button.connect")); // NOI18N
         jbtnConnect1.setToolTipText(bundle.getString("tooltip.config.db.connect")); // NOI18N
         jbtnConnect1.setActionCommand(bundle.getString("Button.Test")); // NOI18N
@@ -503,7 +506,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         });
 
         jbtnReset1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset1.setToolTipText(AppLocal.getIntString("tooltip.config.db.reset1")); // NOI18N
         jbtnReset1.setEnabled(false);
         jbtnReset1.setPreferredSize(new java.awt.Dimension(80, 45));
@@ -533,7 +536,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         });
 
         jbtnSetDB1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jbtnSetDB1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn2.png"))); // NOI18N
+        jbtnSetDB1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn2.png"))); // NOI18N
         jbtnSetDB1.setText("SET");
         jbtnSetDB1.setToolTipText(bundle.getString("tooltip.config.db.databaseset1")); // NOI18N
         jbtnSetDB1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -708,7 +711,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jtxtDbSchema.setPreferredSize(new java.awt.Dimension(250, 30));
 
         jbtnSetDB.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jbtnSetDB.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn2.png"))); // NOI18N
+        jbtnSetDB.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn2.png"))); // NOI18N
         jbtnSetDB.setText("SET");
         jbtnSetDB.setToolTipText(bundle.getString("tooltip.config.db.databaseset")); // NOI18N
         jbtnSetDB.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -760,7 +763,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         );
 
         jbtnConnect.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jbtnConnect.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn1.png"))); // NOI18N
+        jbtnConnect.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn1.png"))); // NOI18N
         jbtnConnect.setText(bundle.getString("button.connect")); // NOI18N
         jbtnConnect.setToolTipText(bundle.getString("tooltip.config.db.connect")); // NOI18N
         jbtnConnect.setActionCommand(bundle.getString("Button.Test")); // NOI18N
@@ -773,7 +776,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         });
 
         jbtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset.setToolTipText(AppLocal.getIntString("tooltip.config.db.reset")); // NOI18N
         jbtnReset.setPreferredSize(new java.awt.Dimension(80, 45));
         jbtnReset.addActionListener(new java.awt.event.ActionListener() {
@@ -851,7 +854,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(4, 4, 4)
@@ -912,13 +915,13 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             jtxtDbDriverLib.setText(new File(new File(dirname), "lib/postgresql-9.4-1208.jdbc4.jar").getAbsolutePath());
             jtxtDbDriver.setText("org.postgresql.Driver");
             jtxtDbURL.setText("jdbc:postgresql://localhost:5432/");            
-            jtxtDbSchema.setText("unicentaopos");
+            jtxtDbSchema.setText("kylgispos");
             jtxtDbOptions.setText("");
         } else {
             jtxtDbDriverLib.setText(new File(new File(dirname), "lib/mysql-connector-java-5.1.39.jar").getAbsolutePath());
             jtxtDbDriver.setText("com.mysql.jdbc.Driver");            
             jtxtDbURL.setText("jdbc:mysql://localhost:3306/");
-            jtxtDbSchema.setText("unicentaopos");                                    
+            jtxtDbSchema.setText("kylgispos");                                    
             jtxtDbOptions.setText("?zeroDateTimeBehavior=convertToNull");
         }    
     }//GEN-LAST:event_jcboDBDriverActionPerformed
@@ -1098,7 +1101,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
 
         jtxtDbName.setText("Main DB");
         jtxtDbURL.setText("jdbc:mysql://localhost:3306/");
-        jtxtDbSchema.setText("unicentaopos");
+        jtxtDbSchema.setText("kylgispos");
         jtxtDbOptions.setText("?zeroDateTimeBehavior=convertToNull");
         jtxtDbUser.setText(null);        
         jtxtDbPassword.setText(null);  
@@ -1114,7 +1117,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         
         jtxtDbName1.setText("Other DB");
         jtxtDbURL1.setText("jdbc:mysql://localhost:3306/");
-        jtxtDbSchema1.setText("unicentaopos1");
+        jtxtDbSchema1.setText("kylgispos1");
         jtxtDbOptions1.setText("?zeroDateTimeBehavior=convertToNull");
         jtxtDbUser1.setText(null);        
         jtxtDbPassword1.setText(null);
@@ -1166,13 +1169,13 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             isValid = (connection == null) ? false : connection.isValid(1000);
 
             if (isValid) {
-                String SQL="CREATE DATABASE if not exists unicentaopos";                                   
+                String SQL="CREATE DATABASE if not exists kylgispos";                                   
                 Statement stmt = (Statement) connection.createStatement();
                 stmt.executeUpdate(SQL);
 
                 fillSchema();
                 jLblAlert.setVisible(false);
-                jtxtDbSchema.setText("unicentaopos");
+                jtxtDbSchema.setText("kylgispos");
                 
                 JOptionPane.showMessageDialog(this,
                         AppLocal.getIntString("message.createdefaultdb"), 

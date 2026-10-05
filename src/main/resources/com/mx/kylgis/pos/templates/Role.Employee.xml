@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    KylGis POS Punto de Venta Táctil
+    Copyright (c) 2026 KylGis POS
+    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+
+    This file is part of KylGis POS
+
+    KylGis POS is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    KylGis POS is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!--
+    The Administrator Role Permissions has full access to all KylGis POS
+    functionality.
+    The Administrator Role should only be used to make system changes.
+    
+    *** Do not change unless you know what you are doing ***
+-->
+
+
+<permissions>
+    <class name="com.mx.kylgis.pos.customers.CustomersPayment"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelPayments"/>
+    <class name="com.mx.kylgis.pos.sales.JPanelTicketEdits"/>
+    <class name="com.mx.kylgis.pos.sales.JPanelTicketSales"/>
+
+    <class name="payment.cash"/>
+    <class name="payment.cheque"/>
+    <class name="payment.debt"/>
+    <class name="payment.free"/>
+    <class name="payment.magcard"/>
+    <class name="payment.slip"/>    
+    <class name="payment.voucher"/>
+    <class name="sales.DeleteLines"/>
+    <class name="sales.EditLines"/>
+    <class name="sales.EditTicket"/>
+    <class name="sales.PrintRemote"/>
+    <class name="sales.PrintTicket"/>
+    <class name="sales.Total"/>
+    <class name="sales.ViewSharedTicket"/>
+
+<!-- Standard button scripts -->
+    <class name="button.opendrawer"/>
+    <class name="button.print"/>
+    <class name="button.Totaldiscount"/>
+
+<!-- Additional button scripts -->
+    <class name="button.keyboard"/>    
+    <class name="button.Linediscount"/>
+    <class name="button.scharge"/>
+    <class name="button.sendorder"/>
+
+<class name="com.mx.kylgis.pos.forms.MenuCustomers"/>
+    <class name="com.mx.kylgis.pos.customers.CustomersPanel"/>
+            <class name="/com/mx/kylgis/pos/reports/customers.bs"/>
+            <class name="/com/mx/kylgis/pos/reports/customers_cards.bs"/>
+            
+<class name="com.mx.kylgis.pos.forms.MenuSuppliers"/>
+    <class name="com.mx.kylgis.pos.suppliers.SuppliersPanel"/>
+            <class name="/com/mx/kylgis/pos/reports/suppliers.bs"/>
+
+<class name="com.mx.kylgis.pos.forms.MenuMaintenance"/>
+    <class name="com.mx.kylgis.pos.voucher.VoucherPanel"/>       
+
+<!-- EPM -->
+<class name="com.mx.kylgis.pos.forms.MenuEmployees" />
+    <class name="Menu.ChangePassword"/>
+    <class name="com.mx.kylgis.pos.panels.JPanelPrinter"/>
+    <class name="com.mx.kylgis.pos.config.JPanelConfiguration"/>
+
+</permissions>

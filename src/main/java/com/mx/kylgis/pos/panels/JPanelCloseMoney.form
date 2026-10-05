@@ -515,7 +515,7 @@
               <Font name="Arial" size="12" style="0"/>
             </Property>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/calculator.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/calculator.png"/>
             </Property>
             <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
               <ResourceString bundle="pos_messages.properties" key="button.closecash" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
@@ -551,7 +551,7 @@
               <Font name="Arial" size="12" style="0"/>
             </Property>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/printer.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/printer.png"/>
             </Property>
             <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
               <ResourceString bundle="pos_messages.properties" key="button.printcash" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>

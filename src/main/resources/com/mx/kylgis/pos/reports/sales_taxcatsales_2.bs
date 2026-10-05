@@ -1,0 +1,73 @@
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+//
+//    This file is part of KylGis POS
+//
+//    KylGis POS is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    KylGis POS is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
+
+report.setTitleKey("Menu.TaxCatSales");
+report.setReport("/com/mx/kylgis/pos/reports/sales_taxcatsales_2");
+report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
+
+report.setSentence("SELECT " + 
+       "closedcash.DATEEND, " +
+       "taxes.NAME AS TAXNAME, " +
+       "categories.NAME, " +
+       "SUM(ticketlines.UNITS) AS QTY, " +
+       "SUM(ticketlines.PRICE * ticketlines.UNITS) AS CATPRICE, " +
+       "SUM((ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) AS CATTAX, " +
+       "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) " +
+          "* ticketlines.UNITS) AS CATTOTAL " +
+    "FROM taxes taxes " +
+       "CROSS JOIN closedcash closedcash " +
+       "CROSS JOIN ((((ticketlines ticketlines " +
+           "LEFT OUTER JOIN products products " +
+              "ON (ticketlines.PRODUCT = products.ID)) " +
+          "RIGHT OUTER JOIN products_cat products_cat " +
+             "ON (products_cat.PRODUCT = products.ID)) " +
+         "LEFT OUTER JOIN categories categories " +
+            "ON (products.CATEGORY = categories.ID)) " +
+        "RIGHT OUTER JOIN tickets tickets " +
+           "ON (tickets.ID = ticketlines.TICKET)) " +
+       "RIGHT OUTER JOIN receipts receipts " +
+          "ON (receipts.ID = tickets.ID) " +
+    "WHERE closedcash.MONEY = receipts.MONEY " +
+        "AND ticketlines.TAXID = taxes.ID AND ?(QBF_FILTER) " +
+    "GROUP BY taxes.NAME, categories.NAME " +
+        "ORDER BY TAXNAME ASC, categories.NAME ASC");
+
+report.addParameter("receipts.DATENEW");
+report.addParameter("receipts.DATENEW");
+
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+// JG - 8 Jan 14 paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
+
+report.addQBFFilter(paramdates);
+
+report.addField("DATEEND", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("TAXNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("QTY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATPRICE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATTAX", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATTOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+
+report;

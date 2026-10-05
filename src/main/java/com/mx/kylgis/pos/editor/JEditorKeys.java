@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.editor;
 
 import com.mx.kylgis.pos.customers.JCustomerFinder;
@@ -241,7 +242,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
     public void dotIs00(boolean enabled) {
         if (enabled) {
             m_jKeyDot.setIcon(new javax.swing.ImageIcon(getClass()
-                    .getResource("/com/openbravo/images/btn00.png")));
+                    .getResource("/com/mx/kylgis/pos/images/btn00.png")));
         }
     }
     
@@ -273,7 +274,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         setPreferredSize(new java.awt.Dimension(300, 300));
         setLayout(new java.awt.GridBagLayout());
 
-        m_jCE.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btnce.png"))); // NOI18N
+        m_jCE.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btnce.png"))); // NOI18N
         m_jCE.setFocusPainted(false);
         m_jCE.setFocusable(false);
         m_jCE.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -288,7 +289,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 5, 0);
         add(m_jCE, gridBagConstraints);
 
-        m_jMinus.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btnminus.png"))); // NOI18N
+        m_jMinus.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btnminus.png"))); // NOI18N
         m_jMinus.setFocusPainted(false);
         m_jMinus.setFocusable(false);
         m_jMinus.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -302,7 +303,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 5, 0);
         add(m_jMinus, gridBagConstraints);
 
-        m_jKey1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn1.png"))); // NOI18N
+        m_jKey1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn1.png"))); // NOI18N
         m_jKey1.setFocusPainted(false);
         m_jKey1.setFocusable(false);
         m_jKey1.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -315,7 +316,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey1, gridBagConstraints);
 
-        m_jKey2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn2a.png"))); // NOI18N
+        m_jKey2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn2a.png"))); // NOI18N
         m_jKey2.setFocusPainted(false);
         m_jKey2.setFocusable(false);
         m_jKey2.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -328,7 +329,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey2, gridBagConstraints);
 
-        m_jKey3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn3a.png"))); // NOI18N
+        m_jKey3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn3a.png"))); // NOI18N
         m_jKey3.setFocusPainted(false);
         m_jKey3.setFocusable(false);
         m_jKey3.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -341,7 +342,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey3, gridBagConstraints);
 
-        m_jKey4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn4a.png"))); // NOI18N
+        m_jKey4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn4a.png"))); // NOI18N
         m_jKey4.setFocusPainted(false);
         m_jKey4.setFocusable(false);
         m_jKey4.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -354,7 +355,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey4, gridBagConstraints);
 
-        m_jKey5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn5a.png"))); // NOI18N
+        m_jKey5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn5a.png"))); // NOI18N
         m_jKey5.setFocusPainted(false);
         m_jKey5.setFocusable(false);
         m_jKey5.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -367,7 +368,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey5, gridBagConstraints);
 
-        m_jKey6.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn6a.png"))); // NOI18N
+        m_jKey6.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn6a.png"))); // NOI18N
         m_jKey6.setFocusPainted(false);
         m_jKey6.setFocusable(false);
         m_jKey6.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -380,7 +381,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey6, gridBagConstraints);
 
-        m_jKey7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn7a.png"))); // NOI18N
+        m_jKey7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn7a.png"))); // NOI18N
         m_jKey7.setFocusPainted(false);
         m_jKey7.setFocusable(false);
         m_jKey7.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -393,7 +394,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey7, gridBagConstraints);
 
-        m_jKey8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn8a.png"))); // NOI18N
+        m_jKey8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn8a.png"))); // NOI18N
         m_jKey8.setFocusPainted(false);
         m_jKey8.setFocusable(false);
         m_jKey8.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -406,7 +407,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey8, gridBagConstraints);
 
-        m_jKey9.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn9a.png"))); // NOI18N
+        m_jKey9.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn9a.png"))); // NOI18N
         m_jKey9.setFocusPainted(false);
         m_jKey9.setFocusable(false);
         m_jKey9.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -419,7 +420,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.weighty = 1.0;
         add(m_jKey9, gridBagConstraints);
 
-        m_jKey0.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btn0.png"))); // NOI18N
+        m_jKey0.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btn0.png"))); // NOI18N
         m_jKey0.setFocusPainted(false);
         m_jKey0.setFocusable(false);
         m_jKey0.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -434,7 +435,7 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
         gridBagConstraints.insets = new java.awt.Insets(5, 0, 0, 0);
         add(m_jKey0, gridBagConstraints);
 
-        m_jKeyDot.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btndot.png"))); // NOI18N
+        m_jKeyDot.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btndot.png"))); // NOI18N
         m_jKeyDot.setFocusPainted(false);
         m_jKeyDot.setFocusable(false);
         m_jKeyDot.setMargin(new java.awt.Insets(8, 16, 8, 16));

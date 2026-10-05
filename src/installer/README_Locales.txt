@@ -1,10 +1,10 @@
-Project: uniCenta oPOS v4.6
+Project: KylGis POS v4.6
 Topic:	README installer
 Author:	Jack Gerrard
 Date: 	5 August 2018
 
 Acknowledgement: The content of the language/Locale files are 
-compiled from the efforts of uniCenta and uniCenta oPOS Community 
+compiled from the efforts of KylGis POS and KylGis POS Community 
 Members. We appreciate and acknowledge everyone who has contributed 
 to making this distribution possible.
 
@@ -16,9 +16,9 @@ who requests them
 
 Please refer to Locales Guide for installation details.
 
-uniCenta oPOS v4.6 is delivered with support for 15 languages.
+KylGis POS v4.6 is delivered with support for 15 languages.
 
-Full translations provided by uniCenta include:
+Full translations provided by KylGis POS include:
 English UK - the default language set.
 English - USA
 Spanish - European
@@ -28,7 +28,7 @@ German - UI mostly complete. Reports approx' 75%
 
 Not all locales are completely translated.
 
-The locale files shipped with this version of uniCenta oPOS are the 
+The locale files shipped with this version of KylGis POS are the 
 latest at the date of this release.
 
 Latest locales can be found here: https://unicenta.com
@@ -41,12 +41,12 @@ file.
 
 Reports:
 Each report group has a .properties file associated with it.
-You will find the files in the uniCenta oPOS installation folder in
-the uniCenta instalation sub-folder \reports\com\openbravo\reports
+You will find the files in the KylGis POS installation folder in
+the KylGis POS instalation sub-folder \reports\com\mx\kylgis\pos\reports
 
 HOW TO CHANGE YOUR LANGUAGE
-All languages are now compiled into the uniCenta oPOS executable.
+All languages are now compiled into the KylGis POS executable.
 Any required locale file changes will require the project to be 
 recompiled.
 
-Set the uniCenta oPOS Configuration>Locale to your required language
+Set the KylGis POS Configuration>Locale to your required language

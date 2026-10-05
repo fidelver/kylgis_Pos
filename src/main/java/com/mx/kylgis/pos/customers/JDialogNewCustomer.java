@@ -406,7 +406,7 @@ public class JDialogNewCustomer extends javax.swing.JDialog {
         jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
 
         m_jBtnOK.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jBtnOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        m_jBtnOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         m_jBtnOK.setText(AppLocal.getIntString("Button.OK")); // NOI18N
         m_jBtnOK.setFocusPainted(false);
         m_jBtnOK.setFocusable(false);
@@ -421,7 +421,7 @@ public class JDialogNewCustomer extends javax.swing.JDialog {
         jPanel2.add(m_jBtnOK);
 
         m_jBtnCancel.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jBtnCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        m_jBtnCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/cancel.png"))); // NOI18N
         m_jBtnCancel.setText(AppLocal.getIntString("Button.Cancel")); // NOI18N
         m_jBtnCancel.setFocusPainted(false);
         m_jBtnCancel.setFocusable(false);

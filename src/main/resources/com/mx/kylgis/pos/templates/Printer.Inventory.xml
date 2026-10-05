@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    KylGis POS Punto de Venta Táctil
+    Copyright (c) 2026 KylGis POS
+    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+
+    This file is part of KylGis POS
+
+    KylGis POS is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    KylGis POS is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+-->
+ 
+<output>
+    <ticket>
+        <image>Printer.Ticket.Logo</image>
+        <line></line>
+       <!-- <line><text align="center" length="31">You can change Printer.Inventory template</text></line>
+        <line><text align="center" length="31">in the Resources panel</text></line>
+        <line></line>-->
+
+        <line></line> 
+        <line><text align="center" bold="true" length="31">Movimiento de Inventario</text></line>
+        <line></line> 
+
+        <line>
+            <text align ="left" bold="true" length="31">Fecha : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printDate()}</text></line>
+        <line><text  align ="left" bold="true" length="8">Tipo : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printReason()}</text></line>
+        <line><text  align ="left" bold="true" length="31">Usuario : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printUser()}</text></line>
+        <line><text  align ="left" bold="true" length="8">Almacen : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printLocation()}</text></line>
+        <line><text  align ="left" bold="true" length="31">Proveedor : </text></line> 
+        <line><text align ="left" length="31">${inventoryrecord.printSupplier()}</text></line>
+        <line><text align ="left" bold="true" length="12">Factura : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printSupplierDoc()}</text></line>
+
+        <line></line> 
+
+        <line size="1">
+            #if ($inventoryrecord.isInput())
+                <text align ="center" bold="true" length="31">Entrada</text>
+            #else
+                <text align ="center" bold="true" length="31">Salida</text>
+            #end
+        </line>
+        <line></line>    
+        <line>
+            <text align ="left" bold="true" length="31">Descripción</text>
+       </line>
+       <line>    
+             <text align ="left" bold="true" length="9">Precio</text>
+            <text align ="center" bold="true" length="10">Cantidad</text>
+            <text align ="right" bold="true" length="10">Importe</text>
+        </line> 
+        <line>
+            <text>------------------------------------------</text>
+        </line>   
+        #foreach ($inventoryline in $inventoryrecord.getLines())
+            <line>
+                <text align ="left">${inventoryline.printName()}</text></line> 
+            <line><text align ="left" length="10">${inventoryline.printPrice()}</text>
+                <text align ="center" length="8">x${inventoryline.printMultiply()}</text>
+                <text align ="right" length="13">${inventoryline.printSubValue()}</text>
+            </line> 
+            #if ($inventoryline.productAttSetInstId)
+                <line><text align ="left" length="31">${inventoryline.productAttSetInstDesc}</text></line>
+            #end
+        #end
+        <line><text>------------------------------------------</text></line>   
+        <line></line>
+        <line>
+            <text align ="left" bold="true" length="10">Totales :</text>
+            <text align ="center" bold="true" length="8">${inventoryrecord.printTotalArticles()}</text>
+            <text align ="right" bold="true" length="13">${inventoryrecord.printSubTotal()}</text>
+        </line>
+        <line></line>            
+        <line><text align="center" bold="true" length="31">Conserva Este Comprobante</text></line>  
+        <line></line> 
+        <line></line>  
+    </ticket>
+
+    <ticket printer="2">
+        <image>Printer.Ticket.Logo</image>
+        <line></line>
+       <!-- <line><text align="center" length="31">You can change Printer.Inventory template</text></line>
+        <line><text align="center" length="31">in the Resources panel</text></line>
+        <line></line>-->
+
+        <line></line> 
+        <line><text align="center" bold="true" length="31">Movimiento de Inventario</text></line>
+        <line></line> 
+
+        <line>
+            <text align ="left" bold="true" length="31">Fecha : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printDate()}</text></line>
+        <line><text  align ="left" bold="true" length="8">Tipo : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printReason()}</text></line>
+        <line><text  align ="left" bold="true" length="31">Usuario : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printUser()}</text></line>
+        <line><text  align ="left" bold="true" length="8">Almacen : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printLocation()}</text></line>
+        <line><text  align ="left" bold="true" length="31">Proveedor : </text></line> 
+        <line><text align ="left" length="31">${inventoryrecord.printSupplier()}</text></line>
+        <line><text align ="left" bold="true" length="12">Factura : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printSupplierDoc()}</text></line>
+
+        <line></line> 
+
+        <line size="1">
+            #if ($inventoryrecord.isInput())
+                <text align ="center" bold="true" length="31">Entrada</text>
+            #else
+                <text align ="center" bold="true" length="31">Salida</text>
+            #end
+        </line>
+        <line></line>    
+        <line>
+            <text align ="left" bold="true" length="31">Descripción</text>
+       </line>
+       <line>    
+             <text align ="left" bold="true" length="9">Precio</text>
+            <text align ="center" bold="true" length="10">Cantidad</text>
+            <text align ="right" bold="true" length="10">Importe</text>
+        </line> 
+        <line>
+            <text>------------------------------------------</text>
+        </line>   
+        #foreach ($inventoryline in $inventoryrecord.getLines())
+            <line>
+                <text align ="left">${inventoryline.printName()}</text></line> 
+            <line><text align ="left" length="10">${inventoryline.printPrice()}</text>
+                <text align ="center" length="8">x${inventoryline.printMultiply()}</text>
+                <text align ="right" length="13">${inventoryline.printSubValue()}</text>
+            </line> 
+            #if ($inventoryline.productAttSetInstId)
+                <line><text align ="left" length="31">${inventoryline.productAttSetInstDesc}</text></line>
+            #end
+        #end
+        <line><text>------------------------------------------</text></line>   
+        <line></line>
+        <line>
+            <text align ="left" bold="true" length="10">Totales :</text>
+            <text align ="center" bold="true" length="8">${inventoryrecord.printTotalArticles()}</text>
+            <text align ="right" bold="true" length="13">${inventoryrecord.printSubTotal()}</text>
+        </line>
+        <line></line>            
+        <line><text align="center" bold="true" length="31">Conserva Este Comprobante</text></line>  
+        <line></line> 
+        <line></line>  
+    </ticket>
+
+
+
+    <ticket printer="4">
+        <image>Printer.Ticket.Logo</image>
+        <line></line>
+       <!-- <line><text align="center" length="31">You can change Printer.Inventory template</text></line>
+        <line><text align="center" length="31">in the Resources panel</text></line>
+        <line></line>-->
+
+        <line></line> 
+        <line><text align="center" bold="true" length="31">Movimiento de Inventario</text></line>
+        <line></line> 
+
+        <line>
+            <text align ="left" bold="true" length="31">Fecha : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printDate()}</text></line>
+        <line><text  align ="left" bold="true" length="8">Tipo : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printReason()}</text></line>
+        <line><text  align ="left" bold="true" length="31">Usuario : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printUser()}</text></line>
+        <line><text  align ="left" bold="true" length="8">Almacen : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printLocation()}</text></line>
+        <line><text  align ="left" bold="true" length="31">Proveedor : </text></line> 
+        <line><text align ="left" length="31">${inventoryrecord.printSupplier()}</text></line>
+        <line><text align ="left" bold="true" length="12">Factura : </text></line>
+        <line><text align ="left" length="31">${inventoryrecord.printSupplierDoc()}</text></line>
+
+        <line></line> 
+
+        <line size="1">
+            #if ($inventoryrecord.isInput())
+                <text align ="center" bold="true" length="31">Entrada</text>
+            #else
+                <text align ="center" bold="true" length="31">Salida</text>
+            #end
+        </line>
+        <line></line>    
+        <line>
+            <text align ="left" bold="true" length="31">Descripción</text>
+       </line>
+       <line>    
+             <text align ="left" bold="true" length="9">Precio</text>
+            <text align ="center" bold="true" length="10">Cantidad</text>
+            <text align ="right" bold="true" length="10">Importe</text>
+        </line> 
+        <line>
+            <text>------------------------------------------</text>
+        </line>   
+        #foreach ($inventoryline in $inventoryrecord.getLines())
+            <line>
+                <text align ="left">${inventoryline.printName()}</text></line> 
+            <line><text align ="left" length="10">${inventoryline.printPrice()}</text>
+                <text align ="center" length="8">x${inventoryline.printMultiply()}</text>
+                <text align ="right" length="13">${inventoryline.printSubValue()}</text>
+            </line> 
+            #if ($inventoryline.productAttSetInstId)
+                <line><text align ="left" length="31">${inventoryline.productAttSetInstDesc}</text></line>
+            #end
+        #end
+        <line><text>------------------------------------------</text></line>   
+        <line></line>
+        <line>
+            <text align ="left" bold="true" length="10">Totales :</text>
+            <text align ="center" bold="true" length="8">${inventoryrecord.printTotalArticles()}</text>
+            <text align ="right" bold="true" length="13">${inventoryrecord.printSubTotal()}</text>
+        </line>
+        <line></line>            
+        <line><text align="center" bold="true" length="31">Conserva Este Comprobante</text></line>  
+        <line></line> 
+        <line></line>  
+    </ticket>
+</output>

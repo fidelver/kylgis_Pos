@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    KylGis POS Punto de Venta Táctil
+    Copyright (c) 2026 KylGis POS
+    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+
+    This file is part of KylGis POS
+
+    KylGis POS is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    KylGis POS is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<output>
+    <fiscalreceipt>
+        #foreach ($ticketline in $ticket.getLines())
+            <!-- setting $vatinfo to the values contained in the fiscal printer vat table-->
+            #if (${ticketline.getTaxInfo().getRate()}==0.04)
+                    #set ($vatinfo ="1")
+            #elseif	(${ticketline.getTaxInfo().getRate()}==0.1)
+                    #set ($vatinfo ="2")	
+            #elseif (${ticketline.getTaxInfo().getRate()}==0.2)
+                    #set ($vatinfo ="3")
+            #else #set ($vatinfo ="1")
+            #end
+             #if ($ticketline.isProductCom()) 
+                 <line price="${ticketline.getValue()}" units="${ticketline.getMultiply()}" tax="${vatinfo}">*${ticketline.printName()}</line>
+             #else
+                 <line price="${ticketline.getValue()}" units="${ticketline.getMultiply()}" tax="${vatinfo}">${ticketline.printName()}</line>
+             #end
+        #end
+        <message>Total artículos: ${ticket.printArticlesCount()}</message>
+        #foreach ($paymentline in $ticket.payment)      
+         #if ($paymentline.name == "cash")
+            <total paid="${paymentline.getPaid()}">Efectivo</total>
+         #end
+         #if ($paymentline.name == "cashrefund")
+            <total paid="${paymentline.getTotal()}">Reembolso</total>  
+         #end
+         #if ($paymentline.name == "ccard")
+            <total paid="${paymentline.getTotal()}">Tarjeta</total>  
+         #end  
+         #if ($paymentline.name == "ccardrefund")
+            <total paid="${paymentline.getTotal()}">Reembolso tarjeta</total>     
+         #end
+         #if ($paymentline.name == "cheque")
+            <total paid="${paymentline.getTotal()}">Cheque</total>    
+         #end
+         #if ($paymentline.name == "chequerefund")
+            <total paid="${paymentline.getTotal()}">Reembolso cheque</total>    
+         #end
+        #end 
+    </fiscalreceipt>
+<!-- Other commands -->
+<!--
+    <fiscalzreport/>
+    <fiscalxreport/>
+-->    
+</output>

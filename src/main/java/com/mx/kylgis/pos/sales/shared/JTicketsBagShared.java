@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.sales.shared;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -250,7 +251,7 @@ public class JTicketsBagShared extends JTicketsBag {
         setLayout(new java.awt.BorderLayout());
 
         m_jNewTicket.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        m_jNewTicket.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_new.png"))); // NOI18N
+        m_jNewTicket.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sale_new.png"))); // NOI18N
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
         m_jNewTicket.setToolTipText(bundle.getString("tooltip.addnewticket")); // NOI18N
         m_jNewTicket.setFocusPainted(false);
@@ -269,7 +270,7 @@ public class JTicketsBagShared extends JTicketsBag {
 
         m_jListTickets.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         m_jListTickets.setForeground(new java.awt.Color(255, 0, 153));
-        m_jListTickets.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_pending.png"))); // NOI18N
+        m_jListTickets.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sale_pending.png"))); // NOI18N
         m_jListTickets.setToolTipText(bundle.getString("tooltip.layaway")); // NOI18N
         m_jListTickets.setFocusPainted(false);
         m_jListTickets.setFocusable(false);
@@ -290,7 +291,7 @@ public class JTicketsBagShared extends JTicketsBag {
         jPanel1.add(m_jListTickets);
 
         m_jDelTicket.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        m_jDelTicket.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_delete.png"))); // NOI18N
+        m_jDelTicket.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sale_delete.png"))); // NOI18N
         m_jDelTicket.setToolTipText(bundle.getString("tooltip.delete")); // NOI18N
         m_jDelTicket.setFocusPainted(false);
         m_jDelTicket.setFocusable(false);
@@ -308,7 +309,7 @@ public class JTicketsBagShared extends JTicketsBag {
 
         m_jReprintTickets.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         m_jReprintTickets.setForeground(new java.awt.Color(255, 0, 153));
-        m_jReprintTickets.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reprint24.png"))); // NOI18N
+        m_jReprintTickets.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reprint24.png"))); // NOI18N
         m_jReprintTickets.setToolTipText(bundle.getString("tooltip.reprint")); // NOI18N
         m_jReprintTickets.setFocusPainted(false);
         m_jReprintTickets.setFocusable(false);
@@ -327,7 +328,7 @@ public class JTicketsBagShared extends JTicketsBag {
         jPanel1.add(m_jReprintTickets);
 
         m_jHold.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        m_jHold.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logout.png"))); // NOI18N
+        m_jHold.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/logout.png"))); // NOI18N
         m_jHold.setToolTipText(bundle.getString("tooltip.quicklogoff")); // NOI18N
         m_jHold.setFocusPainted(false);
         m_jHold.setFocusable(false);

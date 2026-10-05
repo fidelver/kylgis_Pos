@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.inventory;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -819,7 +820,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_jdate.setPreferredSize(new java.awt.Dimension(160, 30));
         jPanel8.add(m_jdate, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 0, 270, -1));
 
-        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         m_jbtndate.setToolTipText("Open Calendar");
         m_jbtndate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -916,7 +917,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel8.add(m_jcodebar, new org.netbeans.lib.awtextra.AbsoluteConstraints(1340, 310, -1, 30));
 
         m_jEnter.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jEnter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
+        m_jEnter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/barcode.png"))); // NOI18N
         m_jEnter.setFocusPainted(false);
         m_jEnter.setFocusable(false);
         m_jEnter.setPreferredSize(new java.awt.Dimension(54, 45));
@@ -944,7 +945,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel2.setPreferredSize(new java.awt.Dimension(70, 250));
         jPanel2.setLayout(new java.awt.GridLayout(0, 1, 5, 5));
 
-        m_jDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editdelete.png"))); // NOI18N
+        m_jDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/editdelete.png"))); // NOI18N
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
         m_jDelete.setToolTipText(bundle.getString("tooltip.saleremoveline")); // NOI18N
         m_jDelete.setFocusPainted(false);
@@ -961,7 +962,7 @@ public class StockManagement extends JPanel implements JPanelView {
         });
         jPanel2.add(m_jDelete);
 
-        m_jList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search32.png"))); // NOI18N
+        m_jList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/search32.png"))); // NOI18N
         m_jList.setToolTipText(bundle.getString("tooltip.saleproductfind")); // NOI18N
         m_jList.setFocusPainted(false);
         m_jList.setFocusable(false);
@@ -977,7 +978,7 @@ public class StockManagement extends JPanel implements JPanelView {
         });
         jPanel2.add(m_jList);
 
-        m_jEditLine.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_editline.png"))); // NOI18N
+        m_jEditLine.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sale_editline.png"))); // NOI18N
         m_jEditLine.setToolTipText(bundle.getString("tooltip.saleeditline")); // NOI18N
         m_jEditLine.setFocusPainted(false);
         m_jEditLine.setFocusable(false);
@@ -993,7 +994,7 @@ public class StockManagement extends JPanel implements JPanelView {
         });
         jPanel2.add(m_jEditLine);
 
-        m_jEditAttributes.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/attributes.png"))); // NOI18N
+        m_jEditAttributes.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/attributes.png"))); // NOI18N
         m_jEditAttributes.setToolTipText(bundle.getString("tooltip.saleattributes")); // NOI18N
         m_jEditAttributes.setFocusPainted(false);
         m_jEditAttributes.setFocusable(false);
@@ -1010,7 +1011,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel2.add(m_jEditAttributes);
 
         m_jBtnDelete.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jBtnDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_delete.png"))); // NOI18N
+        m_jBtnDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sale_delete.png"))); // NOI18N
         m_jBtnDelete.setText(AppLocal.getIntString("button.deleteticket")); // NOI18N
         m_jBtnDelete.setToolTipText("Delete current Ticket");
         m_jBtnDelete.setFocusPainted(false);
@@ -1063,7 +1064,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel8.add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(1330, 0, 210, 290));
 
         m_jBtnShowStock.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jBtnShowStock.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/pay.png"))); // NOI18N
+        m_jBtnShowStock.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/pay.png"))); // NOI18N
         m_jBtnShowStock.setToolTipText(AppLocal.getIntString("tooltip.salecheckstock")); // NOI18N
         m_jBtnShowStock.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

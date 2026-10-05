@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c)  uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.data.gui;
 
 import java.util.*;
@@ -80,7 +81,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnFirst = new javax.swing.JButton();
             jbtnFirst.setPreferredSize(new java.awt.Dimension(60,45));
-            jbtnFirst.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/2leftarrow.png")));
+            jbtnFirst.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2leftarrow.png")));
             jbtnFirst.setMargin(new java.awt.Insets(2, 2, 2, 2));            
             jbtnFirst.setFocusPainted(false);
             jbtnFirst.setFocusable(false);
@@ -96,7 +97,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnPrev = new javax.swing.JButton();
             jbtnPrev.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnPrev.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1leftarrow.png")));
+            jbtnPrev.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1leftarrow.png")));
             jbtnPrev.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnPrev.setFocusPainted(false);
             jbtnPrev.setFocusable(false);
@@ -111,7 +112,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
 
         jbtnRefresh = new javax.swing.JButton();
         jbtnRefresh.setPreferredSize(new java.awt.Dimension(60,45));        
-        jbtnRefresh.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1downarrow.png")));
+        jbtnRefresh.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1downarrow.png")));
         jbtnRefresh.setMargin(new java.awt.Insets(2, 2, 2, 2));
         jbtnRefresh.setFocusPainted(false);
         jbtnRefresh.setFocusable(false);
@@ -126,7 +127,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnNext = new javax.swing.JButton();
             jbtnNext.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnNext.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/1rightarrow.png")));
+            jbtnNext.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1rightarrow.png")));
             jbtnNext.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnNext.setFocusPainted(false);
             jbtnNext.setFocusable(false);
@@ -142,7 +143,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnLast = new javax.swing.JButton();
             jbtnLast.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnLast.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/2rightarrow.png")));
+            jbtnLast.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2rightarrow.png")));
             jbtnLast.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnLast.setFocusPainted(false);
             jbtnLast.setFocusable(false);
@@ -160,7 +161,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (bd.canLoadData()) {
             jbtnReload = new javax.swing.JButton();
             jbtnReload.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnReload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png")));
+            jbtnReload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png")));
             jbtnReload.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnReload.setFocusPainted(false);
             jbtnReload.setFocusable(false);
@@ -182,7 +183,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
             m_LastFindInfo = new FindInfo(vec);
             jbtnFind = new javax.swing.JButton();
             jbtnFind.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnFind.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search24.png")));
+            jbtnFind.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/search24.png")));
             jbtnFind.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnFind.setFocusPainted(false);
             jbtnFind.setFocusable(false);
@@ -199,7 +200,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (m_cc != null) {
             jbtnSort = new javax.swing.JButton();
             jbtnSort.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnSort.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sort_incr.png")));
+            jbtnSort.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sort_incr.png")));
             jbtnSort.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnSort.setFocusPainted(false);
             jbtnSort.setFocusable(false);

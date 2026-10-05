@@ -222,7 +222,7 @@
         <Component class="com.alee.laf.button.WebButton" name="webBtnFindSequence">
           <Properties>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/search32.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/search32.png"/>
             </Property>
             <Property name="toolTipText" type="java.lang.String" value=""/>
             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
@@ -567,7 +567,7 @@
               <Font name="Arial" size="12" style="0"/>
             </Property>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/printer.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/printer.png"/>
             </Property>
             <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
               <ResourceString bundle="pos_messages.properties" key="button.print" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>

@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.epm;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -273,7 +274,7 @@ public final class LeavesView extends javax.swing.JPanel implements EditorRecord
         m_Notes.setText(AppLocal.getIntString("label.epm.notes")); // NOI18N
         m_Notes.setPreferredSize(new java.awt.Dimension(0, 30));
 
-        btnEmployee.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/user_sml.png"))); // NOI18N
+        btnEmployee.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/user_sml.png"))); // NOI18N
         btnEmployee.setFocusPainted(false);
         btnEmployee.setFocusable(false);
         btnEmployee.setMaximumSize(new java.awt.Dimension(57, 33));
@@ -286,7 +287,7 @@ public final class LeavesView extends javax.swing.JPanel implements EditorRecord
             }
         });
 
-        btnEndDate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        btnEndDate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         btnEndDate.setPreferredSize(new java.awt.Dimension(80, 45));
         btnEndDate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -294,7 +295,7 @@ public final class LeavesView extends javax.swing.JPanel implements EditorRecord
             }
         });
 
-        btnStartDate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        btnStartDate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         btnStartDate.setPreferredSize(new java.awt.Dimension(80, 45));
         btnStartDate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

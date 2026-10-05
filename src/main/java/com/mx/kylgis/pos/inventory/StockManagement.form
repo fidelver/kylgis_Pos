@@ -91,7 +91,7 @@
         <Component class="javax.swing.JButton" name="m_jbtndate">
           <Properties>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/date.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/date.png"/>
             </Property>
             <Property name="toolTipText" type="java.lang.String" value="Open Calendar"/>
           </Properties>
@@ -363,7 +363,7 @@
               <Font name="Arial" size="14" style="0"/>
             </Property>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/barcode.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/barcode.png"/>
             </Property>
             <Property name="focusPainted" type="boolean" value="false"/>
             <Property name="focusable" type="boolean" value="false"/>
@@ -435,7 +435,7 @@
             <Component class="javax.swing.JButton" name="m_jDelete">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/editdelete.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/editdelete.png"/>
                 </Property>
                 <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="tooltip.saleremoveline" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
@@ -463,7 +463,7 @@
             <Component class="javax.swing.JButton" name="m_jList">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/search32.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/search32.png"/>
                 </Property>
                 <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="tooltip.saleproductfind" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
@@ -491,7 +491,7 @@
             <Component class="javax.swing.JButton" name="m_jEditLine">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/sale_editline.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/sale_editline.png"/>
                 </Property>
                 <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="tooltip.saleeditline" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
@@ -519,7 +519,7 @@
             <Component class="javax.swing.JButton" name="m_jEditAttributes">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/attributes.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/attributes.png"/>
                 </Property>
                 <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="tooltip.saleattributes" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
@@ -550,7 +550,7 @@
                   <Font name="Arial" size="12" style="0"/>
                 </Property>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/com/openbravo/images/sale_delete.png"/>
+                  <Image iconType="3" name="/com/mx/kylgis/pos/images/sale_delete.png"/>
                 </Property>
                 <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                   <ResourceString bundle="pos_messages.properties" key="button.deleteticket" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
@@ -638,7 +638,7 @@
               <Font name="Arial" size="12" style="0"/>
             </Property>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/com/openbravo/images/pay.png"/>
+              <Image iconType="3" name="/com/mx/kylgis/pos/images/pay.png"/>
             </Property>
             <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
               <ResourceString bundle="pos_messages.properties" key="tooltip.salecheckstock" replaceFormat="AppLocal.getIntString(&quot;tooltip.salecheckstock&quot;)"/>

@@ -1,0 +1,148 @@
+group = menu.addGroup("Menu.Main");
+        group.addPanel("/com/mx/kylgis/pos/images/sale.png", "Menu.Ticket", "com.mx.kylgis.pos.sales.JPanelTicketSales");
+        group.addPanel("/com/mx/kylgis/pos/images/saleedit.png", "Menu.TicketEdit", "com.mx.kylgis.pos.sales.JPanelTicketEdits");
+        group.addPanel("/com/mx/kylgis/pos/images/customerpay.png", "Menu.CustomersPayment", "com.mx.kylgis.pos.customers.CustomersPayment");
+        group.addPanel("/com/mx/kylgis/pos/images/payments.png", "Menu.Payments", "com.mx.kylgis.pos.panels.JPanelPayments");
+        group.addPanel("/com/mx/kylgis/pos/images/calculator.png", "Menu.CloseTPV", "com.mx.kylgis.pos.panels.JPanelCloseMoney");
+
+group = menu.addGroup("Menu.Backoffice");
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/customer.png", "Menu.Customers", "com.mx.kylgis.pos.forms.MenuCustomers");
+    submenu.addTitle("Menu.Panel.Customers.Forms");
+        submenu.addPanel("/com/mx/kylgis/pos/images/customer.png", "Menu.CustomersManagement", "com.mx.kylgis.pos.customers.CustomersPanel");
+    submenu.addTitle("Menu.Panel.Customers.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Report", "/com/mx/kylgis/pos/reports/customers.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Sales", "/com/mx/kylgis/pos/reports/customers_sales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Debtors", "/com/mx/kylgis/pos/reports/customers_debtors.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Diary", "/com/mx/kylgis/pos/reports/customers_diary.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Cards", "/com/mx/kylgis/pos/reports/customers_cards.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.List", "/com/mx/kylgis/pos/reports/customers_list.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Export", "/com/mx/kylgis/pos/reports/customers_export.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Vouchers", "/com/mx/kylgis/pos/reports/customers_vouchers.bs");
+
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/stockmaint.png", "Menu.Suppliers", "com.mx.kylgis.pos.forms.MenuSuppliers");
+    submenu.addTitle("Menu.Panel.Suppliers.Forms");
+        submenu.addPanel("/com/mx/kylgis/pos/images/customer.png", "Menu.SuppliersManagement", "com.mx.kylgis.pos.suppliers.SuppliersPanel");
+    submenu.addTitle("Menu.Panel.Suppliers.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.Report", "/com/mx/kylgis/pos/reports/suppliers.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.Products", "/com/mx/kylgis/pos/reports/suppliers_products.bs");
+//        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.Creditors", "/com/mx/kylgis/pos/reports/suppliers_creditors.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.Diary", "/com/mx/kylgis/pos/reports/suppliers_diary.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.Sales", "/com/mx/kylgis/pos/reports/suppliers_sales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.List", "/com/mx/kylgis/pos/reports/suppliers_list.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Suppliers.Reports.Export", "/com/mx/kylgis/pos/reports/suppliers_export.bs");
+
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/products.png", "Menu.StockManagement", "com.mx.kylgis.pos.forms.MenuStockManagement");
+    submenu.addTitle("Menu.Panel.Stock.Forms");
+
+        submenu.addPanel("/com/mx/kylgis/pos/images/category.png", "Menu.Categories", "com.mx.kylgis.pos.inventory.CategoriesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/products.png", "Menu.Products", "com.mx.kylgis.pos.inventory.ProductsPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/location.png", "Menu.ProductsWarehouse", "com.mx.kylgis.pos.inventory.ProductsWarehousePanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/stockmaint.png", "Menu.StockMovement", "com.mx.kylgis.pos.inventory.StockManagement");
+        submenu.addPanel("/com/mx/kylgis/pos/images/auxiliary.png", "Menu.Auxiliar", "com.mx.kylgis.pos.inventory.AuxiliarPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/bundle.png", "Menu.Bundle", "com.mx.kylgis.pos.inventory.BundlePanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/attributes.png", "Menu.Attributes", "com.mx.kylgis.pos.inventory.AttributesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/attributes.png", "Menu.AttributeValues", "com.mx.kylgis.pos.inventory.AttributeValuesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/attributes.png", "Menu.AttributeSets", "com.mx.kylgis.pos.inventory.AttributeSetsPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/attributes.png", "Menu.AttributeUse", "com.mx.kylgis.pos.inventory.AttributeUsePanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/products.png", "Menu.Uom", "com.mx.kylgis.pos.inventory.UomPanel");
+
+    submenu.addTitle("Menu.Panel.Stock.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Inventory", "/com/mx/kylgis/pos/reports/inventory.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Inventory2", "/com/mx/kylgis/pos/reports/inventory_b.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Inventory.Reports.Diary", "/com/mx/kylgis/pos/reports/inventory_diary.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.InventoryBroken", "/com/mx/kylgis/pos/reports/inventory_broken.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.InventoryDiff", "/com/mx/kylgis/pos/reports/inventory_diff.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.InventoryDiffDetail", "/com/mx/kylgis/pos/reports/inventory_diffdetail.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.InventoryListDetail", "/com/mx/kylgis/pos/reports/inventory_listdetail.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Products", "/com/mx/kylgis/pos/reports/products.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.SaleCatalog", "/com/mx/kylgis/pos/reports/salecatalog.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ProductLabels", "/com/mx/kylgis/pos/reports/labels_product.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.BarcodeSheet", "/com/mx/kylgis/pos/reports/labels_barcode_sheet.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ShelfEdgeLabels", "/com/mx/kylgis/pos/reports/labels_barcode_shelfedge.bs");
+
+
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/sales.png", "Menu.SalesManagement", "com.mx.kylgis.pos.forms.MenuSalesManagement");
+    submenu.addTitle("Menu.Panel.Sales.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Closing", "/com/mx/kylgis/pos/reports/sales_closedpos.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Closing1", "/com/mx/kylgis/pos/reports/sales_closedpos_1.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.CashRegisterLog", "/com/mx/kylgis/pos/reports/sales_cashregisterlog.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ExtendedCashRegisterLog", "/com/mx/kylgis/pos/reports/sales_extendedcashregisterlog.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.CashFlow", "/com/mx/kylgis/pos/reports/sales_cashflow.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.PaymentReport", "/com/mx/kylgis/pos/reports/sales_payments.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.CategorySales", "/com/mx/kylgis/pos/reports/sales_categorysales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.CategorySales1", "/com/mx/kylgis/pos/reports/sales_categorysales_1.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ClosedProducts", "/com/mx/kylgis/pos/reports/sales_closedproducts.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ClosedProducts1", "/com/mx/kylgis/pos/reports/sales_closedproducts_1.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ExtendedByProducts", "/com/mx/kylgis/pos/reports/sales_extproducts.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.SalesProfit", "/com/mx/kylgis/pos/reports/sales_productsalesprofit.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.SaleTaxes", "/com/mx/kylgis/pos/reports/sales_saletaxes.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.TaxCatSales", "/com/mx/kylgis/pos/reports/sales_taxcatsales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.ReportTaxes", "/com/mx/kylgis/pos/reports/sales_taxes.bs");
+    submenu.addTitle("Menu.Panel.Sales.Charts");
+        submenu.addPanel("/com/mx/kylgis/pos/images/chart.png", "Menu.ProductSales", "/com/mx/kylgis/pos/reports/sales_chart_productsales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/chart.png", "Menu.ProductCategorySalesPieChart", "/com/mx/kylgis/pos/reports/sales_chart_piesalescat.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/chart.png", "Menu.SalesChart", "/com/mx/kylgis/pos/reports/sales_chart_sales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/chart.png", "Menu.TimeSeriesProduct", "/com/mx/kylgis/pos/reports/sales_chart_timeseriesproduct.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/chart.png", "Menu.Top10Sales", "/com/mx/kylgis/pos/reports/sales_chart_top10.bs");
+
+
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/maintain.png", "Menu.Maintenance", "com.mx.kylgis.pos.forms.MenuMaintenance");
+    submenu.addTitle("Menu.Panel.Maintenance.Forms");        
+        submenu.addPanel("/com/mx/kylgis/pos/images/resources.png", "Menu.Resources", "com.mx.kylgis.pos.admin.ResourcesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/roles.png", "Menu.Roles", "com.mx.kylgis.pos.admin.RolesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/user.png", "Menu.Users", "com.mx.kylgis.pos.admin.PeoplePanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/bookmark.png", "Menu.TaxCategories", "com.mx.kylgis.pos.inventory.TaxCategoriesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/bookmark.png", "Menu.TaxCustCategories", "com.mx.kylgis.pos.inventory.TaxCustCategoriesPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/bookmark.png", "Menu.Taxes", "com.mx.kylgis.pos.inventory.TaxPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/location.png", "Menu.Locations", "com.mx.kylgis.pos.inventory.LocationsPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/floors.png", "Menu.Floors", "com.mx.kylgis.pos.mant.JPanelFloors");
+        submenu.addPanel("/com/mx/kylgis/pos/images/tables.png", "Menu.Tables", "com.mx.kylgis.pos.mant.JPanelPlaces");
+        submenu.addPanel("/com/mx/kylgis/pos/images/products.png", "Menu.Vouchers", "com.mx.kylgis.pos.voucher.VoucherPanel");
+
+    submenu.addTitle("Menu.Panel.Maintenance.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.UsersReport", "/com/mx/kylgis/pos/reports/users.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.UserSells", "/com/mx/kylgis/pos/reports/users_sales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.UserNoSales", "/com/mx/kylgis/pos/reports/users_nosales.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.UserVoids", "/com/mx/kylgis/pos/reports/users_voids.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Customers.Reports.Vouchers", "/com/mx/kylgis/pos/reports/customers_vouchers.bs");
+
+// EPM
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/users.png", "Menu.PresenceManagement", "com.mx.kylgis.pos.forms.MenuEmployees");
+    submenu.addTitle("Menu.PresenceManagement");
+        submenu.addPanel("/com/mx/kylgis/pos/images/coffee.png", "Menu.Breaks", "com.mx.kylgis.pos.epm.BreaksPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/leaves.png", "Menu.Leaves", "com.mx.kylgis.pos.epm.LeavesPanel");
+        submenu.addTitle("Menu.Employees.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.EPM.DailyPresenceReport", "/com/mx/kylgis/pos/reports/epm_dailypresence.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.EPM.DailyScheduleReport", "/com/mx/kylgis/pos/reports/epm_dailyschedule.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.EPM.PerformanceReport", "/com/mx/kylgis/pos/reports/epm_performance.bs");
+
+ 
+    group = menu.addGroup("Menu.Utilities");
+    submenu = group.addSubmenu("/com/mx/kylgis/pos/images/utilities.png", "Menu.Tools", "com.mx.kylgis.pos.imports.JPanelCSV");	
+    submenu.addTitle("Menu.Import");
+        submenu.addPanel("/com/mx/kylgis/pos/images/import.png", "Menu.CSVImport", "com.mx.kylgis.pos.imports.JPanelCSVImport");
+        submenu.addPanel("/com/mx/kylgis/pos/images/import.png", "Menu.CSVStockQty", "com.mx.kylgis.pos.imports.StockQtyImport");
+        submenu.addPanel("/com/mx/kylgis/pos/images/import.png", "Menu.CustomerCSVImport", "com.mx.kylgis.pos.imports.CustomerCSVImport");
+        submenu.addPanel("/com/mx/kylgis/pos/images/database.png", "Menu.CSVReset", "com.mx.kylgis.pos.imports.JPanelCSVCleardb");
+        submenu.addPanel("/com/mx/kylgis/pos/images/database.png", "Menu.Transfer", "com.mx.kylgis.pos.transfer.Transfer");
+    submenu.addTitle("Menu.Import.Reports");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.NewProducts", "/com/mx/kylgis/pos/reports/tools_newproducts.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.UpdatedPrices", "/com/mx/kylgis/pos/reports/tools_updatedprices.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.StockQtyUpdate", "/com/mx/kylgis/pos/reports/tools_inventoryqtyupdate.bs");
+//        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.BadPrices", "/com/mx/kylgis/pos/reports/tools_badprice.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.InvalidCategory", "/com/mx/kylgis/pos/reports/tools_invalidcategory.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.MissingData", "/com/mx/kylgis/pos/reports/tools_missingdata.bs");
+        submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Tools.InvalidData", "/com/mx/kylgis/pos/reports/tools_invaliddata.bs");
+
+    group = menu.addGroup("Menu.System");
+    group.addChangePasswordAction();
+    group.addPanel("/com/mx/kylgis/pos/images/configuration.png", "Menu.Configuration", "com.mx.kylgis.pos.config.JPanelConfiguration");
+    group.addPanel("/com/mx/kylgis/pos/images/printer.png", "Menu.Printer", "com.mx.kylgis.pos.panels.JPanelPrinter");
+    group.addPanel("/com/mx/kylgis/pos/images/timer.png", "Menu.CheckInCheckOut", "com.mx.kylgis.pos.epm.JPanelEmployeePresence");
+
+// Deprecated options. Only required with Openbravo ERP software
+//       submenu.addTitle("Menu.Maintenance.ERP");
+//       submenu.addExecution("/com/mx/kylgis/pos/images/kylgis_pos.png", "Menu.ERPProducts", "com.mx.kylgis.pos.sync.ProductsSyncCreate");
+//       submenu.addExecution("/com/mx/kylgis/pos/images/kylgis_pos.png", "Menu.ERPOrders", "com.mx.kylgis.pos.sync.OrdersSyncCreate");
+
+    group.addExitAction();

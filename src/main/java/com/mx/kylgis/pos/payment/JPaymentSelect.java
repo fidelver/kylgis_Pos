@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.payment;
 
 import com.mx.kylgis.pos.format.Formats;
@@ -250,7 +251,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             return "tab.cash"; }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/cash.png"; }
+            return "/com/mx/kylgis/pos/images/cash.png"; }
     }
         
     public class JPaymentChequeCreator implements JPaymentCreator {
@@ -266,7 +267,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             return "tab.cheque"; }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/cheque.png"; }
+            return "/com/mx/kylgis/pos/images/cheque.png"; }
     }
 
     public class JPaymentVoucherCreator implements JPaymentCreator {
@@ -282,7 +283,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             return "tab.voucher"; }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/voucher.png"; }
+            return "/com/mx/kylgis/pos/images/voucher.png"; }
     }
    
     public class JPaymentMagcardCreator implements JPaymentCreator {
@@ -298,7 +299,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             return "tab.magcard"; }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/ccard.png"; }
+            return "/com/mx/kylgis/pos/images/ccard.png"; }
     }
       
         
@@ -318,7 +319,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/wallet.png"; 
+            return "/com/mx/kylgis/pos/images/wallet.png"; 
         }
     }
         
@@ -337,7 +338,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/customer.png"; 
+            return "/com/mx/kylgis/pos/images/customer.png"; 
         }
     }
 
@@ -356,7 +357,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/cash.png"; 
+            return "/com/mx/kylgis/pos/images/cash.png"; 
         }
     }
         
@@ -375,7 +376,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/cheque.png"; 
+            return "/com/mx/kylgis/pos/images/cheque.png"; 
         }
     }
        
@@ -394,7 +395,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/voucher.png"; 
+            return "/com/mx/kylgis/pos/images/voucher.png"; 
         }
     }
 
@@ -413,7 +414,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/ccard.png"; 
+            return "/com/mx/kylgis/pos/images/ccard.png"; 
         }
     }
 
@@ -432,7 +433,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/bank.png"; 
+            return "/com/mx/kylgis/pos/images/bank.png"; 
         }
     }
 
@@ -451,7 +452,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         @Override
         public String getIconKey() { 
-            return "/com/openbravo/images/slip.png"; 
+            return "/com/mx/kylgis/pos/images/slip.png"; 
         }
     }
     
@@ -543,7 +544,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
         jPanel6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 5, 0));
 
-        m_jButtonRemove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btnminus.png"))); // NOI18N
+        m_jButtonRemove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btnminus.png"))); // NOI18N
         m_jButtonRemove.setToolTipText("Delete Part Payment");
         m_jButtonRemove.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jButtonRemove.addActionListener(new java.awt.event.ActionListener() {
@@ -552,7 +553,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             }
         });
 
-        m_jButtonAdd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btnplus.png"))); // NOI18N
+        m_jButtonAdd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btnplus.png"))); // NOI18N
         m_jButtonAdd.setToolTipText("Add Part Payment");
         m_jButtonAdd.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jButtonAdd.addActionListener(new java.awt.event.ActionListener() {
@@ -628,7 +629,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         jPanel5.setLayout(new java.awt.BorderLayout());
 
         m_jButtonCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/cancel.png"))); // NOI18N
         m_jButtonCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
         m_jButtonCancel.setFocusPainted(false);
         m_jButtonCancel.setFocusable(false);
@@ -642,7 +643,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         jPanel2.add(m_jButtonCancel);
 
         m_jButtonOK.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        m_jButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         m_jButtonOK.setText(AppLocal.getIntString("button.OK")); // NOI18N
         m_jButtonOK.setFocusPainted(false);
         m_jButtonOK.setFocusable(false);
@@ -659,7 +660,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
         jPanel5.add(jPanel2, java.awt.BorderLayout.LINE_END);
 
-        m_jButtonPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer24_off.png"))); // NOI18N
+        m_jButtonPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/printer24_off.png"))); // NOI18N
         m_jButtonPrint.setSelected(true);
         m_jButtonPrint.setToolTipText("Print Receipt");
         m_jButtonPrint.setFocusPainted(false);
@@ -667,7 +668,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         m_jButtonPrint.setMargin(new java.awt.Insets(8, 16, 8, 16));
         m_jButtonPrint.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jButtonPrint.setRequestFocusEnabled(false);
-        m_jButtonPrint.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer24.png"))); // NOI18N
+        m_jButtonPrint.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/printer24.png"))); // NOI18N
         m_jButtonPrint.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 m_jButtonPrintActionPerformed(evt);

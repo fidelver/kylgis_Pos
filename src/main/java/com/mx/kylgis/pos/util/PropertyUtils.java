@@ -38,7 +38,7 @@ public class PropertyUtils {
     }
 
     private File getDefaultConfig() {
-        return new File(new File("C:\\Documents and Settings\\jack"), "unicentaopos.properties");
+        return new File(new File("C:\\Documents and Settings\\jack"), "kylgispos.properties");
     }
 
     private void load() {

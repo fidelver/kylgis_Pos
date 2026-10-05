@@ -1,0 +1,56 @@
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
+//
+//    This file is part of KylGis POS
+//
+//    KylGis POS is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    KylGis POS is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
+report = new com.mx.kylgis.pos.reports.PanelReportBean();
+
+report.setTitleKey("Menu.UserSells");
+report.setReport("/com/mx/kylgis/pos/reports/users_sales");
+report.setResourceBundle("com/mx/kylgis/pos/reports/users_messages");
+
+report.setSentence("SELECT people.name, "
+       + "receipts.DATENEW AS STARTDATE, receipts.DATENEW AS ENDDATE, "
+       + "SUM(payments.total) AS TOTAL, "
+       + "tickets.ticketid AS TICKETID "
++ "FROM tickets tickets, people people, "
+     + "receipts receipts, payments payments "
++ "WHERE     (tickets.person = people.id)  AND (tickets.id = receipts.id) "
+      + "AND (payments.receipt = receipts.id) AND (tickets.person = people.id) "
+      + "AND (tickets.id = receipts.id) AND (payments.receipt = receipts.id) "
+      + "AND ?(QBF_FILTER) "
++ "GROUP BY tickets.ticketid");
+
+report.addParameter("receipts.DATENEW");
+report.addParameter("receipts.DATENEW");
+paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
+paramdates.setStartDate(com.mx.kylgis.pos.beans.DateUtils.getToday());
+paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
+report.addQBFFilter(paramdates);
+
+report.addParameter("people.ID");
+report.addParameter("people.NAME");
+report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsUser());
+
+report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("STARTDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("ENDDATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TICKETID", com.mx.kylgis.pos.data.loader.Datas.STRING);
+
+report;

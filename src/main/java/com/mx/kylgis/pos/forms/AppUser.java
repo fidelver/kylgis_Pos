@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.data.loader.LocalRes;
@@ -212,7 +213,7 @@ public class AppUser {
         m_oldclasses.put("net.adrianromero.tpv.panelsales.JPanelTicketEdits", "com.mx.kylgis.pos.sales.JPanelTicketEdits");
         m_oldclasses.put("net.adrianromero.tpv.panels.JPanelPayments", "com.mx.kylgis.pos.panels.JPanelPayments");
         m_oldclasses.put("net.adrianromero.tpv.panels.JPanelCloseMoney", "com.mx.kylgis.pos.panels.JPanelCloseMoney");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportClosedPos", "/com/openbravo/reports/closedpos.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportClosedPos", "/com/mx/kylgis/pos/reports/sales_closedpos.bs");
 
         m_oldclasses.put("Menu.StockManagement", "com.mx.kylgis.pos.forms.MenuStockManagement");
         m_oldclasses.put("net.adrianromero.tpv.inventory.ProductsPanel", "com.mx.kylgis.pos.inventory.ProductsPanel");
@@ -221,18 +222,18 @@ public class AppUser {
         m_oldclasses.put("net.adrianromero.tpv.panels.JPanelTax", "com.mx.kylgis.pos.inventory.TaxPanel");
         m_oldclasses.put("net.adrianromero.tpv.inventory.StockDiaryPanel", "com.mx.kylgis.pos.inventory.StockDiaryPanel");
         m_oldclasses.put("net.adrianromero.tpv.inventory.StockManagement", "com.mx.kylgis.pos.inventory.StockManagement");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportProducts", "/com/openbravo/reports/products.bs");      
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportCatalog", "/com/openbravo/reports/productscatalog.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventory", "/com/openbravo/reports/inventory.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventory2", "/com/openbravo/reports/inventoryb.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventoryBroken", "/com/openbravo/reports/inventorybroken.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventoryDiff", "/com/openbravo/reports/inventorydiff.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportProducts", "/com/mx/kylgis/pos/reports/products.bs");      
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportCatalog", "/com/mx/kylgis/pos/reports/products_catalog.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventory", "/com/mx/kylgis/pos/reports/inventory.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventory2", "/com/mx/kylgis/pos/reports/inventory_b.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventoryBroken", "/com/mx/kylgis/pos/reports/inventory_broken.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportInventoryDiff", "/com/mx/kylgis/pos/reports/inventory_diff.bs");
 
         m_oldclasses.put("Menu.SalesManagement", "com.mx.kylgis.pos.forms.MenuSalesManagement");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportUserSales", "/com/openbravo/reports/usersales.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportClosedProducts", "/com/openbravo/reports/closedproducts.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JReportTaxes", "/com/openbravo/reports/taxes.bs");
-        m_oldclasses.put("net.adrianromero.tpv.reports.JChartSales", "/com/openbravo/reports/chartsales.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportUserSales", "/com/mx/kylgis/pos/reports/users_sales.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportClosedProducts", "/com/mx/kylgis/pos/reports/sales_closedproducts.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JReportTaxes", "/com/mx/kylgis/pos/reports/sales_taxes.bs");
+        m_oldclasses.put("net.adrianromero.tpv.reports.JChartSales", "/com/mx/kylgis/pos/reports/sales_chart_sales.bs");
 
         m_oldclasses.put("Menu.Maintenance", "com.mx.kylgis.pos.forms.MenuMaintenance");
         m_oldclasses.put("net.adrianromero.tpv.admin.PeoplePanel", "com.mx.kylgis.pos.admin.PeoplePanel");
@@ -249,20 +250,20 @@ public class AppUser {
         m_oldclasses.put("net.adrianromero.tpv.config.JPanelConfiguration", "com.mx.kylgis.pos.config.JPanelConfiguration");
         
         // update permissions from 2.00 to 2.20       
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomers", "/com/openbravo/reports/customers.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomersB", "/com/openbravo/reports/customersb.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedPos", "/com/openbravo/reports/closedpos.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedProducts", "/com/openbravo/reports/closedproducts.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JChartSales", "/com/openbravo/reports/chartsales.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory", "/com/openbravo/reports/inventory.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory2", "/com/openbravo/reports/inventoryb.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryBroken", "/com/openbravo/reports/inventorybroken.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryDiff", "/com/openbravo/reports/inventorydiff.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportPeople", "/com/openbravo/reports/people.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportTaxes", "/com/openbravo/reports/taxes.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportUserSales", "/com/openbravo/reports/usersales.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportProducts", "/com/openbravo/reports/products.bs");
-        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCatalog", "/com/openbravo/reports/productscatalog.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomers", "/com/mx/kylgis/pos/reports/customers.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomersB", "/com/mx/kylgis/pos/reports/customers_b.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedPos", "/com/mx/kylgis/pos/reports/sales_closedpos.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportClosedProducts", "/com/mx/kylgis/pos/reports/sales_closedproducts.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JChartSales", "/com/mx/kylgis/pos/reports/sales_chart_sales.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory", "/com/mx/kylgis/pos/reports/inventory.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventory2", "/com/mx/kylgis/pos/reports/inventory_b.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryBroken", "/com/mx/kylgis/pos/reports/inventory_broken.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportInventoryDiff", "/com/mx/kylgis/pos/reports/inventory_diff.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportPeople", "/com/mx/kylgis/pos/reports/users.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportTaxes", "/com/mx/kylgis/pos/reports/sales_taxes.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportUserSales", "/com/mx/kylgis/pos/reports/users_sales.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportProducts", "/com/mx/kylgis/pos/reports/products.bs");
+        m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCatalog", "/com/mx/kylgis/pos/reports/products_catalog.bs");
         
         // update permissions from 2.10 to 2.20
         m_oldclasses.put("com.mx.kylgis.pos.panels.JPanelTax", "com.mx.kylgis.pos.inventory.TaxPanel");

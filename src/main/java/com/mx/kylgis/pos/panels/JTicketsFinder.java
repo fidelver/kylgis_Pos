@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.panels;
 
 import com.mx.kylgis.pos.basic.BasicException;
@@ -409,7 +410,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jTxtEndDate.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jTxtEndDate.setPreferredSize(new java.awt.Dimension(150, 30));
 
-        btnDateStart.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        btnDateStart.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         btnDateStart.setToolTipText("Open Calendar");
         btnDateStart.setPreferredSize(new java.awt.Dimension(100, 30));
         btnDateStart.addActionListener(new java.awt.event.ActionListener() {
@@ -418,7 +419,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
             }
         });
 
-        btnDateEnd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        btnDateEnd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         btnDateEnd.setToolTipText("Open Calendar");
         btnDateEnd.setPreferredSize(new java.awt.Dimension(100, 30));
         btnDateEnd.addActionListener(new java.awt.event.ActionListener() {
@@ -430,7 +431,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jtxtCustomer.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jtxtCustomer.setPreferredSize(new java.awt.Dimension(150, 30));
 
-        btnCustomer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer_sml.png"))); // NOI18N
+        btnCustomer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/customer_sml.png"))); // NOI18N
         btnCustomer.setToolTipText("Open Customers");
         btnCustomer.setFocusPainted(false);
         btnCustomer.setFocusable(false);
@@ -521,7 +522,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel5.add(jPanel7, java.awt.BorderLayout.CENTER);
 
         jbtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset.setText(AppLocal.getIntString("button.clean")); // NOI18N
         jbtnReset.setToolTipText("Clear Filter");
         jbtnReset.setPreferredSize(new java.awt.Dimension(110, 45));
@@ -533,7 +534,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel6.add(jbtnReset);
 
         jbtnExecute.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnExecute.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jbtnExecute.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jbtnExecute.setText(AppLocal.getIntString("button.executefilter")); // NOI18N
         jbtnExecute.setToolTipText("Execute Filter");
         jbtnExecute.setFocusPainted(false);
@@ -589,7 +590,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel8.setLayout(new java.awt.BorderLayout());
 
         jcmdCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/cancel.png"))); // NOI18N
         jcmdCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
         jcmdCancel.setFocusPainted(false);
         jcmdCancel.setFocusable(false);
@@ -604,7 +605,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel1.add(jcmdCancel);
 
         jcmdOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jcmdOK.setText(AppLocal.getIntString("button.OK")); // NOI18N
         jcmdOK.setEnabled(false);
         jcmdOK.setFocusPainted(false);

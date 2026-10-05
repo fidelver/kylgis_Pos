@@ -426,7 +426,7 @@
           <executable>${bitrock.exec}</executable>  
           <arguments> 
             <argument>build</argument>  
-            <argument>${basedir}/src/installer/unicentaopos.xml</argument>  
+            <argument>${basedir}/src/installer/kylgispos.xml</argument>  
             <argument>${bitrock.platform}</argument> 
             <argument>--license</argument>
             <argument>${bitrock.licence}</argument>
@@ -450,7 +450,7 @@
         <version>2.10</version>
       </extension>
     </extensions>
-    <finalName>unicentaopos</finalName> 
+    <finalName>kylgispos</finalName> 
   </build>  
   <repositories> 
     <repository> 
