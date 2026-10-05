@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.user.DirtyManager;
@@ -51,6 +52,13 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private String sdbmanager;
     private String SQL;
     private Statement stmt;  
+    private boolean loadingTicketFormat;
+    private final String defaultDigitalPath = new java.io.File(System.getProperty("user.home"), "KylGisPOS/Tickets").getPath();
+    private javax.swing.JPanel ticketSetupContainer;
+    private javax.swing.JCheckBox screenMirrorCheck;
+    private javax.swing.JCheckBox digitalMirrorCheck;
+    private javax.swing.JTextField digitalMirrorPath;
+    private javax.swing.JButton digitalMirrorBrowse;
     
     /**
      *
@@ -63,7 +71,10 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         jPickupSize.addChangeListener(dirty);
         jTextReceiptPrefix.getDocument().addDocumentListener(dirty);
         m_jReceiptPrintOff.addActionListener(dirty);
+        jcboTicketPaper.addActionListener(dirty);
+        jTicketWidth.addChangeListener(dirty);
 
+        initTicketOutputControls();
         jbtnReset.setVisible(true);
     }
     
@@ -83,9 +94,66 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
      */
     @Override
     public Component getConfigComponent() {
-        return this;
+        return ticketSetupContainer;
     }
    
+    private void initTicketOutputControls() {
+        javax.swing.JPanel outputs = new javax.swing.JPanel(new java.awt.BorderLayout(6, 5));
+        outputs.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createTitledBorder("Salidas del ticket"),
+                javax.swing.BorderFactory.createEmptyBorder(4, 8, 6, 8)));
+
+        javax.swing.JLabel note = new javax.swing.JLabel(
+                "<html><b>Nota:</b> Pantalla y Ticket digital son copias de la impresora principal. "
+                + "Se recomienda usar Printer 1 para los recibos.</html>");
+        outputs.add(note, java.awt.BorderLayout.NORTH);
+
+        javax.swing.JPanel checks = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        screenMirrorCheck = new javax.swing.JCheckBox("Mostrar copia del recibo en pantalla");
+        digitalMirrorCheck = new javax.swing.JCheckBox("Generar ticket digital");
+        checks.add(screenMirrorCheck);
+        checks.add(digitalMirrorCheck);
+        outputs.add(checks, java.awt.BorderLayout.CENTER);
+
+        javax.swing.JPanel path = new javax.swing.JPanel(new java.awt.BorderLayout(6, 0));
+        path.add(new javax.swing.JLabel("Carpeta base:"), java.awt.BorderLayout.WEST);
+        digitalMirrorPath = new javax.swing.JTextField(defaultDigitalPath);
+        digitalMirrorBrowse = new javax.swing.JButton("Examinar...");
+        path.add(digitalMirrorPath, java.awt.BorderLayout.CENTER);
+        path.add(digitalMirrorBrowse, java.awt.BorderLayout.EAST);
+        outputs.add(path, java.awt.BorderLayout.SOUTH);
+
+        screenMirrorCheck.addActionListener(dirty);
+        digitalMirrorCheck.addActionListener(dirty);
+        digitalMirrorCheck.addActionListener(e -> updateDigitalControls());
+        digitalMirrorPath.getDocument().addDocumentListener(dirty);
+        digitalMirrorBrowse.addActionListener(e -> chooseDigitalPath());
+
+        setPreferredSize(new java.awt.Dimension(700, 330));
+        ticketSetupContainer = new javax.swing.JPanel(new java.awt.BorderLayout(0, 5));
+        ticketSetupContainer.setOpaque(false);
+        ticketSetupContainer.add(this, java.awt.BorderLayout.CENTER);
+        ticketSetupContainer.add(outputs, java.awt.BorderLayout.SOUTH);
+        ticketSetupContainer.setPreferredSize(new java.awt.Dimension(700, 500));
+        updateDigitalControls();
+    }
+
+    private void updateDigitalControls() {
+        boolean enabled = digitalMirrorCheck != null && digitalMirrorCheck.isSelected();
+        if (digitalMirrorPath != null) digitalMirrorPath.setEnabled(enabled);
+        if (digitalMirrorBrowse != null) digitalMirrorBrowse.setEnabled(enabled);
+    }
+
+    private void chooseDigitalPath() {
+        javax.swing.JFileChooser chooser = new javax.swing.JFileChooser(digitalMirrorPath.getText());
+        chooser.setDialogTitle("Seleccionar carpeta base para tickets digitales");
+        chooser.setFileSelectionMode(javax.swing.JFileChooser.DIRECTORIES_ONLY);
+        chooser.setAcceptAllFileFilterUsed(false);
+        if (chooser.showOpenDialog(ticketSetupContainer) == javax.swing.JFileChooser.APPROVE_OPTION) {
+            digitalMirrorPath.setText(chooser.getSelectedFile().getAbsolutePath());
+        }
+    }
+
     /**
      *
      * @param config
@@ -118,8 +186,35 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
          
         receipt += "1";
          jTicketExample.setText(jTextReceiptPrefix.getText()+receipt);  
-         m_jReceiptPrintOff.setSelected(Boolean.parseBoolean(config.getProperty("till.receiptprintoff"))); 
-        
+         m_jReceiptPrintOff.setSelected(Boolean.parseBoolean(config.getProperty("till.receiptprintoff")));
+
+         String paperSize = config.getProperty("ticket.paper.size");
+         String ticketWidth = config.getProperty("ticket.width");
+         int width = 32;
+         try {
+             width = Integer.parseInt(ticketWidth);
+         } catch (Exception ex) {
+             width = 32;
+         }
+         width = Math.max(31, Math.min(120, width));
+         if (!"80".equals(paperSize) && !"120".equals(paperSize)) {
+             paperSize = "58";
+         }
+         TicketFormatSettings.set(paperSize, width);
+         loadingTicketFormat = true;
+         try {
+             jcboTicketPaper.setSelectedItem(paperSize + " mm");
+             jTicketWidth.setValue(width);
+         } finally {
+             loadingTicketFormat = false;
+         }
+
+        screenMirrorCheck.setSelected(Boolean.parseBoolean(config.getProperty("screen.ticket.enabled")));
+        digitalMirrorCheck.setSelected(Boolean.parseBoolean(config.getProperty("digital.ticket.enabled")));
+        String mirrorPath = config.getProperty("digital.ticket.path");
+        digitalMirrorPath.setText(mirrorPath == null || mirrorPath.trim().isEmpty() ? defaultDigitalPath : mirrorPath.trim());
+        updateDigitalControls();
+
         dirty.setDirty(false);
 
         
@@ -148,7 +243,13 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         config.setProperty("till.receiptsize", jReceiptSize.getValue().toString());
         config.setProperty("till.pickupsize", jPickupSize.getValue().toString());        
         config.setProperty("till.receiptprintoff",Boolean.toString(m_jReceiptPrintOff.isSelected()));
-        
+        config.setProperty("ticket.paper.size", TicketFormatSettings.getPaperSize());
+        config.setProperty("ticket.width", Integer.toString(TicketFormatSettings.getWidth()));
+        config.setProperty("screen.ticket.enabled", Boolean.toString(screenMirrorCheck.isSelected()));
+        config.setProperty("digital.ticket.enabled", Boolean.toString(digitalMirrorCheck.isSelected()));
+        String mirrorPath = digitalMirrorPath.getText() == null ? "" : digitalMirrorPath.getText().trim();
+        config.setProperty("digital.ticket.path", mirrorPath.isEmpty() ? defaultDigitalPath : mirrorPath);
+
         dirty.setDirty(false);
     }
     
@@ -170,6 +271,10 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         jPickupSize = new javax.swing.JSpinner();
         m_jReceiptPrintOff = new javax.swing.JCheckBox();
         jbtnReset = new javax.swing.JButton();
+        jLabel4 = new javax.swing.JLabel();
+        jcboTicketPaper = new javax.swing.JComboBox<>();
+        jLabel5 = new javax.swing.JLabel();
+        jTicketWidth = new javax.swing.JSpinner();
 
         jTextField2.setText("jTextField2");
 
@@ -236,7 +341,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         });
 
         jbtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset.setText(AppLocal.getIntString("label.resetpickup")); // NOI18N
         jbtnReset.setMaximumSize(new java.awt.Dimension(70, 33));
         jbtnReset.setMinimumSize(new java.awt.Dimension(70, 33));
@@ -247,6 +352,33 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
             }
         });
 
+        jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel4.setText(bundle.getString("label.ticketpapersize")); // NOI18N
+        jLabel4.setPreferredSize(new java.awt.Dimension(190, 30));
+
+        jcboTicketPaper.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jcboTicketPaper.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "58 mm", "80 mm", "120 mm" }));
+        jcboTicketPaper.setPreferredSize(new java.awt.Dimension(130, 30));
+        jcboTicketPaper.setToolTipText(bundle.getString("tooltip.ticketpapersize"));
+        jcboTicketPaper.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jcboTicketPaperActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel5.setText(bundle.getString("label.ticketwidth")); // NOI18N
+
+        jTicketWidth.setFont(new java.awt.Font("Arial", 0, 16)); // NOI18N
+        jTicketWidth.setModel(new javax.swing.SpinnerNumberModel(32, 31, 120, 1));
+        jTicketWidth.setPreferredSize(new java.awt.Dimension(70, 30));
+        jTicketWidth.setToolTipText(bundle.getString("tooltip.ticketwidth"));
+        jTicketWidth.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                jTicketWidthStateChanged(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -254,6 +386,14 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jcboTicketPaper, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jLabel5)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jTicketWidth, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(m_jReceiptPrintOff, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                         .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
@@ -291,10 +431,16 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
                 .addComponent(m_jReceiptPrintOff, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jcboTicketPaper, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel5)
+                    .addComponent(jTicketWidth, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jPickupSize, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jbtnReset, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(289, 289, 289))
+                .addGap(241, 241, 241))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -323,6 +469,27 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private void m_jReceiptPrintOffActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jReceiptPrintOffActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_m_jReceiptPrintOffActionPerformed
+
+    private void jcboTicketPaperActionPerformed(java.awt.event.ActionEvent evt) {
+        if (loadingTicketFormat) return;
+        String selected = String.valueOf(jcboTicketPaper.getSelectedItem());
+        String paper = selected.startsWith("80") ? "80" : selected.startsWith("120") ? "120" : "58";
+        int preset = TicketFormatSettings.presetWidth(paper);
+        loadingTicketFormat = true;
+        try {
+            jTicketWidth.setValue(preset);
+        } finally {
+            loadingTicketFormat = false;
+        }
+        TicketFormatSettings.set(paper, preset);
+    }
+
+    private void jTicketWidthStateChanged(javax.swing.event.ChangeEvent evt) {
+        if (loadingTicketFormat) return;
+        String selected = String.valueOf(jcboTicketPaper.getSelectedItem());
+        String paper = selected.startsWith("80") ? "80" : selected.startsWith("120") ? "120" : "58";
+        TicketFormatSettings.set(paper, ((Number) jTicketWidth.getValue()).intValue());
+    }
 
     private void jbtnResetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnResetActionPerformed
         int response = JOptionPane.showOptionDialog(null,
@@ -376,6 +543,10 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JComboBox<String> jcboTicketPaper;
+    private javax.swing.JSpinner jTicketWidth;
     private javax.swing.JSpinner jPickupSize;
     private javax.swing.JSpinner jReceiptSize;
     private javax.swing.JTextField jTextField2;

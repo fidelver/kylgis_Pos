@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.printer.screen;
 
 import com.mx.kylgis.pos.forms.AppLocal;
@@ -35,11 +36,17 @@ public class DevicePrinterPanel extends javax.swing.JPanel implements DevicePrin
     
     private final String m_sName;
    
-    private final JTicketContainer m_jTicketContainer;    
+    private final JTicketContainer m_jTicketContainer;
+    private final int ticketColumns;
     private BasicTicket m_ticketcurrent;
     
     /** Creates new form JPrinterScreen2 */
     public DevicePrinterPanel() {
+        this(42);
+    }
+
+    public DevicePrinterPanel(int ticketColumns) {
+        this.ticketColumns = Math.max(16, Math.min(ticketColumns, 120));
         initComponents();
         
         m_sName = AppLocal.getIntString("printer.screen");
@@ -152,7 +159,7 @@ public class DevicePrinterPanel extends javax.swing.JPanel implements DevicePrin
      */
     @Override
     public void endReceipt() {
-        m_jTicketContainer.addTicket(new JTicket(m_ticketcurrent));
+        m_jTicketContainer.addTicket(new JTicket(m_ticketcurrent, ticketColumns));
         m_ticketcurrent = null;
     }
     

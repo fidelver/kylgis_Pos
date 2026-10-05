@@ -1,21 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.user.DirtyManager;
@@ -25,6 +27,7 @@ import com.mx.kylgis.pos.util.ReportUtils;
 import com.mx.kylgis.pos.util.StringParser;
 import java.awt.CardLayout;
 import java.awt.Component;
+import java.io.File;
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
 
@@ -39,6 +42,12 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
     private final DirtyManager dirty = new DirtyManager();
 
     private PrintService[] printServices;
+    private final String defaultDigitalPath = new File(System.getProperty("user.home"), "KylGisPOS/Tickets").getPath();
+    private javax.swing.JPanel receiptMirrorPanel;
+    private javax.swing.JCheckBox screenMirrorCheck;
+    private javax.swing.JCheckBox digitalMirrorCheck;
+    private javax.swing.JTextField digitalMirrorPath;
+    private javax.swing.JButton digitalMirrorBrowse;
     
     private final ParametersConfig printer1printerparams;
     private final ParametersConfig printer2printerparams;
@@ -133,7 +142,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
 // printers
         jcboMachinePrinter.addItem("Not defined");
-        jcboMachinePrinter.addItem("screen");
         jcboMachinePrinter.addItem("printer");
         jcboMachinePrinter.addItem("epson");
         jcboMachinePrinter.addItem("tmu220");
@@ -146,7 +154,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
         jcboConnPrinter.addItem("file");
         jcboConnPrinter.addItem("serial");
-
         jcboSerialPrinter.addItem("COM1");
         jcboSerialPrinter.addItem("COM2");
         jcboSerialPrinter.addItem("COM3");
@@ -162,9 +169,27 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialPrinter.addItem("/dev/ttyS3");
         jcboSerialPrinter.addItem("/dev/ttyS4");
         jcboSerialPrinter.addItem("/dev/ttyS5");
-
+        jcboSerialPrinter.addItem("/dev/ttyUSB0");
+        jcboSerialPrinter.addItem("/dev/ttyUSB1");
+        jcboSerialPrinter.addItem("/dev/ttyUSB2");
+        jcboSerialPrinter.addItem("/dev/ttyUSB3");
+        jcboSerialPrinter.addItem("/dev/ttyUSB4");
+        jcboSerialPrinter.addItem("/dev/ttyUSB5");
+        jcboSerialPrinter.addItem("/dev/ttyACM0");
+        jcboSerialPrinter.addItem("/dev/ttyACM1");
+        jcboSerialPrinter.addItem("/dev/ttyACM2");
+        jcboSerialPrinter.addItem("/dev/ttyACM3");
+        jcboSerialPrinter.addItem("/dev/ttyACM4");
+        jcboSerialPrinter.addItem("/dev/ttyACM5");
+        jcboSerialPrinter.addItem("/dev/rfcomm0");
+        jcboSerialPrinter.addItem("/dev/rfcomm1");
+        jcboSerialPrinter.addItem("/dev/rfcomm2");
+        jcboSerialPrinter.addItem("/dev/rfcomm3");
+        jcboSerialPrinter.addItem("/dev/usb/lp0");
+        jcboSerialPrinter.addItem("/dev/usb/lp1");
+        jcboSerialPrinter.addItem("/dev/usb/lp2");
+        jcboSerialPrinter.addItem("/dev/usb/lp3");
         jcboMachinePrinter2.addItem("Not defined");
-        jcboMachinePrinter2.addItem("screen");
         jcboMachinePrinter2.addItem("printer");
         jcboMachinePrinter2.addItem("epson");
         jcboMachinePrinter2.addItem("tmu220");
@@ -177,7 +202,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
         jcboConnPrinter2.addItem("file");
         jcboConnPrinter2.addItem("serial");
-
         jcboSerialPrinter2.addItem("COM1");
         jcboSerialPrinter2.addItem("COM2");
         jcboSerialPrinter2.addItem("COM3");
@@ -193,9 +217,27 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialPrinter2.addItem("/dev/ttyS3");
         jcboSerialPrinter2.addItem("/dev/ttyS4");
         jcboSerialPrinter2.addItem("/dev/ttyS5");
-
+        jcboSerialPrinter2.addItem("/dev/ttyUSB0");
+        jcboSerialPrinter2.addItem("/dev/ttyUSB1");
+        jcboSerialPrinter2.addItem("/dev/ttyUSB2");
+        jcboSerialPrinter2.addItem("/dev/ttyUSB3");
+        jcboSerialPrinter2.addItem("/dev/ttyUSB4");
+        jcboSerialPrinter2.addItem("/dev/ttyUSB5");
+        jcboSerialPrinter2.addItem("/dev/ttyACM0");
+        jcboSerialPrinter2.addItem("/dev/ttyACM1");
+        jcboSerialPrinter2.addItem("/dev/ttyACM2");
+        jcboSerialPrinter2.addItem("/dev/ttyACM3");
+        jcboSerialPrinter2.addItem("/dev/ttyACM4");
+        jcboSerialPrinter2.addItem("/dev/ttyACM5");
+        jcboSerialPrinter2.addItem("/dev/rfcomm0");
+        jcboSerialPrinter2.addItem("/dev/rfcomm1");
+        jcboSerialPrinter2.addItem("/dev/rfcomm2");
+        jcboSerialPrinter2.addItem("/dev/rfcomm3");
+        jcboSerialPrinter2.addItem("/dev/usb/lp0");
+        jcboSerialPrinter2.addItem("/dev/usb/lp1");
+        jcboSerialPrinter2.addItem("/dev/usb/lp2");
+        jcboSerialPrinter2.addItem("/dev/usb/lp3");
         jcboMachinePrinter3.addItem("Not defined");
-        jcboMachinePrinter3.addItem("screen");
         jcboMachinePrinter3.addItem("printer");
         jcboMachinePrinter3.addItem("epson");
         jcboMachinePrinter3.addItem("tmu220");
@@ -208,7 +250,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
         jcboConnPrinter3.addItem("file");
         jcboConnPrinter3.addItem("serial");
-
         jcboSerialPrinter3.addItem("COM1");
         jcboSerialPrinter3.addItem("COM2");
         jcboSerialPrinter3.addItem("COM3");
@@ -224,9 +265,27 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialPrinter3.addItem("/dev/ttyS3");
         jcboSerialPrinter3.addItem("/dev/ttyS4");
         jcboSerialPrinter3.addItem("/dev/ttyS5");
-
+        jcboSerialPrinter3.addItem("/dev/ttyUSB0");
+        jcboSerialPrinter3.addItem("/dev/ttyUSB1");
+        jcboSerialPrinter3.addItem("/dev/ttyUSB2");
+        jcboSerialPrinter3.addItem("/dev/ttyUSB3");
+        jcboSerialPrinter3.addItem("/dev/ttyUSB4");
+        jcboSerialPrinter3.addItem("/dev/ttyUSB5");
+        jcboSerialPrinter3.addItem("/dev/ttyACM0");
+        jcboSerialPrinter3.addItem("/dev/ttyACM1");
+        jcboSerialPrinter3.addItem("/dev/ttyACM2");
+        jcboSerialPrinter3.addItem("/dev/ttyACM3");
+        jcboSerialPrinter3.addItem("/dev/ttyACM4");
+        jcboSerialPrinter3.addItem("/dev/ttyACM5");
+        jcboSerialPrinter3.addItem("/dev/rfcomm0");
+        jcboSerialPrinter3.addItem("/dev/rfcomm1");
+        jcboSerialPrinter3.addItem("/dev/rfcomm2");
+        jcboSerialPrinter3.addItem("/dev/rfcomm3");
+        jcboSerialPrinter3.addItem("/dev/usb/lp0");
+        jcboSerialPrinter3.addItem("/dev/usb/lp1");
+        jcboSerialPrinter3.addItem("/dev/usb/lp2");
+        jcboSerialPrinter3.addItem("/dev/usb/lp3");
         jcboMachinePrinter4.addItem("Not defined");
-        jcboMachinePrinter4.addItem("screen");
         jcboMachinePrinter4.addItem("printer");
         jcboMachinePrinter4.addItem("epson");
         jcboMachinePrinter4.addItem("tmu220");
@@ -239,7 +298,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
         jcboConnPrinter4.addItem("file");
         jcboConnPrinter4.addItem("serial");
-
         jcboSerialPrinter4.addItem("COM1");
         jcboSerialPrinter4.addItem("COM2");
         jcboSerialPrinter4.addItem("COM3");
@@ -255,9 +313,27 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialPrinter4.addItem("/dev/ttyS3");
         jcboSerialPrinter4.addItem("/dev/ttyS4");
         jcboSerialPrinter4.addItem("/dev/ttyS5");
-        
+        jcboSerialPrinter4.addItem("/dev/ttyUSB0");
+        jcboSerialPrinter4.addItem("/dev/ttyUSB1");
+        jcboSerialPrinter4.addItem("/dev/ttyUSB2");
+        jcboSerialPrinter4.addItem("/dev/ttyUSB3");
+        jcboSerialPrinter4.addItem("/dev/ttyUSB4");
+        jcboSerialPrinter4.addItem("/dev/ttyUSB5");
+        jcboSerialPrinter4.addItem("/dev/ttyACM0");
+        jcboSerialPrinter4.addItem("/dev/ttyACM1");
+        jcboSerialPrinter4.addItem("/dev/ttyACM2");
+        jcboSerialPrinter4.addItem("/dev/ttyACM3");
+        jcboSerialPrinter4.addItem("/dev/ttyACM4");
+        jcboSerialPrinter4.addItem("/dev/ttyACM5");
+        jcboSerialPrinter4.addItem("/dev/rfcomm0");
+        jcboSerialPrinter4.addItem("/dev/rfcomm1");
+        jcboSerialPrinter4.addItem("/dev/rfcomm2");
+        jcboSerialPrinter4.addItem("/dev/rfcomm3");
+        jcboSerialPrinter4.addItem("/dev/usb/lp0");
+        jcboSerialPrinter4.addItem("/dev/usb/lp1");
+        jcboSerialPrinter4.addItem("/dev/usb/lp2");
+        jcboSerialPrinter4.addItem("/dev/usb/lp3");
         jcboMachinePrinter5.addItem("Not defined");
-        jcboMachinePrinter5.addItem("screen");
         jcboMachinePrinter5.addItem("printer");
         jcboMachinePrinter5.addItem("epson");
         jcboMachinePrinter5.addItem("tmu220");
@@ -270,7 +346,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
         jcboConnPrinter5.addItem("file");
         jcboConnPrinter5.addItem("serial");
-
         jcboSerialPrinter5.addItem("COM1");
         jcboSerialPrinter5.addItem("COM2");
         jcboSerialPrinter5.addItem("COM3");
@@ -286,9 +361,27 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialPrinter5.addItem("/dev/ttyS3");
         jcboSerialPrinter5.addItem("/dev/ttyS4");
         jcboSerialPrinter5.addItem("/dev/ttyS5");
-     
+        jcboSerialPrinter5.addItem("/dev/ttyUSB0");
+        jcboSerialPrinter5.addItem("/dev/ttyUSB1");
+        jcboSerialPrinter5.addItem("/dev/ttyUSB2");
+        jcboSerialPrinter5.addItem("/dev/ttyUSB3");
+        jcboSerialPrinter5.addItem("/dev/ttyUSB4");
+        jcboSerialPrinter5.addItem("/dev/ttyUSB5");
+        jcboSerialPrinter5.addItem("/dev/ttyACM0");
+        jcboSerialPrinter5.addItem("/dev/ttyACM1");
+        jcboSerialPrinter5.addItem("/dev/ttyACM2");
+        jcboSerialPrinter5.addItem("/dev/ttyACM3");
+        jcboSerialPrinter5.addItem("/dev/ttyACM4");
+        jcboSerialPrinter5.addItem("/dev/ttyACM5");
+        jcboSerialPrinter5.addItem("/dev/rfcomm0");
+        jcboSerialPrinter5.addItem("/dev/rfcomm1");
+        jcboSerialPrinter5.addItem("/dev/rfcomm2");
+        jcboSerialPrinter5.addItem("/dev/rfcomm3");
+        jcboSerialPrinter5.addItem("/dev/usb/lp0");
+        jcboSerialPrinter5.addItem("/dev/usb/lp1");
+        jcboSerialPrinter5.addItem("/dev/usb/lp2");
+        jcboSerialPrinter5.addItem("/dev/usb/lp3");
         jcboMachinePrinter6.addItem("Not defined");
-        jcboMachinePrinter6.addItem("screen");
         jcboMachinePrinter6.addItem("printer");
         jcboMachinePrinter6.addItem("epson");
         jcboMachinePrinter6.addItem("tmu220");
@@ -301,7 +394,6 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
         jcboConnPrinter6.addItem("file");
         jcboConnPrinter6.addItem("serial");
-
         jcboSerialPrinter6.addItem("COM1");
         jcboSerialPrinter6.addItem("COM2");
         jcboSerialPrinter6.addItem("COM3");
@@ -317,8 +409,26 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialPrinter6.addItem("/dev/ttyS3");
         jcboSerialPrinter6.addItem("/dev/ttyS4");
         jcboSerialPrinter6.addItem("/dev/ttyS5");
-        
-       
+        jcboSerialPrinter6.addItem("/dev/ttyUSB0");
+        jcboSerialPrinter6.addItem("/dev/ttyUSB1");
+        jcboSerialPrinter6.addItem("/dev/ttyUSB2");
+        jcboSerialPrinter6.addItem("/dev/ttyUSB3");
+        jcboSerialPrinter6.addItem("/dev/ttyUSB4");
+        jcboSerialPrinter6.addItem("/dev/ttyUSB5");
+        jcboSerialPrinter6.addItem("/dev/ttyACM0");
+        jcboSerialPrinter6.addItem("/dev/ttyACM1");
+        jcboSerialPrinter6.addItem("/dev/ttyACM2");
+        jcboSerialPrinter6.addItem("/dev/ttyACM3");
+        jcboSerialPrinter6.addItem("/dev/ttyACM4");
+        jcboSerialPrinter6.addItem("/dev/ttyACM5");
+        jcboSerialPrinter6.addItem("/dev/rfcomm0");
+        jcboSerialPrinter6.addItem("/dev/rfcomm1");
+        jcboSerialPrinter6.addItem("/dev/rfcomm2");
+        jcboSerialPrinter6.addItem("/dev/rfcomm3");
+        jcboSerialPrinter6.addItem("/dev/usb/lp0");
+        jcboSerialPrinter6.addItem("/dev/usb/lp1");
+        jcboSerialPrinter6.addItem("/dev/usb/lp2");
+        jcboSerialPrinter6.addItem("/dev/usb/lp3");
         // Display
         jcboMachineDisplay.addItem("Not defined");
         jcboMachineDisplay.addItem("screen");
@@ -346,6 +456,26 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialDisplay.addItem("/dev/ttyS3");
         jcboSerialDisplay.addItem("/dev/ttyS4");
         jcboSerialDisplay.addItem("/dev/ttyS5");
+        jcboSerialDisplay.addItem("/dev/ttyUSB0");
+        jcboSerialDisplay.addItem("/dev/ttyUSB1");
+        jcboSerialDisplay.addItem("/dev/ttyUSB2");
+        jcboSerialDisplay.addItem("/dev/ttyUSB3");
+        jcboSerialDisplay.addItem("/dev/ttyUSB4");
+        jcboSerialDisplay.addItem("/dev/ttyUSB5");
+        jcboSerialDisplay.addItem("/dev/ttyACM0");
+        jcboSerialDisplay.addItem("/dev/ttyACM1");
+        jcboSerialDisplay.addItem("/dev/ttyACM2");
+        jcboSerialDisplay.addItem("/dev/ttyACM3");
+        jcboSerialDisplay.addItem("/dev/ttyACM4");
+        jcboSerialDisplay.addItem("/dev/ttyACM5");
+        jcboSerialDisplay.addItem("/dev/rfcomm0");
+        jcboSerialDisplay.addItem("/dev/rfcomm1");
+        jcboSerialDisplay.addItem("/dev/rfcomm2");
+        jcboSerialDisplay.addItem("/dev/rfcomm3");
+        jcboSerialDisplay.addItem("/dev/usb/lp0");
+        jcboSerialDisplay.addItem("/dev/usb/lp1");
+        jcboSerialDisplay.addItem("/dev/usb/lp2");
+        jcboSerialDisplay.addItem("/dev/usb/lp3");
 
         
         // Scale
@@ -374,6 +504,26 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialScale.addItem("/dev/ttyS3");
         jcboSerialScale.addItem("/dev/ttyS4");
         jcboSerialScale.addItem("/dev/ttyS5");
+        jcboSerialScale.addItem("/dev/ttyUSB0");
+        jcboSerialScale.addItem("/dev/ttyUSB1");
+        jcboSerialScale.addItem("/dev/ttyUSB2");
+        jcboSerialScale.addItem("/dev/ttyUSB3");
+        jcboSerialScale.addItem("/dev/ttyUSB4");
+        jcboSerialScale.addItem("/dev/ttyUSB5");
+        jcboSerialScale.addItem("/dev/ttyACM0");
+        jcboSerialScale.addItem("/dev/ttyACM1");
+        jcboSerialScale.addItem("/dev/ttyACM2");
+        jcboSerialScale.addItem("/dev/ttyACM3");
+        jcboSerialScale.addItem("/dev/ttyACM4");
+        jcboSerialScale.addItem("/dev/ttyACM5");
+        jcboSerialScale.addItem("/dev/rfcomm0");
+        jcboSerialScale.addItem("/dev/rfcomm1");
+        jcboSerialScale.addItem("/dev/rfcomm2");
+        jcboSerialScale.addItem("/dev/rfcomm3");
+        jcboSerialScale.addItem("/dev/usb/lp0");
+        jcboSerialScale.addItem("/dev/usb/lp1");
+        jcboSerialScale.addItem("/dev/usb/lp2");
+        jcboSerialScale.addItem("/dev/usb/lp3");
 
         // Scanner
         jcboMachineScanner.addItem("Not defined");
@@ -393,12 +543,140 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         jcboSerialScanner.addItem("/dev/ttyS3");
         jcboSerialScanner.addItem("/dev/ttyS4");
         jcboSerialScanner.addItem("/dev/ttyS5");
+        jcboSerialScanner.addItem("/dev/ttyUSB0");
+        jcboSerialScanner.addItem("/dev/ttyUSB1");
+        jcboSerialScanner.addItem("/dev/ttyUSB2");
+        jcboSerialScanner.addItem("/dev/ttyUSB3");
+        jcboSerialScanner.addItem("/dev/ttyUSB4");
+        jcboSerialScanner.addItem("/dev/ttyUSB5");
+        jcboSerialScanner.addItem("/dev/ttyACM0");
+        jcboSerialScanner.addItem("/dev/ttyACM1");
+        jcboSerialScanner.addItem("/dev/ttyACM2");
+        jcboSerialScanner.addItem("/dev/ttyACM3");
+        jcboSerialScanner.addItem("/dev/ttyACM4");
+        jcboSerialScanner.addItem("/dev/ttyACM5");
+        jcboSerialScanner.addItem("/dev/rfcomm0");
+        jcboSerialScanner.addItem("/dev/rfcomm1");
+        jcboSerialScanner.addItem("/dev/rfcomm2");
+        jcboSerialScanner.addItem("/dev/rfcomm3");
+        jcboSerialScanner.addItem("/dev/usb/lp0");
+        jcboSerialScanner.addItem("/dev/usb/lp1");
+        jcboSerialScanner.addItem("/dev/usb/lp2");
+        jcboSerialScanner.addItem("/dev/usb/lp3");
+
+        // Ayuda para rutas de periféricos en Linux. Los combos son editables.
+        String linuxPortTooltip = "<html>Puede seleccionar un puerto de la lista o escribir manualmente una ruta de dispositivo Linux.<br>"
+                + "Ejemplos: /dev/ttyUSB0, /dev/ttyACM0, /dev/rfcomm0, /dev/usb/lp0.<br>"
+                + "Para una ruta estable, puede usar /dev/serial/by-id/... cuando esté disponible.</html>";
+        jcboSerialPrinter.setToolTipText(linuxPortTooltip);
+        jcboSerialPrinter2.setToolTipText(linuxPortTooltip);
+        jcboSerialPrinter3.setToolTipText(linuxPortTooltip);
+        jcboSerialPrinter4.setToolTipText(linuxPortTooltip);
+        jcboSerialPrinter5.setToolTipText(linuxPortTooltip);
+        jcboSerialPrinter6.setToolTipText(linuxPortTooltip);
+        jcboSerialDisplay.setToolTipText(linuxPortTooltip);
+        jcboSerialScale.setToolTipText(linuxPortTooltip);
+        jcboSerialScanner.setToolTipText(linuxPortTooltip);
 
         // Printers
         cboPrinters.addItem("(Default)");
         cboPrinters.addItem("(Show dialog)");
         for (String name : printernames) {
             cboPrinters.addItem(name);
+        }
+    }
+
+    private void initReceiptMirrorControls() {
+        receiptMirrorPanel = new javax.swing.JPanel(new java.awt.BorderLayout(6, 4));
+        receiptMirrorPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createTitledBorder("Salidas espejo del recibo principal"),
+                javax.swing.BorderFactory.createEmptyBorder(3, 8, 6, 8)));
+
+        javax.swing.JLabel warning = new javax.swing.JLabel(
+                "<html><b>Advertencia:</b> se recomienda configurar la impresora principal de recibos como Printer 1. "
+                + "Las salidas espejo Pantalla y Ticket digital están ligadas a Printer 1.</html>");
+        receiptMirrorPanel.add(warning, java.awt.BorderLayout.NORTH);
+
+        javax.swing.JPanel options = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 2));
+        screenMirrorCheck = new javax.swing.JCheckBox("Mostrar copia del recibo en pantalla");
+        digitalMirrorCheck = new javax.swing.JCheckBox("Generar ticket digital");
+        options.add(screenMirrorCheck);
+        options.add(digitalMirrorCheck);
+        receiptMirrorPanel.add(options, java.awt.BorderLayout.CENTER);
+
+        javax.swing.JPanel pathPanel = new javax.swing.JPanel(new java.awt.BorderLayout(6, 0));
+        pathPanel.add(new javax.swing.JLabel("Carpeta:"), java.awt.BorderLayout.WEST);
+        digitalMirrorPath = new javax.swing.JTextField(defaultDigitalPath);
+        digitalMirrorBrowse = new javax.swing.JButton("Examinar...");
+        pathPanel.add(digitalMirrorPath, java.awt.BorderLayout.CENTER);
+        pathPanel.add(digitalMirrorBrowse, java.awt.BorderLayout.EAST);
+        receiptMirrorPanel.add(pathPanel, java.awt.BorderLayout.SOUTH);
+
+        screenMirrorCheck.addActionListener(dirty);
+        digitalMirrorCheck.addActionListener(dirty);
+        digitalMirrorCheck.addActionListener(e -> updateDigitalMirrorControls());
+        digitalMirrorPath.getDocument().addDocumentListener(dirty);
+        digitalMirrorBrowse.addActionListener(e -> chooseDigitalMirrorPath());
+
+        // El formulario NetBeans conserva jPanel13 con su altura original completa.
+        // El bloque de salidas espejo se coloca debajo dentro de un contenedor
+        // desplazable para no comprimir ni tapar los últimos controles de Peripherals.
+        javax.swing.JPanel peripheralContent = new javax.swing.JPanel();
+        peripheralContent.setLayout(new javax.swing.BoxLayout(peripheralContent, javax.swing.BoxLayout.Y_AXIS));
+        peripheralContent.setOpaque(false);
+        jPanel13.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        receiptMirrorPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        peripheralContent.add(jPanel13);
+        peripheralContent.add(javax.swing.Box.createVerticalStrut(6));
+        peripheralContent.add(receiptMirrorPanel);
+
+        javax.swing.JScrollPane peripheralScroll = new javax.swing.JScrollPane(peripheralContent);
+        peripheralScroll.setBorder(null);
+        peripheralScroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        peripheralScroll.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        peripheralScroll.getVerticalScrollBar().setUnitIncrement(18);
+        peripheralScroll.getViewport().setOpaque(false);
+        peripheralScroll.setOpaque(false);
+
+        // Aviso fijo: debe ser visible aunque el usuario todavía no haya descubierto
+        // la barra de desplazamiento vertical del panel de periféricos.
+        javax.swing.JPanel moreConfigBanner = new javax.swing.JPanel(new java.awt.BorderLayout(8, 0));
+        moreConfigBanner.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createEtchedBorder(),
+                javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)));
+        javax.swing.JLabel moreConfigLabel = new javax.swing.JLabel(
+                "<html><b>Más opciones:</b> Pantalla de recibo y Ticket digital.</html>");
+        javax.swing.JButton moreConfigButton = new javax.swing.JButton("Ver opciones ↓");
+        moreConfigButton.setToolTipText("Desplazarse a las salidas espejo del recibo principal");
+        moreConfigButton.setFocusPainted(false);
+        moreConfigButton.addActionListener(e -> javax.swing.SwingUtilities.invokeLater(() -> {
+            peripheralScroll.getVerticalScrollBar().setValue(peripheralScroll.getVerticalScrollBar().getMaximum());
+            receiptMirrorPanel.requestFocusInWindow();
+        }));
+        moreConfigBanner.add(moreConfigLabel, java.awt.BorderLayout.CENTER);
+        moreConfigBanner.add(moreConfigButton, java.awt.BorderLayout.EAST);
+
+        removeAll();
+        setLayout(new java.awt.BorderLayout(0, 4));
+        add(moreConfigBanner, java.awt.BorderLayout.NORTH);
+        add(peripheralScroll, java.awt.BorderLayout.CENTER);
+        setPreferredSize(new java.awt.Dimension(800, 525));
+        updateDigitalMirrorControls();
+    }
+
+    private void updateDigitalMirrorControls() {
+        boolean enabled = digitalMirrorCheck != null && digitalMirrorCheck.isSelected();
+        if (digitalMirrorPath != null) digitalMirrorPath.setEnabled(enabled);
+        if (digitalMirrorBrowse != null) digitalMirrorBrowse.setEnabled(enabled);
+    }
+
+    private void chooseDigitalMirrorPath() {
+        javax.swing.JFileChooser chooser = new javax.swing.JFileChooser(digitalMirrorPath.getText());
+        chooser.setDialogTitle("Seleccionar carpeta para tickets digitales");
+        chooser.setFileSelectionMode(javax.swing.JFileChooser.DIRECTORIES_ONLY);
+        chooser.setAcceptAllFileFilterUsed(false);
+        if (chooser.showOpenDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+            digitalMirrorPath.setText(chooser.getSelectedFile().getAbsolutePath());
         }
     }
 
@@ -438,6 +716,18 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 jcboConnPrinter.setSelectedItem(sparam);
                 jcboSerialPrinter.setSelectedItem(p.nextToken(','));
                 break;
+            case "screen":
+                config.setProperty("screen.ticket.enabled", "true");
+                jcboMachinePrinter.setSelectedItem("Not defined");
+                break;
+            case "digital":
+                config.setProperty("digital.ticket.enabled", "true");
+                String digitalPathmachine_printer = p.nextToken(',');
+                if (digitalPathmachine_printer != null && !digitalPathmachine_printer.trim().isEmpty()) {
+                    config.setProperty("digital.ticket.path", digitalPathmachine_printer.trim());
+                }
+                jcboMachinePrinter.setSelectedItem("Not defined");
+                break;
             case "javapos":
                 jcboMachinePrinter.setSelectedItem(sparam);
                 m_jtxtJPOSPrinter.setText(p.nextToken(','));
@@ -464,6 +754,18 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 jcboConnPrinter2.setSelectedItem(sparam);
                 jcboSerialPrinter2.setSelectedItem(p.nextToken(','));
                 break;
+            case "screen":
+                config.setProperty("screen.ticket.enabled", "true");
+                jcboMachinePrinter2.setSelectedItem("Not defined");
+                break;
+            case "digital":
+                config.setProperty("digital.ticket.enabled", "true");
+                String digitalPathmachine_printer_2 = p.nextToken(',');
+                if (digitalPathmachine_printer_2 != null && !digitalPathmachine_printer_2.trim().isEmpty()) {
+                    config.setProperty("digital.ticket.path", digitalPathmachine_printer_2.trim());
+                }
+                jcboMachinePrinter2.setSelectedItem("Not defined");
+                break;
             case "javapos":
                 jcboMachinePrinter2.setSelectedItem(sparam);
                 m_jtxtJPOSPrinter2.setText(p.nextToken(','));
@@ -489,6 +791,18 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 jcboMachinePrinter3.setSelectedItem("epson");
                 jcboConnPrinter3.setSelectedItem(sparam);
                 jcboSerialPrinter3.setSelectedItem(p.nextToken(','));
+                break;
+            case "screen":
+                config.setProperty("screen.ticket.enabled", "true");
+                jcboMachinePrinter3.setSelectedItem("Not defined");
+                break;
+            case "digital":
+                config.setProperty("digital.ticket.enabled", "true");
+                String digitalPathmachine_printer_3 = p.nextToken(',');
+                if (digitalPathmachine_printer_3 != null && !digitalPathmachine_printer_3.trim().isEmpty()) {
+                    config.setProperty("digital.ticket.path", digitalPathmachine_printer_3.trim());
+                }
+                jcboMachinePrinter3.setSelectedItem("Not defined");
                 break;
             case "javapos":
                 jcboMachinePrinter3.setSelectedItem(sparam);
@@ -517,6 +831,18 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 jcboConnPrinter4.setSelectedItem(sparam);
                 jcboSerialPrinter4.setSelectedItem(p.nextToken(','));
                 break;
+            case "screen":
+                config.setProperty("screen.ticket.enabled", "true");
+                jcboMachinePrinter4.setSelectedItem("Not defined");
+                break;
+            case "digital":
+                config.setProperty("digital.ticket.enabled", "true");
+                String digitalPathmachine_printer_4 = p.nextToken(',');
+                if (digitalPathmachine_printer_4 != null && !digitalPathmachine_printer_4.trim().isEmpty()) {
+                    config.setProperty("digital.ticket.path", digitalPathmachine_printer_4.trim());
+                }
+                jcboMachinePrinter4.setSelectedItem("Not defined");
+                break;
             case "javapos":
                 jcboMachinePrinter4.setSelectedItem(sparam);
                 m_jtxtJPOSPrinter4.setText(p.nextToken(','));
@@ -543,6 +869,18 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 jcboConnPrinter5.setSelectedItem(sparam);
                 jcboSerialPrinter5.setSelectedItem(p.nextToken(','));
                 break;
+            case "screen":
+                config.setProperty("screen.ticket.enabled", "true");
+                jcboMachinePrinter5.setSelectedItem("Not defined");
+                break;
+            case "digital":
+                config.setProperty("digital.ticket.enabled", "true");
+                String digitalPathmachine_printer_5 = p.nextToken(',');
+                if (digitalPathmachine_printer_5 != null && !digitalPathmachine_printer_5.trim().isEmpty()) {
+                    config.setProperty("digital.ticket.path", digitalPathmachine_printer_5.trim());
+                }
+                jcboMachinePrinter5.setSelectedItem("Not defined");
+                break;
             case "javapos":
                 jcboMachinePrinter5.setSelectedItem(sparam);
                 m_jtxtJPOSPrinter5.setText(p.nextToken(','));
@@ -568,6 +906,18 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 jcboMachinePrinter6.setSelectedItem("epson");
                 jcboConnPrinter6.setSelectedItem(sparam);
                 jcboSerialPrinter6.setSelectedItem(p.nextToken(','));
+                break;
+            case "screen":
+                config.setProperty("screen.ticket.enabled", "true");
+                jcboMachinePrinter6.setSelectedItem("Not defined");
+                break;
+            case "digital":
+                config.setProperty("digital.ticket.enabled", "true");
+                String digitalPathmachine_printer_6 = p.nextToken(',');
+                if (digitalPathmachine_printer_6 != null && !digitalPathmachine_printer_6.trim().isEmpty()) {
+                    config.setProperty("digital.ticket.path", digitalPathmachine_printer_6.trim());
+                }
+                jcboMachinePrinter6.setSelectedItem("Not defined");
                 break;
             case "javapos":
                 jcboMachinePrinter6.setSelectedItem(sparam);
@@ -656,6 +1006,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                         comboValue(jcboConnPrinter.getSelectedItem()) + "," + 
                         comboValue(jcboSerialPrinter.getSelectedItem()));
                 break;
+            case "digital":
+                config.setProperty("machine.printer", "digital:" + comboValue(jcboSerialPrinter.getSelectedItem()));
+                break;
             case "javapos":
                 config.setProperty("machine.printer", sMachinePrinter + ":" + 
                         m_jtxtJPOSPrinter.getText() + "," + 
@@ -681,6 +1034,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 config.setProperty("machine.printer.2", sMachinePrinter2 + ":" + 
                         comboValue(jcboConnPrinter2.getSelectedItem()) + "," + 
                         comboValue(jcboSerialPrinter2.getSelectedItem()));
+                break;
+            case "digital":
+                config.setProperty("machine.printer.2", "digital:" + comboValue(jcboSerialPrinter2.getSelectedItem()));
                 break;
             case "javapos":
                 config.setProperty("machine.printer.2", sMachinePrinter2 + ":" + 
@@ -709,6 +1065,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                         comboValue(jcboConnPrinter3.getSelectedItem()) + "," + 
                         comboValue(jcboSerialPrinter3.getSelectedItem()));
                 break;
+            case "digital":
+                config.setProperty("machine.printer.3", "digital:" + comboValue(jcboSerialPrinter3.getSelectedItem()));
+                break;
             case "javapos":
                 config.setProperty("machine.printer.3", sMachinePrinter3 + ":" + 
                         m_jtxtJPOSPrinter3.getText() + "," + m_jtxtJPOSDrawer3.getText());
@@ -733,6 +1092,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 config.setProperty("machine.printer.4", sMachinePrinter4 + ":" + 
                         comboValue(jcboConnPrinter4.getSelectedItem()) + "," + 
                         comboValue(jcboSerialPrinter4.getSelectedItem()));
+                break;
+            case "digital":
+                config.setProperty("machine.printer.4", "digital:" + comboValue(jcboSerialPrinter4.getSelectedItem()));
                 break;
             case "javapos":
                 config.setProperty("machine.printer.4", sMachinePrinter4 + ":" + 
@@ -759,6 +1121,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                         comboValue(jcboConnPrinter5.getSelectedItem()) + "," + 
                         comboValue(jcboSerialPrinter5.getSelectedItem()));
                 break;
+            case "digital":
+                config.setProperty("machine.printer.5", "digital:" + comboValue(jcboSerialPrinter5.getSelectedItem()));
+                break;
             case "javapos":
                 config.setProperty("machine.printer.5", sMachinePrinter5 + ":" + 
                         m_jtxtJPOSPrinter5.getText() + "," + m_jtxtJPOSDrawer5.getText());
@@ -784,6 +1149,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 config.setProperty("machine.printer.6", sMachinePrinter6 + ":" + 
                         comboValue(jcboConnPrinter6.getSelectedItem()) + "," + 
                         comboValue(jcboSerialPrinter6.getSelectedItem()));
+                break;
+            case "digital":
+                config.setProperty("machine.printer.6", "digital:" + comboValue(jcboSerialPrinter6.getSelectedItem()));
                 break;
             case "javapos":
                 config.setProperty("machine.printer.6", sMachinePrinter6 + ":" + 
@@ -885,6 +1253,26 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         comboBox.addItem("/dev/ttyS3");
         comboBox.addItem("/dev/ttyS4");
         comboBox.addItem("/dev/ttyS5");
+        comboBox.addItem("/dev/ttyUSB0");
+        comboBox.addItem("/dev/ttyUSB1");
+        comboBox.addItem("/dev/ttyUSB2");
+        comboBox.addItem("/dev/ttyUSB3");
+        comboBox.addItem("/dev/ttyUSB4");
+        comboBox.addItem("/dev/ttyUSB5");
+        comboBox.addItem("/dev/ttyACM0");
+        comboBox.addItem("/dev/ttyACM1");
+        comboBox.addItem("/dev/ttyACM2");
+        comboBox.addItem("/dev/ttyACM3");
+        comboBox.addItem("/dev/ttyACM4");
+        comboBox.addItem("/dev/ttyACM5");
+        comboBox.addItem("/dev/rfcomm0");
+        comboBox.addItem("/dev/rfcomm1");
+        comboBox.addItem("/dev/rfcomm2");
+        comboBox.addItem("/dev/rfcomm3");
+        comboBox.addItem("/dev/usb/lp0");
+        comboBox.addItem("/dev/usb/lp1");
+        comboBox.addItem("/dev/usb/lp2");
+        comboBox.addItem("/dev/usb/lp3");
        /* comboBox.addItem("/dev/ttyS5");
         comboBox.addItem("/dev/ttyS5");
         comboBox.addItem("/dev/ttyS5");
@@ -2184,6 +2572,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         CardLayout cl = (CardLayout) (m_jPrinterParams3.getLayout());
 
         if ("epson".equals(jcboMachinePrinter3.getSelectedItem()) || 
+                "digital".equals(jcboMachinePrinter3.getSelectedItem()) || 
                 "ODP1000".equals(jcboMachinePrinter3.getSelectedItem()) || 
                 "tmu220".equals(jcboMachinePrinter3.getSelectedItem()) || 
                 "star".equals(jcboMachinePrinter3.getSelectedItem()) || 
@@ -2197,12 +2586,14 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         } else {
             cl.show(m_jPrinterParams3, "empty");
         }
+        configureDigitalPath(jcboMachinePrinter3, jcboConnPrinter3, jcboSerialPrinter3);
     }//GEN-LAST:event_jcboMachinePrinter3ActionPerformed
 
     private void jcboMachinePrinter2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachinePrinter2ActionPerformed
         CardLayout cl = (CardLayout) (m_jPrinterParams2.getLayout());
 
         if ("epson".equals(jcboMachinePrinter2.getSelectedItem()) || 
+                "digital".equals(jcboMachinePrinter2.getSelectedItem()) || 
                 "ODP1000".equals(jcboMachinePrinter2.getSelectedItem()) || 
                 "tmu220".equals(jcboMachinePrinter2.getSelectedItem()) || 
                 "star".equals(jcboMachinePrinter2.getSelectedItem()) || 
@@ -2216,12 +2607,14 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
          } else {
             cl.show(m_jPrinterParams2, "empty");
         }
+        configureDigitalPath(jcboMachinePrinter2, jcboConnPrinter2, jcboSerialPrinter2);
     }//GEN-LAST:event_jcboMachinePrinter2ActionPerformed
 
     private void jcboMachinePrinterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachinePrinterActionPerformed
         CardLayout cl = (CardLayout) (m_jPrinterParams1.getLayout());
 
         if ("epson".equals(jcboMachinePrinter.getSelectedItem()) || 
+                "digital".equals(jcboMachinePrinter.getSelectedItem()) || 
                 "ODP1000".equals(jcboMachinePrinter.getSelectedItem()) || 
                 "tmu220".equals(jcboMachinePrinter.getSelectedItem()) || 
                 "star".equals(jcboMachinePrinter.getSelectedItem()) || 
@@ -2235,12 +2628,14 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         } else {
             cl.show(m_jPrinterParams1, "empty");
         }
+        configureDigitalPath(jcboMachinePrinter, jcboConnPrinter, jcboSerialPrinter);
     }//GEN-LAST:event_jcboMachinePrinterActionPerformed
 
     private void jcboMachinePrinter4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachinePrinter4ActionPerformed
        CardLayout cl = (CardLayout) (m_jPrinterParams4.getLayout());
 
         if ("epson".equals(jcboMachinePrinter4.getSelectedItem()) || 
+                "digital".equals(jcboMachinePrinter4.getSelectedItem()) || 
                 "ODP1000".equals(jcboMachinePrinter4.getSelectedItem()) || 
                 "tmu220".equals(jcboMachinePrinter4.getSelectedItem()) || 
                 "star".equals(jcboMachinePrinter4.getSelectedItem()) || 
@@ -2254,12 +2649,14 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
          } else {
             cl.show(m_jPrinterParams4, "empty");
         }
+        configureDigitalPath(jcboMachinePrinter4, jcboConnPrinter4, jcboSerialPrinter4);
     }//GEN-LAST:event_jcboMachinePrinter4ActionPerformed
 
     private void jcboMachinePrinter5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachinePrinter5ActionPerformed
        CardLayout cl = (CardLayout) (m_jPrinterParams5.getLayout());
 
         if ("epson".equals(jcboMachinePrinter5.getSelectedItem()) || 
+                "digital".equals(jcboMachinePrinter5.getSelectedItem()) || 
                 "ODP1000".equals(jcboMachinePrinter5.getSelectedItem()) || 
                 "tmu220".equals(jcboMachinePrinter5.getSelectedItem()) || 
                 "star".equals(jcboMachinePrinter5.getSelectedItem()) || 
@@ -2273,12 +2670,14 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
          } else {
             cl.show(m_jPrinterParams5, "empty");
         }
+        configureDigitalPath(jcboMachinePrinter5, jcboConnPrinter5, jcboSerialPrinter5);
     }//GEN-LAST:event_jcboMachinePrinter5ActionPerformed
 
     private void jcboMachinePrinter6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachinePrinter6ActionPerformed
         CardLayout cl = (CardLayout) (m_jPrinterParams6.getLayout());
 
         if ("epson".equals(jcboMachinePrinter6.getSelectedItem()) || 
+                "digital".equals(jcboMachinePrinter6.getSelectedItem()) || 
                 "ODP1000".equals(jcboMachinePrinter6.getSelectedItem()) || 
                 "tmu220".equals(jcboMachinePrinter6.getSelectedItem()) || 
                 "star".equals(jcboMachinePrinter6.getSelectedItem()) || 
@@ -2292,11 +2691,25 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
          } else {
             cl.show(m_jPrinterParams6, "empty");
         }
+        configureDigitalPath(jcboMachinePrinter6, jcboConnPrinter6, jcboSerialPrinter6);
     }//GEN-LAST:event_jcboMachinePrinter6ActionPerformed
 
     private void m_jtxtJPOSNameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jtxtJPOSNameActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_m_jtxtJPOSNameActionPerformed
+
+    private void configureDigitalPath(javax.swing.JComboBox machine, javax.swing.JComboBox connection, javax.swing.JComboBox path) {
+        if (!"digital".equals(machine.getSelectedItem())) {
+            return;
+        }
+        connection.setSelectedItem("carpeta");
+        Object current = path.getSelectedItem();
+        String value = current == null ? "" : current.toString().trim();
+        if (value.isEmpty() || value.matches("COM\\d+|LPT\\d+|/dev/.*")) {
+            path.setSelectedItem(defaultDigitalPath);
+        }
+        path.setToolTipText("Carpeta donde KylGis guardará los tickets digitales. Puede escribir cualquier ruta válida.");
+    }
 
     private void jcboMachineScannerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachineScannerActionPerformed
         CardLayout cl = (CardLayout) (m_jScannerParams.getLayout());

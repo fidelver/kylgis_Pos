@@ -1,22 +1,23 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
-
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.printer.screen;
 
 import com.mx.kylgis.pos.printer.ticket.BasicTicket;
@@ -27,16 +28,21 @@ class JTicket extends javax.swing.JPanel {
     
     private static final int H_GAP = 8;
     private static final int V_GAP = 8;
-    private static final int COLUMNS = 42;
-    private static final int LINEWIDTH = COLUMNS * 7;    
+    private final int columns;
+    private final int lineWidth;
     
     private final BasicTicket basict;
     private final Map desktophints;
    
     /** Creates new form JTicket */
     public JTicket(BasicTicket t) {
-        
+        this(t, 42);
+    }
+
+    public JTicket(BasicTicket t, int columns) {
         basict = t;
+        this.columns = Math.max(16, Math.min(columns, 120));
+        this.lineWidth = this.columns * 7;
         desktophints = (Map) Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints");
         initComponents();
     }
@@ -64,7 +70,7 @@ class JTicket extends javax.swing.JPanel {
                 getHeight() - i.top - i.bottom);
         
         g.setColor(getForeground());
-        basict.draw(g2d, i.left + H_GAP, i.top + V_GAP, LINEWIDTH);   
+        basict.draw(g2d, i.left + H_GAP, i.top + V_GAP, lineWidth);   
     }  
     
       
@@ -72,7 +78,7 @@ class JTicket extends javax.swing.JPanel {
     public Dimension getPreferredSize() {
         Insets ins = getInsets();
         return new Dimension((int) (
-                LINEWIDTH + 2 * H_GAP) + ins.left + ins.right
+                lineWidth + 2 * H_GAP) + ins.left + ins.right
                   , (int) (basict.getHeight() + 2 * V_GAP) + ins.top + ins.bottom);
     }
 

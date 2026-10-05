@@ -1,25 +1,28 @@
-//    uniCenta oPOS  - Touch Friendly Point Of Sale
-//    Copyright (c) 2009-2018 uniCenta & previous Openbravo POS works
-//    https://unicenta.com
+//    KylGis POS Punto de Venta Táctil
+//    Copyright (c) 2026 KylGis POS
+//    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
+//    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
+//    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
 //
-//    This file is part of uniCenta oPOS
+//    This file is part of KylGis POS
 //
-//    uniCenta oPOS is free software: you can redistribute it and/or modify
+//    KylGis POS is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//   uniCenta oPOS is distributed in the hope that it will be useful,
+//    KylGis POS is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with uniCenta oPOS.  If not, see <http://www.gnu.org/licenses/>.
+//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.printer;
 
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.printer.escpos.*;
+import com.mx.kylgis.pos.printer.digital.DevicePrinterDigital;
 import com.mx.kylgis.pos.printer.javapos.DeviceDisplayJavaPOS;
 import com.mx.kylgis.pos.printer.javapos.DeviceFiscalPrinterJavaPOS;
 import com.mx.kylgis.pos.printer.javapos.DevicePrinterJavaPOS;
@@ -146,6 +149,12 @@ public class DeviceTicket {
         m_deviceprinters = new HashMap<>();
         m_deviceprinterslist = new ArrayList<>();
 
+        // Salidas espejo de la impresora principal. También reconocemos
+        // configuraciones antiguas donde screen/digital ocupaban una posición.
+        boolean screenMirrorEnabled = Boolean.parseBoolean(props.getProperty("screen.ticket.enabled"));
+        boolean digitalMirrorEnabled = Boolean.parseBoolean(props.getProperty("digital.ticket.enabled"));
+        String digitalMirrorPath = props.getProperty("digital.ticket.path");
+
         // Empezamos a iterar por las impresoras...
         int iPrinterIndex = 1;
         String sPrinterIndex = Integer.toString(iPrinterIndex);
@@ -171,7 +180,16 @@ public class DeviceTicket {
         
                 switch (sPrinterType) {
                     case "screen":
-                        addPrinter(sPrinterIndex, new DevicePrinterPanel());
+                        // Compatibilidad: screen deja de consumir una posición y pasa
+                        // a ser espejo de la impresora principal.
+                        screenMirrorEnabled = true;
+                        break;
+                    case "digital":
+                        // Compatibilidad: digital deja de consumir una posición.
+                        digitalMirrorEnabled = true;
+                        if (sPrinterParam1 != null && !sPrinterParam1.trim().isEmpty()) {
+                            digitalMirrorPath = sPrinterParam1.trim();
+                        }
                         break;
                     case "printer":
                         // backward compatibility
@@ -230,6 +248,33 @@ public class DeviceTicket {
             iPrinterIndex++;
             sPrinterIndex = Integer.toString(iPrinterIndex);
             sprinter = props.getProperty("machine.printer." + sPrinterIndex);
+        }
+
+        // Printer 1 es la cola principal de recibos. Las salidas espejo no
+        // consumen posiciones 2-6 ni requieren cambios en las plantillas.
+        if (screenMirrorEnabled || digitalMirrorEnabled) {
+            DevicePrinter primary = m_deviceprinters.get("1");
+            if (primary == null) {
+                primary = m_nullprinter;
+            }
+            int screenTicketColumns = 42;
+            try {
+                screenTicketColumns = Integer.parseInt(props.getProperty("ticket.width"));
+            } catch (Exception ex) {
+                screenTicketColumns = 42;
+            }
+            DevicePrinter screenMirror = screenMirrorEnabled ? new DevicePrinterPanel(screenTicketColumns) : null;
+            DevicePrinter digitalMirror = digitalMirrorEnabled
+                    ? new DevicePrinterDigital(digitalMirrorPath, props) : null;
+            DevicePrinter mirror = new DevicePrinterMirror(primary, screenMirror, digitalMirror);
+
+            int primaryIndex = m_deviceprinterslist.indexOf(primary);
+            if (primaryIndex >= 0) {
+                m_deviceprinterslist.set(primaryIndex, mirror);
+            } else {
+                m_deviceprinterslist.add(0, mirror);
+            }
+            m_deviceprinters.put("1", mirror);
         }
     }
 

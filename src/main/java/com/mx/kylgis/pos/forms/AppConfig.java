@@ -303,7 +303,7 @@ public class AppConfig implements AppProperties {
                 System.getProperty("swing.defaultlaf", 
                         "javax.swing.plaf.metal.MetalLookAndFeel"));                
         
-        m_propsconfig.setProperty("machine.printer", "screen");
+        m_propsconfig.setProperty("machine.printer", "Not defined");
         m_propsconfig.setProperty("machine.printer.2", "Not defined");
         m_propsconfig.setProperty("machine.printer.3", "Not defined");
         m_propsconfig.setProperty("machine.printer.4", "Not defined");
@@ -328,6 +328,12 @@ public class AppConfig implements AppProperties {
         
         m_propsconfig.setProperty("machine.printername", "(Default)");
         m_propsconfig.setProperty("screen.receipt.columns", "31");        
+        m_propsconfig.setProperty("ticket.paper.size", "58");
+        m_propsconfig.setProperty("ticket.width", "32");
+        m_propsconfig.setProperty("screen.ticket.enabled", "true");
+        m_propsconfig.setProperty("digital.ticket.enabled", "false");
+        m_propsconfig.setProperty("digital.ticket.path", new File(System.getProperty("user.home"), "KylGisPOS/Tickets").getPath());
+        m_propsconfig.setProperty("digital.ticket.format", "jpg");
 
         // Receipt printer paper set to 72mmx200mm
         m_propsconfig.setProperty("paper.receipt.x", "2");
