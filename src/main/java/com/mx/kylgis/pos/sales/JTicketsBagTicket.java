@@ -532,7 +532,7 @@ public class JTicketsBagTicket extends JTicketsBag {
                 ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                 script.put("ticket", m_ticket);
                 script.put("taxes", m_ticket.getTaxLines());
-                m_TTP2.printTicket(script.eval(m_dlSystem.getResourceAsXML("Printer.TicketPreview")).toString());
+                m_TTP2.printTicket(script.eval(m_dlSystem.getResourceAsXML("Printer.TicketPreview")).toString(), m_ticket);
             } catch (ScriptException | TicketPrinterException e) {
                 JMessageDialog.showMessage(this, 
                         new MessageInf(MessageInf.SGN_NOTICE, 
