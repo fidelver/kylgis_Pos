@@ -20,8 +20,6 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.sales.restaurant;
 
-import bsh.Interpreter;
-import bsh.EvalError;
 import com.alee.extended.time.ClockType;
 import com.alee.extended.time.WebClock;
 import com.alee.managers.notification.NotificationIcon;
@@ -82,7 +80,6 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
     private ListKeyed taxcollection;
     private TaxesLogic taxeslogic;
     
-    private Interpreter i;
    
     
     /** Creates new form JTicketsBagRestaurantMap
@@ -392,41 +389,9 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
 
     }//GEN-LAST:event_j_btnGuestsActionPerformed
 
-    @SuppressWarnings("empty-statement")
     private void j_btnKitchenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_j_btnKitchenActionPerformed
-        /*
-        * This is legacy and deprecated and should use RemotePrinter which covers
-        * all sales screens for i.e.: Kitchen Print + Click & Collect & etc
-        * It may be removed from future version
-        */
-        ticket = m_restaurant.getActiveTicket();
-        String rScript = (m_dlSystem.getResourceAsText("script.SendOrder"));
-
-        Interpreter i = new Interpreter();
-        try {
-            i.set("ticket", ticket);
-            i.set("place",m_restaurant.getTableName());
-            i.set("user", m_App.getAppUserView().getUser());
-            i.set("sales", this);
-            i.set("pickupid", ticket.getPickupId());
-            Object result = i.eval(rScript);
-        } catch (EvalError ex) {
-            Logger.getLogger(JPanelTicket.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        // Autologoff after sales
-        String autoLogoff = (m_App.getProperties().getProperty("till.autoLogoff"));
-        String autoLogoffRestaurant =(m_App.getProperties().getProperty("till.autoLogoffrestaurant"));
-        if (autoLogoff != null){
-            if (autoLogoff.equals("true")){
-                if (autoLogoffRestaurant == null){
-                    ((JRootApp)m_App).closeAppView();
-                }else if (autoLogoffRestaurant.equals("true")){
-                    m_restaurant.newTicket();
-                }else{
-                    ((JRootApp)m_App).closeAppView();
-                }
-            }
-        }
+        // Legacy button retained by the generated form but kept hidden.
+        // Remote order printing is implemented natively in JPanelTicket.
     }//GEN-LAST:event_j_btnKitchenActionPerformed
   
       

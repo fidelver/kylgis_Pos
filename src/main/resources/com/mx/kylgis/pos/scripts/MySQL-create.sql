@@ -841,11 +841,6 @@ INSERT INTO people(id, name, apppassword, role, visible, image) VALUES ('3', 'Gu
 -- ADD resources --
 -- SYSTEM
 INSERT INTO resources(id, name, restype, content) VALUES('00', 'Menu.Root', 0, $FILE{/com/mx/kylgis/pos/templates/Menu.Root.txt});
-INSERT INTO resources(ID, name, restype, content) VALUES('01', 'Application.Started', 0, $FILE{/com/mx/kylgis/pos/templates/application.started.xml});
-INSERT INTO resources(id, name, restype, content) VALUES('02', 'Cash.Close', 0, $FILE{/com/mx/kylgis/pos/templates/Cash.Close.xml});
-INSERT INTO resources(ID, name, restype, content) VALUES('03', 'Customer.Created', 0, $FILE{/com/mx/kylgis/pos/templates/customer.created.xml});
-INSERT INTO resources(ID, name, restype, content) VALUES('04', 'Customer.Deleted', 0, $FILE{/com/mx/kylgis/pos/templates/customer.deleted.xml});
-INSERT INTO resources(ID, name, restype, content) VALUES('05', 'Customer.Updated', 0, $FILE{/com/mx/kylgis/pos/templates/customer.updated.xml});
 INSERT INTO resources(id, name, restype, content) VALUES('06', 'payment.cash', 0, $FILE{/com/mx/kylgis/pos/templates/payment.cash.txt});
 INSERT INTO resources(id, name, restype, content) VALUES('07', 'Ticket.Buttons', 0, $FILE{/com/mx/kylgis/pos/templates/Ticket.Buttons.xml});
 INSERT INTO resources(id, name, restype, content) VALUES('08', 'Ticket.Close', 0, $FILE{/com/mx/kylgis/pos/templates/Ticket.Close.xml});
@@ -916,10 +911,8 @@ INSERT INTO resources(id, name, restype, content) VALUES('69', 'Printer.TicketTo
 -- SCRIPTS
 INSERT INTO resources(id, name, restype, content) VALUES('70', 'script.Keyboard', 0, $FILE{/com/mx/kylgis/pos/templates/script.Keyboard.txt});
 INSERT INTO resources(id, name, restype, content) VALUES('71', 'script.Linediscount', 0, $FILE{/com/mx/kylgis/pos/templates/script.Linediscount.txt});
-INSERT INTO resources(id, name, restype, content) VALUES('72', 'script.SendOrder', 0, $FILE{/com/mx/kylgis/pos/templates/script.SendOrder.txt});
 INSERT INTO resources(id, name, restype, content) VALUES('73', 'Printer.TicketPreview2', 0, $FILE{/com/mx/kylgis/pos/templates/Printer.TicketPreview2.xml});
 INSERT INTO resources(id, name, restype, content) VALUES('74', 'script.Totaldiscount', 0, $FILE{/com/mx/kylgis/pos/templates/script.Totaldiscount.txt});
-INSERT INTO resources(id, name, restype, content) VALUES('75', 'Importe.Letra', 0, $FILE{/com/mx/kylgis/pos/templates/Importe.Letra.txt});
 
 -- ADD CATEGORIES
 INSERT INTO categories(id, name) VALUES ('000', 'Category Standard');

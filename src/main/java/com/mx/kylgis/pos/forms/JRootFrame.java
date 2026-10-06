@@ -31,10 +31,6 @@ import java.rmi.RemoteException;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
-import com.mx.kylgis.pos.scripting.ScriptEngine;
-import com.mx.kylgis.pos.scripting.ScriptException;
-import com.mx.kylgis.pos.scripting.ScriptFactory;
-import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.OSValidator;
 
 /**
@@ -96,22 +92,6 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
             new JFrmConfig(props).setVisible(true); // Show the configuration window.
         }
 
-        try {
-            /*
-            Event Listener
-            */
-            AltEncrypter cypher = new AltEncrypter("cypherkey" + m_props.getProperty("db.user"));
-            ScriptEngine scriptEngine = ScriptFactory.getScriptEngine(ScriptFactory.BEANSHELL);
-            DataLogicSystem dataLogicSystem = (DataLogicSystem) m_rootapp.getBean("com.mx.kylgis.pos.forms.DataLogicSystem");
-            String script = dataLogicSystem.getResourceAsXML("application.started");
-            scriptEngine.put("device", m_props.getHost());
-            scriptEngine.put("dbURL", m_props.getProperty("db.URL")+m_props.getProperty("db.schema"));
-            scriptEngine.put("dbUser", m_props.getProperty("db.user"));
-            scriptEngine.put("dbPassword", cypher.decrypt(m_props.getProperty("db.password")));
-            scriptEngine.eval(script);
-        } catch (BeanFactoryException | ScriptException e) {
-            System.err.println("Event fire exception: " + e);
-        }
     }
 
     /**

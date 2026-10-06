@@ -157,7 +157,6 @@ INSERT INTO resources(id, name, restype, content) VALUES('73', 'ticket.setline',
 INSERT INTO resources(id, name, restype, content) VALUES('74', 'Ticket.TicketLineTaxesIncluded', 0, $FILE{/com/mx/kylgis/pos/templates/Ticket.TicketLineTaxesIncluded.xml});
 INSERT INTO resources(id, name, restype, content) VALUES('75', 'Window.Logo', 1, $FILE{/com/mx/kylgis/pos/templates/window.logo.png});
 INSERT INTO resources(id, name, restype, content) VALUES('76', 'Window.Title', 0, $FILE{/com/mx/kylgis/pos/templates/Window.Title.txt});
-INSERT INTO resources(id, name, restype, content) VALUES('77', 'Importe.Letra', 0, $FILE{/com/mx/kylgis/pos/templates/Importe.Letra.txt});
 
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */

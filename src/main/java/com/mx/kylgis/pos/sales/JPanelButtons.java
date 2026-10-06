@@ -61,11 +61,13 @@ public class JPanelButtons extends javax.swing.JPanel {
     private ThumbNailBuilder tnbmacro;
     
     private JPanelTicket panelticket;
+    private final boolean nativeTicketPrint;
     
     /** Creates new form JPanelButtons
      * @param sConfigKey
      * @param panelticket */
     public JPanelButtons(String sConfigKey, JPanelTicket panelticket) {
+        nativeTicketPrint = "Ticket.Buttons".equals(sConfigKey);
         initComponents();
         
         // Load categories default thumbnail
@@ -150,6 +152,16 @@ public class JPanelButtons extends javax.swing.JPanel {
                 Attributes attributes) throws SAXException{
             switch (qName) {
                 case "button":
+                    // These Ticket.Buttons actions are implemented natively in
+                    // JPanelTicket. Ignore stale database resources so an older
+                    // installation cannot recreate duplicate buttons.
+                    String buttonKey = attributes.getValue("key");
+                    if (nativeTicketPrint
+                            && ("button.print".equals(buttonKey)
+                            || "button.codigoorden".equals(buttonKey)
+                            || "button.sendorder".equals(buttonKey))) {
+                        break;
+                    }
                     // The button title text
                     String titlekey = attributes.getValue("titlekey");
                     if (titlekey == null) {
@@ -177,7 +189,18 @@ public class JPanelButtons extends javax.swing.JPanel {
                     add(btn);
                     break;
                 case "event":
-                    events.put(attributes.getValue("key"), attributes.getValue("code"));
+                    String eventCode = attributes.getValue("code");
+                    if (nativeTicketPrint
+                            && ("Importe.Letra".equals(eventCode)
+                            || "Cash.Close".equals(eventCode)
+                            || "Customer.Created".equals(eventCode)
+                            || "Customer.Updated".equals(eventCode)
+                            || "Customer.Deleted".equals(eventCode)
+                            || "script.ValidarCodigo".equals(eventCode)
+                            || "script.ValidarPedido".equals(eventCode))) {
+                        break;
+                    }
+                    events.put(attributes.getValue("key"), eventCode);
                     break;
                 default:
                     String value = attributes.getValue("value");

@@ -32,9 +32,6 @@ import com.mx.kylgis.pos.customers.CustomerInfoGlobal;
 import com.mx.kylgis.pos.customers.DataLogicCustomers;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.AppLocal;
-import com.mx.kylgis.pos.forms.DataLogicSystem;
-import com.mx.kylgis.pos.scripting.ScriptEngine;
-import com.mx.kylgis.pos.scripting.ScriptFactory;
 
 /**
  *
@@ -425,10 +422,6 @@ public class BrowsableEditableData {
                 m_editorrecord.refresh();
                 baseMoveTo(i);
 
-                if (isCustomerChangeEvent) {
-                    triggerCustomerEvent("customer.updated", customer, customer[27]);
-                }
-
 
             } else if (m_iState == ST_INSERT) {
 
@@ -439,8 +432,6 @@ public class BrowsableEditableData {
                     int i = m_bd.insertRecord(customer);
                     m_editorrecord.refresh();
                     baseMoveTo(i);
-
-                    triggerCustomerEvent("customer.created", customer, customer[27]);
 
                     int n = JOptionPane.showConfirmDialog(
                           null, 
@@ -468,30 +459,10 @@ public class BrowsableEditableData {
                 m_editorrecord.refresh();
                 baseMoveTo(i);
 
-                if (isCustomerChangeEvent) {
-                    triggerCustomerEvent("customer.deleted", customer, customer[27]);
-                }
             }
         }   
     }
 
-    private void triggerCustomerEvent(String event, Object[] customer, Object appContext) {
-        try {
-            AppView appView = (AppView) appContext;
-            ScriptEngine scriptEngine = ScriptFactory.getScriptEngine(ScriptFactory.BEANSHELL);
-
-            DataLogicSystem dlSystem = (DataLogicSystem) appView.getBean("com.mx.kylgis.pos.forms.DataLogicSystem");
-            String script = dlSystem.getResourceAsXML(event);
-            scriptEngine.put("customer", customer);
-            scriptEngine.put("device", appView.getProperties().getProperty("machine.hostname"));
-            scriptEngine.eval(script);
-
-        }
-        catch (Exception e) {
-            System.err.println("Script Exception: "+e);
-        }
-    }
-      
     /**
      * Reinstantiate data
      * @param c

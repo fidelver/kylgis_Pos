@@ -44,19 +44,14 @@
     <!-- SET Waiter's name (Default=DISABLED) -->
     <!-- <button key="button.setperson" image="img.user" code="script.SetPerson"/>  -->
 
-    <!-- SET Remote Printer (Default=DISABLED) -->
-    <!-- <button key="button.sendorder" image="img.kit_print" code="script.SendOrder"/>  -->
-
+    <!-- Remote printing is implemented natively in JPanelTicket. -->
 
     <!-- SET Ticket Print Preview (Default=ENABLED) -->
-        <button key="button.print" template="Printer.TicketPreview2" image="img.ticket_print"/>
+        <!-- Ticket print/preview moved to native JPanelTicket toolbar. -->
        <!-- <button key="button.print" image="img.ticket_print"  template="Printer.TicketPreview"/>-->
 
     <!-- SET Open Cashdrawer (Default=ENABLED) -->
    <!--  <button key="button.opendrawer" image="img.cashdrawer" template="Printer.OpenDrawer"/> -->
-
-    <!-- Open posapps settings / configuration screen (Default=ENABLED) -->
-   <!-- <button key="button.posapps" image="img.posapps" code="script.posapps" />-->
 
     <!-- SET Virtual Keyboard (Default=ENABLED) -->
     <!-- <button key="button.keyboard" image="img.keyboard_48" code="script.Keyboard"/> -->
@@ -68,7 +63,6 @@
         <!-- <button key="button.Linediscount" name="button.Linediscount" code="script.Linediscount"/> -->
         <!-- <button key="button.Totaldiscount" name="button.Totaldiscount" code="script.Totaldiscount"/> -->
         <!-- <button key="button.setperson" name="button.setperson" code="script.SetPerson"/> -->
-        <!-- <button key="button.sendorder" name="button.sendorder" code="script.SendOrder"/> -->
         <!-- <button key="button.print" titlekey="button.print" template="Printer.TicketPreview"/> -->
         <!-- <button key="button.opendrawer" titlekey="button.opendrawer" template="Printer.OpenDrawer"/> -->
         <!-- <button key="button.keyboard" titlekey="button.keyboard" template="script.Keyboard"/> -->        
@@ -107,7 +101,6 @@
     <!-- ADDITIONAL FEATURES ************************************************* -->
     <!-- SET Show Change in Cash Sale (Default=ENABLED -->
         <event key="ticket.close" code="Ticket.Close"/>
-         <event key="cash.close" code="Cash.Close"/>
 
 <!-- Execute your own scripts by EVENTS triggered by Sales Screen -->
     <!--    <event key="ticket.change" code="script.YourChangeScript"/> after a ticketline is changed -->
@@ -118,14 +111,6 @@
     <!--    <event key="ticket.total" code="script.YourTotalScript"/> after the equals button -->
     <!--    <event key="ticket.save" code="script.YourSaveScript"/> after payment OK button -->
     <!--    <event key="ticket.close" code="script.YourCloseScript"/> after ticket is stored in database and ticket number assigned -->
-
-   
-    <event key="ticket.total" code="Importe.Letra"/>
- 
-    <!-- posApps REST Customer Events -->
-    <event key="customer.created" code="Customer.Created"/>
-    <event key="customer.updated" code="Customer.Updated"/>
-    <event key="customer.deleted" code="Customer.Deleted"/>
 
          <taxesincluded value="true"/>
          <taxcategoryid value="001"/>
