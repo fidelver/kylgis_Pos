@@ -72,9 +72,20 @@ public class DevicePrinterDigital implements DevicePrinter {
             path = props == null ? null : props.getProperty("digital.ticket.path");
         }
         if (path == null || path.trim().isEmpty()) {
-            path = new File(System.getProperty("user.home"), "KylGisPOS/Tickets").getPath();
+            path = new File(System.getProperty("user.home"), "KylGisPOS").getPath();
         }
         path = path.trim();
+
+        // Compatibility with installations configured before 2026-10-06,
+        // whose base path ended in KylGisPOS/Tickets. "Tickets" is now one of
+        // the three receipt-type folders below the date, not a base folder.
+        File configuredBase = new File(path);
+        if ("Tickets".equalsIgnoreCase(configuredBase.getName())
+                && configuredBase.getParentFile() != null
+                && "KylGisPOS".equalsIgnoreCase(configuredBase.getParentFile().getName())) {
+            path = configuredBase.getParentFile().getPath();
+        }
+
         if (path.equals("~")) {
             path = System.getProperty("user.home");
         } else if (path.startsWith("~/") || path.startsWith("~" + File.separator)) {

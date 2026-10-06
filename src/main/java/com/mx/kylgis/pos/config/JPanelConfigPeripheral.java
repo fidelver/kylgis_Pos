@@ -42,7 +42,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
     private final DirtyManager dirty = new DirtyManager();
 
     private PrintService[] printServices;
-    private final String defaultDigitalPath = new File(System.getProperty("user.home"), "KylGisPOS/Tickets").getPath();
+    private final String defaultDigitalPath = new File(System.getProperty("user.home"), "KylGisPOS").getPath();
     private javax.swing.JPanel receiptMirrorPanel;
     private javax.swing.JCheckBox screenMirrorCheck;
     private javax.swing.JCheckBox digitalMirrorCheck;

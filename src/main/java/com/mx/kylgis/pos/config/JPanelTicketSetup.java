@@ -53,7 +53,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private String SQL;
     private Statement stmt;  
     private boolean loadingTicketFormat;
-    private final String defaultDigitalPath = new java.io.File(System.getProperty("user.home"), "KylGisPOS/Tickets").getPath();
+    private final String defaultDigitalPath = new java.io.File(System.getProperty("user.home"), "KylGisPOS").getPath();
     private javax.swing.JPanel ticketSetupContainer;
     private javax.swing.JCheckBox screenMirrorCheck;
     private javax.swing.JCheckBox digitalMirrorCheck;
