@@ -170,6 +170,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, BeanFac
     private Integer count = 0;
     private Integer oCount = 0;
     private Boolean pinOK;
+    private javax.swing.JButton m_jbtnPlatformOrder;
+    private javax.swing.JButton m_jbtnTicketPreview;
    
     
     /** Creates new form JTicketView */
@@ -209,17 +211,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, BeanFac
 // Set Configuration>General>Tickets toolbar simple : standard : restaurant option
         m_ticketsbag = getJTicketsBag();    
         m_jPanelBag.add(m_ticketsbag.getBagComponent(), BorderLayout.LINE_START);
-        add(m_ticketsbag.getNullComponent(), "null");  
+        add(m_ticketsbag.getNullComponent(), "null");
+        initPlatformOrderButton();
+        initTicketPreviewButton();
         
 // Script event buttons
         m_jbtnconfig = new JPanelButtons("Ticket.Buttons", this);
         m_jButtonsExt.add(m_jbtnconfig);   
 
 // Configuration>Peripheral options        
-        if (!m_App.getDeviceScale().existsScale()) {
+        if (!m_App.getDeviceScale().existsScale()
+                || !configBoolean("sales.button.scale", true)) {
             m_jbtnScale.setVisible(false);
         }
+        j_btnRemotePrt.setVisible(configBoolean("sales.button.remoteprint", true));
+        btnSplit.setVisible(configBoolean("sales.button.split", true));
+        btnReprint1.setVisible(configBoolean("sales.button.reprint", true));
         jbtnMooring.setVisible(Boolean.valueOf(m_App.getProperties().getProperty("till.marineoption")));
+        updateOptionalSalesButtonsLayout();
+        updatePlatformOrderButtonSize();
         m_jPanelScripts.setVisible(false);
         m_jButtonsExt.setVisible(false);           
         jTBtnShow.setSelected(false);
@@ -482,6 +492,7 @@ System.out.println("PanelContainer : Focus Lost");
             j_btnRemotePrt.setEnabled(false);
         }
 
+        updatePlatformOrderButton();
         refreshTicket();               
     }
     
@@ -1523,7 +1534,8 @@ System.out.println("PanelContainer : Focus Lost");
                 if (i < 0){
                     Toolkit.getDefaultToolkit().beep();
                 } else {
-                    TicketLineInfo newline = new TicketLineInfo(m_oTicket.getLine(i));
+                    TicketLineInfo originalLine = m_oTicket.getLine(i);
+                    TicketLineInfo newline = new TicketLineInfo(originalLine);
 
                     if (m_oTicket.getTicketType() == TicketInfo.RECEIPT_REFUND){
                         if (m_App.getProperties().getProperty("override.check").equals("true")) {
@@ -1545,26 +1557,32 @@ System.out.println("PanelContainer : Focus Lost");
                             paintTicketLine(i, newline);
                         }
                     } else {
+                        // Do not paint quantity zero/negative before the delete
+                        // confirmation. If Cancel is chosen, the original line
+                        // must remain byte-for-byte logically unchanged.
+                        boolean decrementAllowed = true;
                         if (m_App.getProperties().getProperty("override.check").equals("true")) {
-                            oCount = count - 1;  //increment existing line  
+                            oCount = count - 1;  //increment existing line
                             pinOK=false;
-                            if (changeCount(pinOK)) {
-                                newline.setMultiply(newline.getMultiply() - 1.0);
+                            decrementAllowed = changeCount(pinOK);
+                        }
+
+                        if (decrementAllowed) {
+                            double newMultiply = originalLine.getMultiply() - 1.0;
+                            if (newMultiply <= 0.0) {
+                                removeTicketLine(i);
+                            } else {
+                                newline.setMultiply(newMultiply);
                                 newline.setProperty("ticket.updated", "true");
                                 paintTicketLine(i, newline);
                             }
-                        } else {
-                            newline.setMultiply(newline.getMultiply() - 1.0);
-                            newline.setProperty("ticket.updated", "true");
-                            paintTicketLine(i, newline);                            
-                        }
-
-                        if (newline.getMultiply() <= 0.0) {                   
-                            removeTicketLine(i);
-                        } else {
-                            paintTicketLine(i, newline);
                         }
                     }
+
+                    // Recalculate from the real ticket state after the operation.
+                    // A cancelled deletion of an already-sent line therefore
+                    // keeps the KitchenScreen button disabled.
+                    updateRemotePrintButtonState();
                 }
 
             } else if (cTrans == '+' 
@@ -1715,6 +1733,13 @@ System.out.println("PanelContainer : Focus Lost");
 
    
     private boolean closeTicket(TicketInfo ticket, Object ticketext) {
+        if (PlatformOrderDialog.isPlatformOrder(ticket)
+                && !PlatformOrderDialog.hasValidCode(ticket)) {
+            JOptionPane.showMessageDialog(this,
+                    "La venta está marcada como plataforma y requiere un código de orden válido.",
+                    "Código de orden requerido", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
         if (listener  != null) {
             listener.stop();
         }
@@ -1878,6 +1903,56 @@ System.out.println("PanelContainer : Focus Lost");
             }
         }
     }
+
+    /**
+     * Prints/previews the current ticket without sending the order to
+     * KitchenScreen. The dedicated route creates the virtual preview first,
+     * then renders the screen preview and finally the physical printer.
+     */
+    private void previewTicket(String resource) {
+        if (resource == null || m_oTicket == null) {
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotexecute"));
+            msg.show(this);
+            return;
+        }
+
+        String sresource = dlSystem.getResourceAsXML(resource);
+        if (sresource == null) {
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"));
+            msg.show(this);
+            return;
+        }
+
+        if (m_oTicket.getPickupId() == 0) {
+            try {
+                m_oTicket.setPickupId(dlSales.getNextPickupIndex());
+            } catch (BasicException e) {
+                m_oTicket.setPickupId(0);
+            }
+        }
+
+        try {
+            ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
+            if (Boolean.parseBoolean(m_App.getProperties().getProperty("receipt.newlayout"))) {
+                script.put("taxes", m_oTicket.getTaxLines());
+            } else {
+                script.put("taxes", taxcollection);
+            }
+            script.put("taxeslogic", taxeslogic);
+            script.put("ticket", m_oTicket);
+            script.put("place", m_oTicketExt);
+            script.put("warranty", warrantyPrint);
+            script.put("pickupid", getPickupString(m_oTicket));
+
+            m_TTP.printCurrentTicket(script.eval(sresource).toString(), m_oTicket);
+            Notify(AppLocal.getIntString("notify.printed"));
+        } catch (ScriptException | TicketPrinterException e) {
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.cannotprintticket"), e);
+            msg.show(this);
+        }
+    }
+
      public void printTicket(String resource) {
 // this method is intended to be called only from JPanelButtons.
 
@@ -2284,6 +2359,137 @@ System.out.println("PanelContainer : Focus Lost");
     }
     
     
+    private boolean configBoolean(String key, boolean defaultValue) {
+        String value = m_App.getProperties().getProperty(key);
+        return value == null ? defaultValue : Boolean.parseBoolean(value);
+    }
+
+    private void initPlatformOrderButton() {
+        m_jbtnPlatformOrder = new javax.swing.JButton("Código de orden");
+        m_jbtnPlatformOrder.setToolTipText("Asignar o editar plataforma y código de orden");
+        m_jbtnPlatformOrder.setFocusable(false);
+        m_jbtnPlatformOrder.setFocusPainted(false);
+        m_jbtnPlatformOrder.setMinimumSize(new java.awt.Dimension(120, 45));
+        m_jbtnPlatformOrder.setPreferredSize(new java.awt.Dimension(120, 45));
+        m_jbtnPlatformOrder.setMaximumSize(new java.awt.Dimension(210, 45));
+        m_jbtnPlatformOrder.setVisible(configBoolean("sales.button.platformorder", false));
+        m_jbtnPlatformOrder.addActionListener((java.awt.event.ActionEvent evt) -> {
+            if (PlatformOrderDialog.edit(this, m_oTicket, m_App.getProperties().getProperty("sales.platforms.custom"))) {
+                updatePlatformOrderButton();
+                refreshTicket();
+            }
+        });
+
+        int scaleIndex = -1;
+        java.awt.Component[] components = m_jPanelBag.getComponents();
+        for (int i = 0; i < components.length; i++) {
+            if (components[i] == m_jbtnScale) {
+                scaleIndex = i;
+                break;
+            }
+        }
+        m_jPanelBag.add(m_jbtnPlatformOrder, scaleIndex >= 0 ? scaleIndex : -1);
+        updatePlatformOrderButton();
+    }
+
+    private void initTicketPreviewButton() {
+        m_jbtnTicketPreview = new javax.swing.JButton();
+        m_jbtnTicketPreview.setIcon(new javax.swing.ImageIcon(
+                getClass().getResource("/com/mx/kylgis/pos/images/ticket_print.png")));
+        m_jbtnTicketPreview.setToolTipText("Imprimir / previsualizar ticket actual");
+        m_jbtnTicketPreview.setFocusable(false);
+        m_jbtnTicketPreview.setFocusPainted(false);
+        m_jbtnTicketPreview.setPreferredSize(new java.awt.Dimension(80, 45));
+        m_jbtnTicketPreview.setVisible(configBoolean("sales.button.ticketpreview", true));
+        m_jbtnTicketPreview.addActionListener((java.awt.event.ActionEvent evt) -> {
+            previewTicket("Printer.TicketPreview2");
+        });
+
+        // Keep the optional sales actions together in source code. The current
+        // ticket print button sits immediately to the left of Reprint Last Ticket.
+        m_jButtons.removeAll();
+        m_jButtons.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 5));
+        m_jButtons.add(jBtnCustomer);
+        m_jButtons.add(btnSplit);
+        m_jButtons.add(j_btnRemotePrt);
+        m_jButtons.add(m_jbtnTicketPreview);
+        m_jButtons.add(btnReprint1);
+        updateOptionalSalesButtonsLayout();
+        updatePlatformOrderButtonSize();
+    }
+
+    private void updateOptionalSalesButtonsLayout() {
+        if (m_jButtons == null) {
+            return;
+        }
+        int visibleButtons = 0;
+        for (java.awt.Component component : m_jButtons.getComponents()) {
+            if (component.isVisible()) {
+                visibleButtons++;
+            }
+        }
+        int width = visibleButtons == 0 ? 0 : (visibleButtons * 80) + ((visibleButtons - 1) * 6) + 12;
+        m_jButtons.setPreferredSize(new java.awt.Dimension(width, 55));
+        m_jButtons.setMinimumSize(new java.awt.Dimension(width, 55));
+        m_jButtons.revalidate();
+        m_jPanelBag.revalidate();
+    }
+
+    private void updatePlatformOrderButton() {
+        if (m_jbtnPlatformOrder == null) {
+            return;
+        }
+        if (PlatformOrderDialog.isPlatformOrder(m_oTicket)) {
+            String platform = m_oTicket.getProperty("origen_plataforma", "PLATAFORMA");
+            String code = m_oTicket.getProperty("codigo_orden", "");
+            m_jbtnPlatformOrder.setText(platform + (code.isEmpty() ? "" : " " + code));
+        } else {
+            m_jbtnPlatformOrder.setText("Código de orden");
+        }
+        updatePlatformOrderButtonSize();
+    }
+
+    /**
+     * Gives the platform button more room when the toolbar has free space,
+     * while preserving the original 120 px minimum. The requested expansion
+     * is capped at 75% (210 px) and contracts as optional buttons are enabled.
+     */
+    private void updatePlatformOrderButtonSize() {
+        if (m_jbtnPlatformOrder == null || !m_jbtnPlatformOrder.isVisible()) {
+            return;
+        }
+
+        final int minWidth = 120;
+        final int maxWidth = 210;
+        int optionalVisible = 0;
+        if (m_jbtnScale.isVisible()) {
+            optionalVisible++;
+        }
+        if (j_btnRemotePrt.isVisible()) {
+            optionalVisible++;
+        }
+        if (btnSplit.isVisible()) {
+            optionalVisible++;
+        }
+        if (btnReprint1.isVisible()) {
+            optionalVisible++;
+        }
+        if (m_jbtnTicketPreview != null && m_jbtnTicketPreview.isVisible()) {
+            optionalVisible++;
+        }
+        if (jbtnMooring.isVisible()) {
+            optionalVisible++;
+        }
+
+        int width = maxWidth - (optionalVisible * 18);
+        width = Math.max(minWidth, Math.min(maxWidth, width));
+
+        java.awt.Dimension size = new java.awt.Dimension(width, 45);
+        m_jbtnPlatformOrder.setPreferredSize(size);
+        m_jbtnPlatformOrder.revalidate();
+        m_jPanelBag.revalidate();
+    }
+
 /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is

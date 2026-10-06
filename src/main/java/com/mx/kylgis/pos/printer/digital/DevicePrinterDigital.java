@@ -48,12 +48,22 @@ public class DevicePrinterDigital implements DevicePrinter {
 
     private final AppProperties props;
     private final File baseDirectory;
+    private final boolean archiveCurrentTickets;
     private BasicTicket ticket;
     private TicketInfo ticketInfo;
 
     public DevicePrinterDigital(String directory, AppProperties props) {
+        this(directory, props, false);
+    }
+
+    /**
+     * @param archiveCurrentTickets true only for the explicit current-ticket
+     * print/preview action, which is allowed to create a file under Previos.
+     */
+    public DevicePrinterDigital(String directory, AppProperties props, boolean archiveCurrentTickets) {
         this.props = props;
         this.baseDirectory = resolveBaseDirectory(directory, props);
+        this.archiveCurrentTickets = archiveCurrentTickets;
     }
 
     private static File resolveBaseDirectory(String directory, AppProperties props) {
@@ -137,6 +147,16 @@ public class DevicePrinterDigital implements DevicePrinter {
     @Override
     public void endReceipt() {
         if (ticket == null) return;
+
+        // Ordinary print/retry paths do not archive unsaved tickets. The
+        // explicit current-ticket action opts in so its virtual copy is stored
+        // under Previos together with the physical and screen output.
+        if (!archiveCurrentTickets && ticketInfo != null && ticketInfo.getTicketId() <= 0) {
+            ticket = null;
+            ticketInfo = null;
+            return;
+        }
+
         try {
             File target = buildTargetFile();
             File parent = target.getParentFile();

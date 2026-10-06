@@ -15,21 +15,33 @@ import javax.swing.JComponent;
 
 /**
  * Multiplexa la cola de la impresora principal de recibos hacia salidas espejo.
- * La apertura del cajón se envía únicamente al dispositivo principal.
+ *
+ * Las salidas espejo terminan primero. La impresora fisica se reproduce al final
+ * desde una cola en memoria; de esta forma, si el dispositivo fisico se bloquea,
+ * la salida digital y la vista en pantalla ya quedaron completadas.
+ * La apertura del cajon se envia unicamente al dispositivo principal.
  */
 public class DevicePrinterMirror implements DevicePrinter {
 
+    private interface PrimaryAction {
+        void run();
+    }
+
     private final DevicePrinter primary;
     private final List<DevicePrinter> mirrors = new ArrayList<>();
+    private final List<PrimaryAction> primaryQueue = new ArrayList<>();
     private final DevicePrinter componentProvider;
+    private boolean receiptOpen;
 
     public DevicePrinterMirror(DevicePrinter primary, DevicePrinter screenMirror, DevicePrinter digitalMirror) {
         this.primary = primary == null ? new DevicePrinterNull() : primary;
-        if (screenMirror != null) {
-            mirrors.add(screenMirror);
-        }
+
+        // Orden intencional: digital -> pantalla -> fisica.
         if (digitalMirror != null) {
             mirrors.add(digitalMirror);
+        }
+        if (screenMirror != null) {
+            mirrors.add(screenMirror);
         }
         this.componentProvider = screenMirror != null ? screenMirror : this.primary;
     }
@@ -50,88 +62,156 @@ public class DevicePrinterMirror implements DevicePrinter {
     }
 
     @Override
-    public void setDocumentContext(TicketInfo ticketInfo) {
-        primary.setDocumentContext(ticketInfo);
+    public void setDocumentContext(final TicketInfo ticketInfo) {
         for (DevicePrinter mirror : mirrors) {
             mirror.setDocumentContext(ticketInfo);
         }
+        primary.setDocumentContext(ticketInfo);
     }
 
     @Override
     public void reset() {
-        primary.reset();
+        primaryQueue.clear();
+        receiptOpen = false;
         for (DevicePrinter mirror : mirrors) {
             mirror.reset();
         }
+        primary.reset();
     }
 
     @Override
     public void beginReceipt() {
-        primary.beginReceipt();
+        primaryQueue.clear();
+        receiptOpen = true;
         for (DevicePrinter mirror : mirrors) {
             mirror.beginReceipt();
         }
+        primaryQueue.add(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.beginReceipt();
+            }
+        });
     }
 
     @Override
-    public void printImage(BufferedImage image) {
-        primary.printImage(image);
+    public void printImage(final BufferedImage image) {
         for (DevicePrinter mirror : mirrors) {
             mirror.printImage(image);
         }
+        enqueueOrRun(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.printImage(image);
+            }
+        });
     }
 
     @Override
     public void printLogo() {
-        primary.printLogo();
         for (DevicePrinter mirror : mirrors) {
             mirror.printLogo();
         }
+        enqueueOrRun(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.printLogo();
+            }
+        });
     }
 
     @Override
-    public void printBarCode(String type, String position, String code) {
-        primary.printBarCode(type, position, code);
+    public void printBarCode(final String type, final String position, final String code) {
         for (DevicePrinter mirror : mirrors) {
             mirror.printBarCode(type, position, code);
         }
+        enqueueOrRun(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.printBarCode(type, position, code);
+            }
+        });
     }
 
     @Override
-    public void beginLine(int iTextSize) {
-        primary.beginLine(iTextSize);
+    public void beginLine(final int iTextSize) {
         for (DevicePrinter mirror : mirrors) {
             mirror.beginLine(iTextSize);
         }
+        enqueueOrRun(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.beginLine(iTextSize);
+            }
+        });
     }
 
     @Override
-    public void printText(int iStyle, String sText) {
-        primary.printText(iStyle, sText);
+    public void printText(final int iStyle, final String sText) {
         for (DevicePrinter mirror : mirrors) {
             mirror.printText(iStyle, sText);
         }
+        enqueueOrRun(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.printText(iStyle, sText);
+            }
+        });
     }
 
     @Override
     public void endLine() {
-        primary.endLine();
         for (DevicePrinter mirror : mirrors) {
             mirror.endLine();
         }
+        enqueueOrRun(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.endLine();
+            }
+        });
     }
 
     @Override
     public void endReceipt() {
-        primary.endReceipt();
+        if (!receiptOpen) {
+            primary.endReceipt();
+            return;
+        }
+
+        // Digital y pantalla deben quedar completamente terminadas antes de
+        // comenzar cualquier E/S de la impresora fisica.
         for (DevicePrinter mirror : mirrors) {
             mirror.endReceipt();
+        }
+        primaryQueue.add(new PrimaryAction() {
+            @Override
+            public void run() {
+                primary.endReceipt();
+            }
+        });
+
+        try {
+            for (PrimaryAction action : primaryQueue) {
+                action.run();
+            }
+        } finally {
+            primaryQueue.clear();
+            receiptOpen = false;
+        }
+    }
+
+    private void enqueueOrRun(PrimaryAction action) {
+        if (receiptOpen) {
+            primaryQueue.add(action);
+        } else {
+            action.run();
         }
     }
 
     @Override
     public void openDrawer() {
-        // El cajón pertenece a la impresora física principal; no debe duplicarse.
+        // El cajon pertenece a la impresora fisica principal; no debe duplicarse.
         primary.openDrawer();
     }
 }

@@ -50,6 +50,8 @@ public class DeviceTicket {
     private DeviceFiscalPrinter m_deviceFiscal;
     private DeviceDisplay m_devicedisplay;
     private DevicePrinter m_nullprinter;
+    private DevicePrinter m_previewprinter;
+    private DevicePrinter m_currentticketprinter;
     private Map<String, DevicePrinter> m_deviceprinters;
     private List<DevicePrinter> m_deviceprinterslist;
 
@@ -69,6 +71,8 @@ public class DeviceTicket {
         m_deviceprinterslist = new ArrayList<>();
 
         DevicePrinter p = new DevicePrinterPanel();
+        m_previewprinter = p;
+        m_currentticketprinter = p;
         m_deviceprinters.put("1", p);
         m_deviceprinterslist.add(p);
     }
@@ -145,6 +149,8 @@ public class DeviceTicket {
         }
 
         m_nullprinter = new DevicePrinterNull();
+        m_previewprinter = m_nullprinter;
+        m_currentticketprinter = m_nullprinter;
 
         m_deviceprinters = new HashMap<>();
         m_deviceprinterslist = new ArrayList<>();
@@ -154,6 +160,25 @@ public class DeviceTicket {
         boolean screenMirrorEnabled = Boolean.parseBoolean(props.getProperty("screen.ticket.enabled"));
         boolean digitalMirrorEnabled = Boolean.parseBoolean(props.getProperty("digital.ticket.enabled"));
         String digitalMirrorPath = props.getProperty("digital.ticket.path");
+
+        // Ancho raster real del recibo. En impresoras térmicas de 58 mm con
+        // ticket.width=32 son 384 puntos (12 puntos por carácter). Puede
+        // ajustarse explícitamente con printer.image.width para otro hardware.
+        int receiptRasterWidth = 256;
+        try {
+            String configuredRasterWidth = props.getProperty("printer.image.width");
+            if (configuredRasterWidth != null && !configuredRasterWidth.trim().isEmpty()) {
+                receiptRasterWidth = Integer.parseInt(configuredRasterWidth.trim());
+            } else {
+                String ticketWidth = props.getProperty("ticket.width");
+                if (ticketWidth != null && !ticketWidth.trim().isEmpty()) {
+                    receiptRasterWidth = Integer.parseInt(ticketWidth.trim()) * 12;
+                }
+            }
+        } catch (NumberFormatException ex) {
+            receiptRasterWidth = 256;
+        }
+        receiptRasterWidth = Math.max(64, Math.min(2048, ((receiptRasterWidth + 7) / 8) * 8));
 
         // Empezamos a iterar por las impresoras...
         int iPrinterIndex = 1;
@@ -208,9 +233,11 @@ public class DeviceTicket {
                                 ));
                         break;
                     case "epson":
+                        CodesEpson epsonCodes = new CodesEpson();
+                        epsonCodes.setImageWidthOverride(receiptRasterWidth);
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
                                 pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)
-                                , new CodesEpson(), new UnicodeTranslatorInt()));
+                                , epsonCodes, new UnicodeTranslatorInt()));
                         break;
                     case "tmu220":
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
@@ -252,11 +279,13 @@ public class DeviceTicket {
 
         // Printer 1 es la cola principal de recibos. Las salidas espejo no
         // consumen posiciones 2-6 ni requieren cambios en las plantillas.
+        DevicePrinter primary = m_deviceprinters.get("1");
+        if (primary == null) {
+            primary = m_nullprinter;
+        }
+        m_currentticketprinter = primary;
+
         if (screenMirrorEnabled || digitalMirrorEnabled) {
-            DevicePrinter primary = m_deviceprinters.get("1");
-            if (primary == null) {
-                primary = m_nullprinter;
-            }
             int screenTicketColumns = 42;
             try {
                 screenTicketColumns = Integer.parseInt(props.getProperty("ticket.width"));
@@ -264,8 +293,21 @@ public class DeviceTicket {
                 screenTicketColumns = 42;
             }
             DevicePrinter screenMirror = screenMirrorEnabled ? new DevicePrinterPanel(screenTicketColumns) : null;
+            if (screenMirror != null) {
+                m_previewprinter = screenMirror;
+            }
             DevicePrinter digitalMirror = digitalMirrorEnabled
                     ? new DevicePrinterDigital(digitalMirrorPath, props) : null;
+            DevicePrinter currentTicketDigitalMirror = digitalMirrorEnabled
+                    ? new DevicePrinterDigital(digitalMirrorPath, props, true) : null;
+
+            // El boton de ticket actual usa las tres salidas del recibo:
+            // virtual -> pantalla -> fisica. KitchenScreen sigue siendo una
+            // accion independiente y no forma parte de esta cadena.
+            m_currentticketprinter = (screenMirror != null || currentTicketDigitalMirror != null)
+                    ? new DevicePrinterMirror(primary, screenMirror, currentTicketDigitalMirror)
+                    : primary;
+
             DevicePrinter mirror = new DevicePrinterMirror(primary, screenMirror, digitalMirror);
 
             int primaryIndex = m_deviceprinterslist.indexOf(primary);
@@ -336,6 +378,25 @@ public class DeviceTicket {
         public DevicePrinter getDevicePrinter(String key) {
         DevicePrinter printer = m_deviceprinters.get(key);
         return printer == null ? m_nullprinter : printer;
+    }
+
+    /**
+     * Returns the screen-only printer used by ticket preview. Preview output
+     * must never flow through the physical/digital mirror chain.
+     *
+     * @return preview printer
+     */
+    public DevicePrinter getPreviewPrinter() {
+        return m_previewprinter == null ? m_nullprinter : m_previewprinter;
+    }
+
+    /**
+     * Printer used by the current-ticket print/preview action. It includes the
+     * virtual archive, on-screen receipt and physical receipt printer when each
+     * is enabled. KitchenScreen remains a separate sales action.
+     */
+    public DevicePrinter getCurrentTicketPrinter() {
+        return m_currentticketprinter == null ? m_nullprinter : m_currentticketprinter;
     }
 
     /**

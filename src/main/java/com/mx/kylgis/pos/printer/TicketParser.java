@@ -79,7 +79,8 @@ public class TicketParser extends DefaultHandler {
     private static final int OUTPUT_DISPLAY = 1;
     private static final int OUTPUT_TICKET = 2;
     private static final int OUTPUT_FISCAL = 3;
-    private DevicePrinter m_oOutputPrinter;   
+    private DevicePrinter m_oOutputPrinter;
+    private DevicePrinter m_outputOverride;
     private DateFormat df= new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     private Date today;
     private String cUser;
@@ -104,25 +105,61 @@ public class TicketParser extends DefaultHandler {
      * @throws TicketPrinterException
      */
     public void printTicket(String sIn, TicketInfo ticket) throws TicketPrinterException {
-//       cUser=ticket.getUser().getName();
-       cUser=ticket.getName();        
-        ticketId=Integer.toString(ticket.getTicketId()); 
-        pickupId=Integer.toString(ticket.getPickupId());
-        
-        if (ticket.getTicketId()==0){
-            ticketId="No Sale";
-        }
-        if (ticket.getPickupId()==0){
-            pickupId="No PickupId";
-        }        
-        documentTicket = ticket;
+        prepareDocumentContext(ticket);
+        m_outputOverride = null;
         try {
             printTicket(new StringReader(sIn));
         } finally {
             documentTicket = null;
+            m_outputOverride = null;
         }
-        
+    }
 
+    /**
+     * Renders a receipt only to the screen preview printer. This bypasses the
+     * physical/digital mirror chain and therefore has no printing side effects.
+     *
+     * @param sIn evaluated ticket XML
+     * @param ticket ticket being previewed
+     * @throws TicketPrinterException if the preview cannot be rendered
+     */
+    public void printTicketPreview(String sIn, TicketInfo ticket) throws TicketPrinterException {
+        prepareDocumentContext(ticket);
+        m_outputOverride = m_printer.getPreviewPrinter();
+        try {
+            printTicket(new StringReader(sIn));
+        } finally {
+            documentTicket = null;
+            m_outputOverride = null;
+        }
+    }
+
+    /**
+     * Prints the current unsaved ticket to its dedicated route: screen preview
+     * plus physical receipt printer, without the digital archive.
+     */
+    public void printCurrentTicket(String sIn, TicketInfo ticket) throws TicketPrinterException {
+        prepareDocumentContext(ticket);
+        m_outputOverride = m_printer.getCurrentTicketPrinter();
+        try {
+            printTicket(new StringReader(sIn));
+        } finally {
+            documentTicket = null;
+            m_outputOverride = null;
+        }
+    }
+
+    private void prepareDocumentContext(TicketInfo ticket) {
+        cUser = ticket.getName();
+        ticketId = Integer.toString(ticket.getTicketId());
+        pickupId = Integer.toString(ticket.getPickupId());
+        if (ticket.getTicketId() == 0) {
+            ticketId = "No Sale";
+        }
+        if (ticket.getPickupId() == 0) {
+            pickupId = "No PickupId";
+        }
+        documentTicket = ticket;
     }
     
     /**
@@ -198,7 +235,9 @@ public class TicketParser extends DefaultHandler {
                 break;
             case "ticket":
                 m_iOutputType = OUTPUT_TICKET;
-                m_oOutputPrinter = m_printer.getDevicePrinter(readString(attributes.getValue("printer"), "1"));
+                m_oOutputPrinter = m_outputOverride != null
+                        ? m_outputOverride
+                        : m_printer.getDevicePrinter(readString(attributes.getValue("printer"), "1"));
                 m_oOutputPrinter.setDocumentContext(documentTicket);
                 m_oOutputPrinter.beginReceipt();
                 break;

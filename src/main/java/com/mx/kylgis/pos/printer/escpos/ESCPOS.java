@@ -34,6 +34,11 @@ public class ESCPOS {
     public static final byte[] SELECT_DISPLAY = {0x1B, 0x3D, 0x02};    
     public static final byte[] JUSTIFY_LEFT = {0x1B, 0x61, 0x00};
     public static final byte[] JUSTIFY_CENTER = {0x1B, 0x61, 0x01};
+    // Posicionamiento explicito para raster de recibo de 58 mm / 384 dots.
+    // GS L: margen izquierdo 0; GS W: area de impresion 384; ESC $: X=0.
+    public static final byte[] LEFT_MARGIN_ZERO = {0x1D, 0x4C, 0x00, 0x00};
+    public static final byte[] PRINT_AREA_384 = {0x1D, 0x57, (byte) 0x80, 0x01};
+    public static final byte[] ABSOLUTE_POSITION_ZERO = {0x1B, 0x24, 0x00, 0x00};
     public static final byte[] HT = {0x09}; // Horizontal Tab
 //    public static final byte[] LF = {0x0A}; // Print and line feed
     public static final byte[] FF = {0x0C}; // 

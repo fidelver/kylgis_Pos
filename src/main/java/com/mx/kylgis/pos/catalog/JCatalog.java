@@ -69,6 +69,7 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
     private ThumbNailBuilder tnbsubcat;
     
     private CategoryInfo showingcategory = null;
+    private final JLabel m_lblIndicatorCaption = new JLabel();
         
     /** Creates new form JCatalog
      * @param dlSales */
@@ -92,14 +93,45 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
         this.taxesincluded = taxesincluded;
         
         initComponents();
-        
+
         m_jListCategories.addListSelectionListener(this);
         
         m_jscrollcat.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         
         tnbcat = new ThumbNailBuilder(60, 60, "com/mx/kylgis/pos/images/category.png");  
         tnbsubcat = new ThumbNailBuilder(width, height, "com/mx/kylgis/pos/images/subcategory.png"); 
-        tnbbutton = new ThumbNailBuilder(width, height, "com/mx/kylgis/pos/images/null.png");        
+        tnbbutton = new ThumbNailBuilder(width, height, "com/mx/kylgis/pos/images/null.png");
+
+        // The original subcategory card used WEST + LINE_END inside a
+        // fixed 265 px lane. A wide category label could therefore consume
+        // the space reserved for the back button and make it appear only
+        // after a repaint. Keep the existing product/category button sizes,
+        // but give the navigation controls explicit, independent slots.
+        m_jCategories.setMinimumSize(new Dimension(235, 0));
+        m_jCategories.setPreferredSize(new Dimension(235, 0));
+        m_jCategories.setMaximumSize(new Dimension(235, Integer.MAX_VALUE));
+        m_jSubCategories.remove(jPanel4);
+        m_jSubCategories.remove(jPanel1);
+        m_jSubCategories.add(jPanel4, java.awt.BorderLayout.CENTER);
+        m_jSubCategories.add(jPanel1, java.awt.BorderLayout.EAST);
+        jPanel1.setPreferredSize(new Dimension(70, 0));
+        jPanel1.setMinimumSize(new Dimension(70, 0));
+        jPanel4.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 2));
+        m_lblIndicatorCaption.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+        m_lblIndicatorCaption.setHorizontalAlignment(SwingConstants.LEFT);
+        m_lblIndicatorCaption.setVerticalAlignment(SwingConstants.TOP);
+        m_lblIndicatorCaption.setBorder(BorderFactory.createEmptyBorder(4, 4, 0, 4));
+        m_lblIndicatorCaption.setOpaque(false);
+        jPanel4.add(m_lblIndicatorCaption, java.awt.BorderLayout.CENTER);
+        m_lblIndicator.setHorizontalAlignment(SwingConstants.LEFT);
+        m_lblIndicator.setVerticalAlignment(SwingConstants.TOP);
+        m_lblIndicator.setHorizontalTextPosition(SwingConstants.CENTER);
+        m_lblIndicator.setVerticalTextPosition(SwingConstants.CENTER);
+        m_lblIndicator.setPreferredSize(new Dimension(175, 70));
+        m_lblIndicator.setMinimumSize(new Dimension(175, 70));
+        m_btnBack1.setOpaque(true);
+        m_btnBack1.setContentAreaFilled(true);
+        m_btnBack1.setBorderPainted(true);
 
     }
     
@@ -311,12 +343,30 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
     
     private void selectIndicatorPanel(Icon icon, String label, String texttip) {
         
-        m_lblIndicator.setText(label);
+        String safeLabel = label == null ? "" : label
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+        m_lblIndicator.setText("");
+        m_lblIndicator.setToolTipText(texttip);
         m_lblIndicator.setIcon(icon);
-        
+        m_lblIndicatorCaption.setText("<html><div style='width:145px'>"
+                + safeLabel + "</div></html>");
+        m_lblIndicatorCaption.setToolTipText(texttip);
+
+        // Ensure the complete navigation card is laid out and painted before
+        // the products card changes. This avoids stale pixels under Wayland/XWayland.
+        m_jSubCategories.revalidate();
+        m_jSubCategories.repaint();
+        m_btnBack1.repaint();
+        m_lblIndicator.repaint();
+        m_lblIndicatorCaption.repaint();
+
         // Show subcategories panel
         CardLayout cl = (CardLayout)(m_jCategories.getLayout());
         cl.show(m_jCategories, "subcategories");
+        m_jCategories.revalidate();
+        m_jCategories.repaint();
     }
     
     private void selectIndicatorCategories() {
@@ -459,7 +509,7 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
 
             return this;
         }      
-    }            
+    }
     
     /** This method is called from within the constructor to
      * initialize the form.

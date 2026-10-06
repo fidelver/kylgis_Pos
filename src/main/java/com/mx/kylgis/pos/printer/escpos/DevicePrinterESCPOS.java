@@ -114,11 +114,24 @@ public class DevicePrinterESCPOS implements DevicePrinter  {
     @Override
     public void printImage(BufferedImage image) {
         m_CommOutputPrinter.write(ESCPOS.SELECT_PRINTER);
-        // Centrar imágenes de ticket (logo) en impresoras ESC/POS y restaurar
-        // alineación izquierda para no afectar las líneas de texto posteriores.
-        m_CommOutputPrinter.write(ESCPOS.JUSTIFY_CENTER);
-        m_CommOutputPrinter.write(m_codes.transImage(image));
-        m_CommOutputPrinter.write(ESCPOS.JUSTIFY_LEFT);
+
+        if (m_codes instanceof CodesEpson) {
+            // POS-5811DD y otros ESC/POS compatibles pueden conservar una
+            // posicion horizontal/margen interno aunque se cambie ESC a. El
+            // bitmap GS v 0 debe arrancar siempre en la coordenada fisica 0;
+            // el propio raster ya contiene el logo centrado a 384 puntos.
+            m_CommOutputPrinter.write(ESCPOS.JUSTIFY_LEFT);
+            m_CommOutputPrinter.write(ESCPOS.LEFT_MARGIN_ZERO);
+            m_CommOutputPrinter.write(ESCPOS.PRINT_AREA_384);
+            m_CommOutputPrinter.write(ESCPOS.ABSOLUTE_POSITION_ZERO);
+            m_CommOutputPrinter.write(m_codes.transImage(image));
+            m_CommOutputPrinter.write(ESCPOS.ABSOLUTE_POSITION_ZERO);
+        } else {
+            // Mantener el comportamiento histórico de los demás controladores.
+            m_CommOutputPrinter.write(ESCPOS.JUSTIFY_CENTER);
+            m_CommOutputPrinter.write(m_codes.transImage(image));
+            m_CommOutputPrinter.write(ESCPOS.JUSTIFY_LEFT);
+        }
     }
     
     /**

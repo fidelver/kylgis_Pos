@@ -74,6 +74,14 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelLocale.add(panel.getConfigComponent());
         
+        panel = new JPanelConfigSalesButtons();
+        m_panelconfig.add(panel);
+        jTabbedPane1.addTab("Botones de venta", panel.getConfigComponent());
+
+        panel = new JPanelConfigPlatforms();
+        m_panelconfig.add(panel);
+        jTabbedPane1.addTab("Plataformas", panel.getConfigComponent());
+
         panel = new JPanelConfigPayment();
         m_panelconfig.add(panel);
         jPanelPayment.add(panel.getConfigComponent());

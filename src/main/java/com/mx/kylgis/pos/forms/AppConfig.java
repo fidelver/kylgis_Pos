@@ -370,6 +370,14 @@ public class AppConfig implements AppProperties {
         m_propsconfig.setProperty("table.tablecolour", "#D62E52"); 
         m_propsconfig.setProperty("till.amountattop", "true");        
         m_propsconfig.setProperty("till.hideinfo", "true");                
+        // Sales toolbar visibility. Essential navigation buttons are not configurable here.
+        m_propsconfig.setProperty("sales.button.platformorder", "false");
+        m_propsconfig.setProperty("sales.button.scale", "true");
+        m_propsconfig.setProperty("sales.button.remoteprint", "true");
+        m_propsconfig.setProperty("sales.button.split", "true");
+        m_propsconfig.setProperty("sales.button.reprint", "true");
+        m_propsconfig.setProperty("sales.button.ticketpreview", "true");
+        m_propsconfig.setProperty("sales.platforms.custom", "");
 
     }
 }

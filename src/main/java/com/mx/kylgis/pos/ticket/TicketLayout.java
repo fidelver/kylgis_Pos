@@ -69,12 +69,37 @@ public final class TicketLayout {
         return numericGapWidth;
     }
 
+    /**
+     * Width reserved for vertically enlarged lines (size=1). Java2D and some
+     * 58 mm ESC/POS devices need a small safety margin compared with normal
+     * text, otherwise the last amount digit can fall outside the printable area.
+     */
+    public int getLargeLineWidth() {
+        return Math.max(20, width - 4);
+    }
+
+    public int getPlatformCodeLabelWidth() {
+        return Math.min(16, Math.max(1, getLargeLineWidth() - 8));
+    }
+
+    public int getPlatformCodeValueWidth() {
+        return getLargeLineWidth() - getPlatformCodeLabelWidth();
+    }
+
+    public int getPlatformUserLabelWidth() {
+        return Math.min(8, Math.max(1, getLargeLineWidth() - 8));
+    }
+
+    public int getPlatformUserValueWidth() {
+        return getLargeLineWidth() - getPlatformUserLabelWidth();
+    }
+
     public int getTotalLabelWidth() {
-        return Math.min(11, Math.max(1, width - 8));
+        return Math.min(9, Math.max(1, getLargeLineWidth() - 8));
     }
 
     public int getTotalValueWidth() {
-        return width - getTotalLabelWidth();
+        return getLargeLineWidth() - getTotalLabelWidth();
     }
 
     public int getArticlesLabelWidth() {

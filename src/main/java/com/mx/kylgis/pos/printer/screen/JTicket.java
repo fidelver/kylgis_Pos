@@ -22,6 +22,8 @@ package com.mx.kylgis.pos.printer.screen;
 
 import com.mx.kylgis.pos.printer.ticket.BasicTicket;
 import java.awt.*;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.AffineTransform;
 import java.util.Map;
 
 class JTicket extends javax.swing.JPanel {
@@ -42,11 +44,20 @@ class JTicket extends javax.swing.JPanel {
     public JTicket(BasicTicket t, int columns) {
         basict = t;
         this.columns = Math.max(16, Math.min(columns, 120));
-        this.lineWidth = this.columns * 7;
+        this.lineWidth = calculateLineWidth(this.columns);
         desktophints = (Map) Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints");
         initComponents();
     }
     
+    private static int calculateLineWidth(int columns) {
+        Font font = new Font("Monospaced", Font.PLAIN, 12)
+                .deriveFont(AffineTransform.getScaleInstance(1.0, 1.40));
+        FontRenderContext frc = new FontRenderContext(null, true, true);
+        double charWidth = font.getStringBounds("M", frc).getWidth();
+        // Two extra pixels avoid clipping caused by integer FontMetrics rounding.
+        return (int) Math.ceil(charWidth * columns) + 2;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         paintBorder(g);

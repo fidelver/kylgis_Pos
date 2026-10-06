@@ -30,8 +30,25 @@ import java.awt.image.BufferedImage;
  */
 public abstract class Codes {
 
+    private int imageWidthOverride = -1;
+
     /** Creates a new instance of Codes */
     public Codes() {
+    }
+
+    /**
+     * Overrides the raster canvas width used by the generic image encoder.
+     * A full-width canvas lets us center the visible logo in software instead
+     * of relying on ESC/POS firmware justification, which varies by printer.
+     *
+     * @param width width in printer dots; values <= 0 restore the model default
+     */
+    public void setImageWidthOverride(int width) {
+        imageWidthOverride = width > 0 ? width : -1;
+    }
+
+    protected int getRasterImageWidth() {
+        return imageWidthOverride > 0 ? imageWidthOverride : getImageWidth();
     }
 
     public abstract byte[] getInitSequence();
@@ -85,7 +102,7 @@ public abstract class Codes {
      */
     public byte[] transImage(BufferedImage image) {
         
-            CenteredImage centeredimage = new CenteredImage(image, getImageWidth());
+            CenteredImage centeredimage = new CenteredImage(image, getRasterImageWidth());
 
         // Imprimo los par\u00e1metros en cu\u00e1druple
         int iWidth = (centeredimage.getWidth() + 7) / 8; // n\u00famero de bytes
