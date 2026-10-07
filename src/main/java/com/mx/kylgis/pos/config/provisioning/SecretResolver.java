@@ -6,11 +6,15 @@ package com.mx.kylgis.pos.config.provisioning;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Resolves !secret.name references without modifying the raw configuration. */
 public final class SecretResolver {
 
     public static final String PREFIX = "!secret.";
+    private static final Pattern REFERENCE_PATTERN =
+            Pattern.compile("!secret\\.([A-Za-z0-9_.-]+)");
 
     private SecretResolver() {
     }
@@ -22,16 +26,8 @@ public final class SecretResolver {
         }
         for (String key : raw.stringPropertyNames()) {
             String rawValue = raw.getProperty(key);
-            if (isSecretReference(rawValue)) {
-                String secretKey = getSecretKey(rawValue);
-                String secretValue = secrets == null ? null : secrets.getProperty(secretKey);
-                if (secretValue == null) {
-                    throw new IOException("Missing KylGis secret: " + secretKey
-                            + " required by property " + key);
-                }
-                resolved.setProperty(key, secretValue);
-            } else if (rawValue != null) {
-                resolved.setProperty(key, rawValue);
+            if (rawValue != null) {
+                resolved.setProperty(key, resolveValue(key, rawValue, secrets));
             }
         }
         return resolved;
@@ -42,25 +38,47 @@ public final class SecretResolver {
             return false;
         }
         for (String key : properties.stringPropertyNames()) {
-            if (isSecretReference(properties.getProperty(key))) {
+            if (containsSecretReference(properties.getProperty(key))) {
                 return true;
             }
         }
         return false;
     }
 
+    public static boolean containsSecretReference(String value) {
+        return value != null && REFERENCE_PATTERN.matcher(value).find();
+    }
+
     public static boolean isSecretReference(String value) {
         if (value == null) {
             return false;
         }
-        String trimmed = value.trim();
-        return trimmed.startsWith(PREFIX) && trimmed.length() > PREFIX.length();
+        Matcher matcher = REFERENCE_PATTERN.matcher(value.trim());
+        return matcher.matches();
     }
 
     public static String getSecretKey(String reference) {
-        if (!isSecretReference(reference)) {
+        if (reference == null) {
             return null;
         }
-        return reference.trim().substring(PREFIX.length());
+        Matcher matcher = REFERENCE_PATTERN.matcher(reference.trim());
+        return matcher.matches() ? matcher.group(1) : null;
+    }
+
+    private static String resolveValue(String propertyKey, String rawValue,
+            Properties secrets) throws IOException {
+        Matcher matcher = REFERENCE_PATTERN.matcher(rawValue);
+        StringBuffer output = new StringBuffer();
+        while (matcher.find()) {
+            String secretKey = matcher.group(1);
+            String secretValue = secrets == null ? null : secrets.getProperty(secretKey);
+            if (secretValue == null) {
+                throw new IOException("Missing KylGis secret: " + secretKey
+                        + " required by property " + propertyKey);
+            }
+            matcher.appendReplacement(output, Matcher.quoteReplacement(secretValue));
+        }
+        matcher.appendTail(output);
+        return output.toString();
     }
 }

@@ -4,6 +4,7 @@
 //    This file is part of KylGis POS.
 package com.mx.kylgis.pos.config.provisioning;
 
+import com.mx.kylgis.pos.config.DatabaseSettings;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -73,6 +74,7 @@ public final class NodeProvisioner {
         Properties nodeModule = loadRequired(nodeModuleFile, "node module");
 
         Properties rawEffective = merge(defaults, master, nodeModule, local);
+        DatabaseSettings.applyLegacyCompatibility(rawEffective);
         File secretsFile = null;
         Properties effective = rawEffective;
         if (SecretResolver.containsSecretReferences(rawEffective)) {

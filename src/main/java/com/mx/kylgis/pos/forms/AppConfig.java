@@ -320,7 +320,7 @@ public class AppConfig implements AppProperties {
         for (String key : dirtyProperties) {
             String value = m_propsconfig.getProperty(key);
             String rawValue = rawEffective.getProperty(key);
-            if (SecretResolver.isSecretReference(rawValue)) {
+            if (SecretResolver.containsSecretReference(rawValue)) {
                 String originalValue = originalEffective.getProperty(key);
                 if ((value == null && originalValue == null)
                         || (value != null && value.equals(originalValue))) {

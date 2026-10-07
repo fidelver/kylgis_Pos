@@ -6,6 +6,7 @@ package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.forms.AppProperties;
 import java.io.File;
+import java.util.Properties;
 
 /**
  * Compatibility adapter between human-readable database.* settings used by
@@ -87,6 +88,54 @@ public final class DatabaseSettings {
                 firstNonBlank(p.getProperty(modernPrefix + ".driverlib"),
                         p.getProperty("db.driverlib")),
                 true);
+    }
+
+
+    /**
+     * Adds legacy db.* aliases for code paths that have not yet migrated to
+     * DatabaseSettings. Values are copied in RAW form so !secret references
+     * remain references until SecretResolver builds the effective view.
+     */
+    public static void applyLegacyCompatibility(Properties properties) {
+        if (properties == null) {
+            return;
+        }
+        applyLegacyCompatibility(properties, "database", "db");
+        applyLegacyCompatibility(properties, "database.secondary", "db1");
+    }
+
+    private static void applyLegacyCompatibility(Properties p,
+            String modernPrefix, String legacyPrefix) {
+        String server = trimToNull(p.getProperty(modernPrefix + ".server"));
+        String databaseName = trimToNull(p.getProperty(modernPrefix + ".name"));
+        if (server == null && databaseName == null) {
+            return;
+        }
+
+        String host = firstNonBlank(server, "localhost");
+        String port = firstNonBlank(p.getProperty(modernPrefix + ".port"), "3306");
+        String schema = firstNonBlank(databaseName, p.getProperty(legacyPrefix + ".schema"), "");
+        String options = firstNonBlank(p.getProperty(modernPrefix + ".options"),
+                p.getProperty(legacyPrefix + ".options"), "");
+
+        p.setProperty(legacyPrefix + ".URL", "jdbc:mysql://" + host + ":" + port + "/");
+        p.setProperty(legacyPrefix + ".schema", schema);
+        p.setProperty(legacyPrefix + ".options", options);
+        copyIfPresent(p, modernPrefix + ".user", legacyPrefix + ".user");
+        copyIfPresent(p, modernPrefix + ".password", legacyPrefix + ".password");
+        copyIfPresent(p, modernPrefix + ".label", legacyPrefix + ".name");
+
+        if ("db".equals(legacyPrefix)) {
+            copyIfPresent(p, modernPrefix + ".driver", "db.driver");
+            copyIfPresent(p, modernPrefix + ".driverlib", "db.driverlib");
+        }
+    }
+
+    private static void copyIfPresent(Properties p, String source, String target) {
+        String value = p.getProperty(source);
+        if (value != null) {
+            p.setProperty(target, value);
+        }
     }
 
     public String getLabel() {
