@@ -31,7 +31,7 @@
             <text align="center" length="20">Gracias por su preferencia</text>
         </line>
     </display>
-    <ticket>
+    <ticket printer="1">
         <image>Printer.Ticket.Logo</image>
         <line></line>
         <line>

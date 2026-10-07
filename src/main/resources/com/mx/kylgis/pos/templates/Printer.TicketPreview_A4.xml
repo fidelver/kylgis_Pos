@@ -33,7 +33,7 @@
         <line><text align="center" length="20">Gracias</text></line>
     </display>
 
-    <ticket>
+    <ticket printer="1">
         <image>Printer.Ticket.Logo</image>
         <line></line>
         #if (${ticket.printTicketHeaderLine1()} != "")

@@ -24,7 +24,7 @@
 -->
 
 <output>
-  <ticket>
+  <ticket printer="1">
     <image>Printer.Ticket.Logo</image>
         <line></line>
         <line></line>

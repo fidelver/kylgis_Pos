@@ -22,7 +22,7 @@
     along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <output>
-    <ticket>
+    <ticket printer="1">
         <image>Printer.Ticket.Logo</image>
         <line>
             <text align="center" length="42">N.I.F. 00.000.000 X</text>

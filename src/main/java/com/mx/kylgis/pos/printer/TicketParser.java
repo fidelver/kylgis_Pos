@@ -189,7 +189,12 @@ public class TicketParser extends DefaultHandler {
         } catch (ParserConfigurationException ePC) {
             throw new TicketPrinterException(LocalRes.getIntString("exception.parserconfig") , ePC);
         } catch (SAXException eSAX) {
-            throw new TicketPrinterException(LocalRes.getIntString("exception.xmlfile") , eSAX);
+            String detail = eSAX.getMessage();
+            String message = LocalRes.getIntString("exception.xmlfile");
+            if (detail != null && !detail.trim().isEmpty()) {
+                message += " " + detail;
+            }
+            throw new TicketPrinterException(message, eSAX);
         } catch (IOException eIO) {
             throw new TicketPrinterException(LocalRes.getIntString("exception.iofile") , eIO);
         }
@@ -234,10 +239,14 @@ public class TicketParser extends DefaultHandler {
                 text = new StringBuilder();
                 break;
             case "ticket":
+                String printerIndex = attributes.getValue("printer");
+                if (printerIndex == null || printerIndex.trim().isEmpty()) {
+                    throw new SAXException("El elemento <ticket> requiere el atributo printer.");
+                }
                 m_iOutputType = OUTPUT_TICKET;
                 m_oOutputPrinter = m_outputOverride != null
                         ? m_outputOverride
-                        : m_printer.getDevicePrinter(readString(attributes.getValue("printer"), "1"));
+                        : m_printer.getDevicePrinter(printerIndex.trim());
                 m_oOutputPrinter.setDocumentContext(documentTicket);
                 m_oOutputPrinter.beginReceipt();
                 break;

@@ -1942,8 +1942,8 @@ System.out.println("PanelContainer : Focus Lost");
 
     /**
      * Prints/previews the current ticket without sending the order to
-     * KitchenScreen. The dedicated route creates the virtual preview first,
-     * then renders the screen preview and finally the physical printer.
+     * KitchenScreen. The printer declared by the ticket template is
+     * authoritative; if that printer has configured mirrors, they are used.
      */
     private void previewTicket(String resource) {
         if (resource == null || m_oTicket == null) {
@@ -1980,7 +1980,7 @@ System.out.println("PanelContainer : Focus Lost");
             script.put("warranty", warrantyPrint);
             script.put("pickupid", getPickupString(m_oTicket));
 
-            m_TTP.printCurrentTicket(script.eval(sresource).toString(), m_oTicket);
+            m_TTP.printTicket(script.eval(sresource).toString(), m_oTicket);
             Notify(AppLocal.getIntString("notify.printed"));
         } catch (ScriptException | TicketPrinterException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
