@@ -62,9 +62,14 @@ public class StartPOS {
      */
     public static String getInstanceAppId(AppProperties config) {
         String instanceId = config.getProperty("machine.instanceid");
-        return instanceId == null || instanceId.trim().isEmpty()
-                ? AppLocal.APP_ID
-                : instanceId.trim();
+        if (instanceId != null && !instanceId.trim().isEmpty()) {
+            return instanceId.trim();
+        }
+        String nodeId = config.getProperty("node.id");
+        if (nodeId != null && !nodeId.trim().isEmpty()) {
+            return AppLocal.APP_ID + ":" + nodeId.trim();
+        }
+        return AppLocal.APP_ID;
     }
 
     private static boolean instanceLimitReached(AppProperties config) {

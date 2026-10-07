@@ -23,13 +23,15 @@ public final class NodeContext {
     private static final Logger LOGGER = Logger.getLogger(NodeContext.class.getName());
 
     private final String nodeId;
+    private final String profile;
     private final EnumSet<NodeRole> roles;
     private final boolean explicitNodeId;
     private final boolean explicitRoles;
 
-    private NodeContext(String nodeId, EnumSet<NodeRole> roles,
+    private NodeContext(String nodeId, String profile, EnumSet<NodeRole> roles,
             boolean explicitNodeId, boolean explicitRoles) {
         this.nodeId = nodeId;
+        this.profile = profile;
         this.roles = roles.clone();
         this.explicitNodeId = explicitNodeId;
         this.explicitRoles = explicitRoles;
@@ -48,6 +50,7 @@ public final class NodeContext {
                     resolvedId);
         }
 
+        String profile = trimToNull(properties.getProperty("node.profile"));
         String configuredRoles = trimToNull(properties.getProperty("node.roles"));
         boolean hasExplicitRoles = configuredRoles != null;
         EnumSet<NodeRole> resolvedRoles = EnumSet.noneOf(NodeRole.class);
@@ -72,11 +75,15 @@ public final class NodeContext {
             resolvedRoles.add(NodeRole.POS);
         }
 
-        return new NodeContext(resolvedId, resolvedRoles, hasExplicitId, hasExplicitRoles);
+        return new NodeContext(resolvedId, profile, resolvedRoles, hasExplicitId, hasExplicitRoles);
     }
 
     public String getNodeId() {
         return nodeId;
+    }
+
+    public String getProfile() {
+        return profile;
     }
 
     public Set<NodeRole> getRoles() {
@@ -107,6 +114,7 @@ public final class NodeContext {
     public String toString() {
         return "NodeContext{"
                 + "nodeId='" + nodeId + '\''
+                + ", profile='" + profile + '\''
                 + ", roles=" + roles
                 + ", explicitNodeId=" + explicitNodeId
                 + ", explicitRoles=" + explicitRoles
