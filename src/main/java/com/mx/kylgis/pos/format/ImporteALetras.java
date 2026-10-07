@@ -1,3 +1,17 @@
+//    KylGis POS Punto de Venta Táctil
+//
+//    Spanish number-to-words core derived from Openbravo NumberToWord_es.
+//    POS/MXN adaptations by Fidel Arcos Mota were publicly contributed to
+//    the uniCenta community in 2020. The 2026 KylGis POS implementation
+//    ports that work to compiled Java and adds overflow-safe long handling,
+//    receipt-oriented formatting and word-safe multi-line wrapping.
+//
+//    KylGis POS modifications Copyright (c) 2026 KylGis POS
+//    See AUTHORS_AND_CONTRIBUTIONS.md for provenance details.
+//
+//    This file is distributed as part of KylGis POS under the GNU General
+//    Public License, version 3 or (at your option) any later version.
+
 package com.mx.kylgis.pos.format;
 
 public class ImporteALetras {

@@ -991,10 +991,6 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
     }//GEN-LAST:event_jbtnConnectActionPerformed
 
     private void jbtnConnect1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnConnect1ActionPerformed
-/* Even though TEST & TEST1 could be consolidated into method am deliberately
- *        keeping this separate as plan is to also include alternative 
- *        posApps REST API for remote DB sync's        
-*/
         try {
             String driverlib = jtxtDbDriverLib.getText();
             String driver = jtxtDbDriver.getText();

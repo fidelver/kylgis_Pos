@@ -1,5 +1,6 @@
 //    KylGis POS Punto de Venta Táctil
 //    Copyright (c) 2026 KylGis POS
+//    KylGis POS implementation introduced in 2026 by Fidel Arcos.
 //
 //    This file is part of KylGis POS
 package com.mx.kylgis.pos.config;

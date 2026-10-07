@@ -3,9 +3,9 @@ Topic:	README installer
 Author:	Jack Gerrard
 Date: 	5 August 2018
 
-Acknowledgement: The content of the language/Locale files are 
-compiled from the efforts of KylGis POS and KylGis POS Community 
-Members. We appreciate and acknowledge everyone who has contributed 
+Acknowledgement: The content of the language/Locale files are
+compiled from the efforts of KylGis POS and KylGis POS Community
+Members. We appreciate and acknowledge everyone who has contributed
 to making this distribution possible.
 
 All files, including these Locale files, are made available under the
@@ -28,14 +28,14 @@ German - UI mostly complete. Reports approx' 75%
 
 Not all locales are completely translated.
 
-The locale files shipped with this version of KylGis POS are the 
+The locale files shipped with this version of KylGis POS are the
 latest at the date of this release.
 
-Latest locales can be found here: https://unicenta.com
+Latest locales can be found here: https://pos.kylgis.com
 
 Application Locales (Default):
 beans_messages.properties is the Java generic message file
-data_messages.properties is relevant to the data interface 
+data_messages.properties is relevant to the data interface
 pos_messages.properties is the MAIN application label and Messages
 file.
 
@@ -46,7 +46,7 @@ the KylGis POS instalation sub-folder \reports\com\mx\kylgis\pos\reports
 
 HOW TO CHANGE YOUR LANGUAGE
 All languages are now compiled into the KylGis POS executable.
-Any required locale file changes will require the project to be 
+Any required locale file changes will require the project to be
 recompiled.
 
 Set the KylGis POS Configuration>Locale to your required language

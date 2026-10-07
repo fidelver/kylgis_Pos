@@ -255,9 +255,9 @@ Then continue with KylGis POS installation.</text>
     <nativePackageName>kylgispos</nativePackageName>
     <outputDirectory>../../target/installers</outputDirectory>
     <productComments>KylGis POS Punto de Venta Táctil</productComments>
-    <productContact>info@unicenta.com</productContact>
-    <productUrlHelpLink>https://unicenta.com/support</productUrlHelpLink>
-    <productUrlInfoAbout>https://unicenta.com/about-unicenta-opos/</productUrlInfoAbout>
+    <productContact>https://pos.kylgis.com</productContact>
+    <productUrlHelpLink>https://pos.kylgis.com</productUrlHelpLink>
+    <productUrlInfoAbout>https://pos.kylgis.com</productUrlInfoAbout>
     <readmeFileEncoding>utf-8</readmeFileEncoding>
     <release>4.6</release>
     <requireInstallationByRootUser>1</requireInstallationByRootUser>
@@ -267,11 +267,11 @@ Then continue with KylGis POS installation.</text>
     <summary>POS</summary>
     <vendor>KylGis POS</vendor>
     <windowsExecutableIcon>kylgispos.ico</windowsExecutableIcon>
-    <windowsResourceComments>uniCenta oPOS is free software licensed under GNU GPL 3</windowsResourceComments>
+    <windowsResourceComments>KylGis POS Punto de Venta Táctil - software libre bajo GNU GPL 3</windowsResourceComments>
     <windowsResourceFileDescription>KylGis POS executable</windowsResourceFileDescription>
     <windowsResourceFileVersion>4.6</windowsResourceFileVersion>
     <windowsResourceInternalName>KylGis POS</windowsResourceInternalName>
-    <windowsResourceLegalTrademarks>uniCenta and uniCenta oPOS are trademarks of uniCenta</windowsResourceLegalTrademarks>
+    <windowsResourceLegalTrademarks>KylGis POS</windowsResourceLegalTrademarks>
     <windowsUninstallerExecutableIcon>kylgispos.ico</windowsUninstallerExecutableIcon>
     <parameterList>
         <directoryParameter>
@@ -294,7 +294,7 @@ Then continue with KylGis POS installation.</text>
             <insertAfter>${installation_finished}${installation_finished}</insertAfter>
             <clickedActionList>
                 <launchBrowser>
-                    <url>https://unicenta.com/pages/configure-unicenta-opos/</url>
+                    <url>https://pos.kylgis.com</url>
                 </launchBrowser>
             </clickedActionList>
         </linkParameter>

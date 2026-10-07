@@ -29,14 +29,15 @@ import com.mx.kylgis.pos.beans.LocaleResources;
 public class AppLocal {
     
 
-   /* public static final String APP_NAME = "KylGis POS";
+    public static final String APP_NAME = "KylGis POS";
     public static final String APP_ID = "kylgispos";
     public static final String APP_VERSION = "4.6";
     
-    */
+    /*
     public static final String APP_NAME = "KylGis Plataformas";
     public static final String APP_ID = "kylgisplataformas";
     public static final String APP_VERSION = "1.0";
+    */
     
     /*
      public static final String APP_NAME = "KylGisPOS";

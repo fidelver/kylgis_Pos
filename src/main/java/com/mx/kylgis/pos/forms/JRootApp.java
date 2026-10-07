@@ -534,14 +534,14 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         if (newText != null) {
             if (newText.equals("")){
                 jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
-                "Copyright \u00A9  uniCenta <br>" +
-                "https://unicenta.com/<br>" +
+                "Copyright \u00A9 2026 KylGis POS<br>" +
+                "https://pos.kylgis.com<br>" +
                 "<br>" +
-                "uniCenta oPOS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>" +
+                "KylGis POS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>" +
                 "<br>" +
-                "uniCenta oPOS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.<br>" +
+                "KylGis POS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br>" +
                 "<br>" +
-                "You should have received a copy of the GNU General Public License along with uniCenta oPOS.  If not, see http://www.gnu.org/licenses/<br>" +
+                "You should have received a copy of the GNU General Public License along with KylGis POS. If not, see http://www.gnu.org/licenses/<br>" +
                 "</center>");
                 
             } else {
@@ -1039,14 +1039,14 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png"))); // NOI18N
         jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
-            "Copyright \u00A9 2009-2017 uniCenta <br>" +
-            "https://unicenta.com<br>" +
+            "Copyright \u00A9 2026 KylGis POS<br>" +
+            "https://pos.kylgis.com<br>" +
             "<br>" +
-            "uniCenta oPOS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>" +
+            "KylGis POS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>" +
             "<br>" +
-            "uniCenta oPOS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.<br>" +
+            "KylGis POS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br>" +
             "<br>" +
-            "You should have received a copy of the GNU General Public License along with uniCenta oPOS.  If not, see http://www.gnu.org/licenses/<br>" +
+            "You should have received a copy of the GNU General Public License along with KylGis POS. If not, see http://www.gnu.org/licenses/<br>" +
             "</center>");
         jLabel1.setAlignmentX(0.5F);
         jLabel1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);

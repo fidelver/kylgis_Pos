@@ -165,7 +165,7 @@ public class UniBrowser extends JFrame {
 //            browser.loadURL("https://unicenta.com/pages/configure-unicenta-opos/");
             String[] s = args;
             System.out.println(s);
-            String strURL ="https://unicenta.com/pages/configure-unicenta-opos/";
+            String strURL ="https://pos.kylgis.com";
             System.out.println("s");
             UniBrowser.toURL(strURL);
         });

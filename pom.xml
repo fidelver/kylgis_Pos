@@ -443,39 +443,7 @@
         </configuration> 
       </plugin> 
     </plugins>
-    <extensions>
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-ftp</artifactId>
-        <version>2.10</version>
-      </extension>
-    </extensions>
     <finalName>kylgispos</finalName> 
   </build>  
-  <repositories> 
-    <repository> 
-      <id>unicenta-repo</id>  
-      <url>https://repo.unicenta.org/maven2/</url>  
-      <layout>default</layout> 
-    </repository>  
-    <repository> 
-      <id>mvnrepository-repo</id>  
-      <url>https://mvnrepository.com/artifact/</url>  
-      <layout>default</layout> 
-    </repository>  
-    <repository> 
-      <id>oracleReleases</id>  
-      <name>oracle Released Java Packages</name>  
-      <url>https://download.oracle.com/maven</url>  
-      <layout>default</layout> 
-    </repository> 
-  </repositories>
-  <distributionManagement>
-    <repository>
-      <id>unicenta-repo</id>
-      <url>ftp://repo.unicenta.org/</url>
-      <uniqueVersion>false</uniqueVersion>
-    </repository>
-  </distributionManagement>
   <name>kylgis_Pos</name> 
 </project>

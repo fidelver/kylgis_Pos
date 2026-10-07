@@ -1,5 +1,6 @@
 //    KylGis POS Punto de Venta Táctil
 //    Copyright (c) 2026 KylGis POS
+//    KylGis POS implementation introduced in 2026 by Fidel Arcos.
 //    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
 //    Portions Copyright (c) 2010-2021 Hugh Clayson / uniCenta (https://unicenta.com)
 //    Portions Copyright (c) 2006-2010 Adrián Romero / Openbravo S.L.
