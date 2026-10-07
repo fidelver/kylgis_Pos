@@ -86,6 +86,9 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
             setTitle(AppLocal.APP_NAME + " - " + AppLocal.APP_VERSION);
             pack();
             setLocationRelativeTo(null);
+            // Start as a normal decorated window maximized to the desktop work area.
+            // This preserves the window title bar and the GNOME top bar.
+            setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);
 
             setVisible(true);
         } else {
