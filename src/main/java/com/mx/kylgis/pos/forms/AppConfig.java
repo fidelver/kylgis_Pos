@@ -20,14 +20,16 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.forms;
 
+import com.mx.kylgis.pos.config.provisioning.NodeProvisioner;
+import com.mx.kylgis.pos.config.provisioning.ProvisioningResult;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +44,9 @@ public class AppConfig implements AppProperties {
      
     private static volatile AppConfig m_instance = null;
     private Properties m_propsconfig;
-    private File configfile;  
+    private File configfile;
+    private ProvisioningResult provisioningResult;
+    private final Set<String> dirtyProperties = new LinkedHashSet<>();
       
     /**
      * Set configuration array
@@ -168,6 +172,7 @@ public class AppConfig implements AppProperties {
         } else {
             m_propsconfig.setProperty(sKey, sValue);
         }
+        dirtyProperties.add(sKey);
     }
     
    /**
@@ -215,13 +220,7 @@ public class AppConfig implements AppProperties {
     }
     
     public void setBoolean(String sKey, Boolean sValue) {
-        if (sValue == null) {
-            m_propsconfig.remove(sKey);
-        } else if (sValue) {
-            m_propsconfig.setProperty(sKey, "true");
-        } else {
-            m_propsconfig.setProperty(sKey, "false");
-        }
+        setProperty(sKey, sValue == null ? null : Boolean.toString(sValue));
     }
     
     /**
@@ -229,7 +228,14 @@ public class AppConfig implements AppProperties {
      * @return Delete .properties filename
      */
     public boolean delete() {
+        if (isProvisioned()) {
+            logger.log(Level.WARNING,
+                    "Factory reset through legacy configuration UI is disabled for provisioned nodes: {0}",
+                    configfile.getAbsolutePath());
+            return false;
+        }
         loadDefault();
+        dirtyProperties.clear();
         return configfile.delete();
     }
 
@@ -239,17 +245,25 @@ public class AppConfig implements AppProperties {
     public void load() {
 
         loadDefault();
+        Properties defaults = copyProperties(m_propsconfig);
 
         try {
-            InputStream in = new FileInputStream(configfile);
-            if (in != null) {
-                m_propsconfig.load(in);
-                in.close();
+            provisioningResult = NodeProvisioner.resolve(configfile, defaults);
+            m_propsconfig = provisioningResult.getEffectiveProperties();
+            dirtyProperties.clear();
+            if (provisioningResult.isProvisioned()) {
+                logger.log(Level.INFO,
+                        "Provisioned KylGis node using MASTER {0} and module {1}",
+                        new Object[]{provisioningResult.getMasterFile(),
+                            provisioningResult.getNodeModuleFile()});
             }
-        } catch (IOException e){
-            loadDefault();
+        } catch (IOException ex) {
+            provisioningResult = null;
+            dirtyProperties.clear();
+            throw new IllegalStateException(
+                    "Cannot resolve KylGis configuration for "
+                    + configfile.getAbsolutePath(), ex);
         }
-   
     }
 
     /**
@@ -270,12 +284,59 @@ public class AppConfig implements AppProperties {
      * @throws java.io.IOException explicit on OS
      */
     public void save() throws IOException {
-        
-        OutputStream out = new FileOutputStream(configfile);
-        if (out != null) {
-            m_propsconfig.store(out, AppLocal.APP_NAME + ". Configuration file.");
-            out.close();
+
+        if (isProvisioned()) {
+            saveNodeOverrides();
+            return;
         }
+
+        try (OutputStream out = new FileOutputStream(configfile)) {
+            m_propsconfig.store(out, AppLocal.APP_NAME + ". Configuration file.");
+        }
+        dirtyProperties.clear();
+    }
+
+    public boolean isProvisioned() {
+        return provisioningResult != null && provisioningResult.isProvisioned();
+    }
+
+    public File getMasterConfigFile() {
+        return isProvisioned() ? provisioningResult.getMasterFile() : null;
+    }
+
+    public File getNodeModuleFile() {
+        return isProvisioned() ? provisioningResult.getNodeModuleFile() : null;
+    }
+
+    private void saveNodeOverrides() throws IOException {
+        if (dirtyProperties.isEmpty()) {
+            return;
+        }
+
+        Properties nodeOverrides = provisioningResult.getNodeProperties();
+        for (String key : dirtyProperties) {
+            String value = m_propsconfig.getProperty(key);
+            if (value == null) {
+                nodeOverrides.remove(key);
+            } else {
+                nodeOverrides.setProperty(key, value);
+            }
+        }
+
+        File nodeModuleFile = provisioningResult.getNodeModuleFile();
+        try (OutputStream out = new FileOutputStream(nodeModuleFile)) {
+            nodeOverrides.store(out, AppLocal.APP_NAME + ". Node module.");
+        }
+
+        load();
+    }
+
+    private static Properties copyProperties(Properties source) {
+        Properties copy = new Properties();
+        if (source != null) {
+            copy.putAll(source);
+        }
+        return copy;
     }
     
     
