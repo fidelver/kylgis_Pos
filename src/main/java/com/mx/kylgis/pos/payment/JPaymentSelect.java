@@ -33,7 +33,9 @@ import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
 /**
@@ -58,15 +60,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 // JG 16 May 12 use diamond inference
     private Map<String, JPaymentInterface> payments = new HashMap<>();
     private String m_sTransactionID;
-    private static PaymentInfo returnPayment = null;
-    
-    public static PaymentInfo getReturnPayment() {
-        return returnPayment;
-    }
-
-    public static void setReturnPayment(PaymentInfo returnPayment) {
-        JPaymentSelect.returnPayment = returnPayment;
-    }
+    private boolean paymentInProgress;
      
 
     /**
@@ -131,6 +125,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
       public boolean showDialog(double total, CustomerInfoExt customerext,double deposit) {
         m_aPaymentInfo = new PaymentInfoList();
         accepted = false;
+        paymentInProgress = false;
+        m_jButtonOK.setEnabled(true);
+        m_jButtonCancel.setEnabled(true);
         total -= deposit;
         m_dTotal = total;
         
@@ -154,6 +151,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         
         m_aPaymentInfo = new PaymentInfoList();
         accepted = false;
+        paymentInProgress = false;
+        m_jButtonOK.setEnabled(true);
+        m_jButtonCancel.setEnabled(true);
         
         m_dTotal = total;
         
@@ -722,28 +722,53 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     }//GEN-LAST:event_m_jTabPaymentStateChanged
 
     private void m_jButtonOKActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonOKActionPerformed
-        
-        SwingWorker worker = new SwingWorker() {
+        if (paymentInProgress) {
+            return;
+        }
+
+        paymentInProgress = true;
+        m_jButtonOK.setEnabled(false);
+        m_jButtonCancel.setEnabled(false);
+
+        SwingWorker<PaymentInfo, Void> worker = new SwingWorker<PaymentInfo, Void>() {
             @Override
-            protected Object doInBackground() throws Exception {
-                 setReturnPayment(
-                    ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
-                    .executePayment());
-                return null;
+            protected PaymentInfo doInBackground() throws Exception {
+                return ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
+                        .executePayment();
             }
 
             @Override
-            public void done() {
-                m_jButtonOK.setEnabled(true);
-                m_jButtonCancel.setEnabled(true);
-                if (returnPayment != null) {
-                    m_aPaymentInfo.add(returnPayment);
-                    accepted = true;
-                    dispose();
-                }           
+            protected void done() {
+                try {
+                    PaymentInfo payment = get();
+                    if (payment != null) {
+                        m_aPaymentInfo.add(payment);
+                        accepted = true;
+                        dispose();
+                    } else {
+                        paymentInProgress = false;
+                        m_jButtonOK.setEnabled(true);
+                        m_jButtonCancel.setEnabled(true);
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    paymentInProgress = false;
+                    m_jButtonOK.setEnabled(true);
+                    m_jButtonCancel.setEnabled(true);
+                } catch (ExecutionException ex) {
+                    paymentInProgress = false;
+                    m_jButtonOK.setEnabled(true);
+                    m_jButtonCancel.setEnabled(true);
+                    Throwable cause = ex.getCause();
+                    JOptionPane.showMessageDialog(JPaymentSelect.this,
+                            "No se pudo procesar el pago."
+                            + (cause != null && cause.getMessage() != null
+                                    ? "\n" + cause.getMessage() : ""),
+                            "Error de pago", JOptionPane.ERROR_MESSAGE);
+                }
             }
         };
- 
+
         worker.execute();
     }//GEN-LAST:event_m_jButtonOKActionPerformed
 

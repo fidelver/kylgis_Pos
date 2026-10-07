@@ -43,6 +43,7 @@ import com.mx.kylgis.pos.panels.JProductFinder;
 import com.mx.kylgis.pos.payment.JPaymentSelect;
 import com.mx.kylgis.pos.payment.JPaymentSelectReceipt;
 import com.mx.kylgis.pos.payment.JPaymentSelectRefund;
+import com.mx.kylgis.pos.payment.PaymentInfo;
 import com.mx.kylgis.pos.printer.TicketParser;
 import com.mx.kylgis.pos.printer.TicketPrinterException;
 import com.mx.kylgis.pos.sales.restaurant.RestaurantDBUtils;
@@ -60,6 +61,7 @@ import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.InactivityListener;
 import com.mx.kylgis.pos.util.JRPrinterAWT300;
 import com.mx.kylgis.pos.util.ReportUtils;
+import com.mx.kylgis.pos.util.RoundUtils;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -1774,6 +1776,20 @@ System.out.println("PanelContainer : Focus Lost");
 
                         ticket.setPayments(paymentdialog.getSelectedPayments());
 
+                        if (!hasConsistentNormalSalePayments(ticket)) {
+                            double paymentTotal = 0.0;
+                            for (PaymentInfo payment : ticket.getPayments()) {
+                                paymentTotal += payment.getTotal();
+                            }
+                            JOptionPane.showMessageDialog(this,
+                                    "No se puede guardar la venta porque los pagos no coinciden con el total.\n"
+                                    + "Total venta: " + RoundUtils.round(ticket.getTotal()) + "\n"
+                                    + "Total pagos: " + RoundUtils.round(paymentTotal),
+                                    "Inconsistencia de pagos", JOptionPane.ERROR_MESSAGE);
+                            ticket.resetPayments();
+                            return false;
+                        }
+
                         ticket.setUser(m_App.getAppUserView().getUser().getUserInfo());
                         ticket.setActiveCash(m_App.getActiveCashIndex());
                         ticket.setDate(new Date());
@@ -1781,15 +1797,24 @@ System.out.println("PanelContainer : Focus Lost");
                         if (executeEvent(ticket, ticketext, "ticket.save") == null) {
 
                             try {
-                                dlSales.saveTicket(ticket, m_App.getInventoryLocation());  
-                                m_config.setProperty("lastticket.number", Integer.toString(ticket.getTicketId()));
-                                m_config.setProperty("lastticket.type", Integer.toString(ticket.getTicketType()));
-                                m_config.save();     
-                                
+                                dlSales.saveTicket(ticket, m_App.getInventoryLocation());
                             } catch (BasicException eData) {
+                                // saveTicket is transactional. A failed transaction may have
+                                // assigned a sequence value to this Java object before rollback;
+                                // it must not be treated as a committed folio on retry.
+                                ticket.setTicketId(0);
                                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.nosaveticket"), eData);
                                 msg.show(this);
+                                return false;
+                            }
+
+                            try {
+                                m_config.setProperty("lastticket.number", Integer.toString(ticket.getTicketId()));
+                                m_config.setProperty("lastticket.type", Integer.toString(ticket.getTicketType()));
+                                m_config.save();
                             } catch (IOException ex) {
+                                // The sale is already committed. A local configuration failure
+                                // must never cause the operator to persist the same sale again.
                                 Logger.getLogger(JPanelTicket.class.getName()).log(Level.SEVERE, null, ex);
                             }
 
@@ -1831,6 +1856,18 @@ System.out.println("PanelContainer : Focus Lost");
                 
         return resultok;        
     }   
+
+    private boolean hasConsistentNormalSalePayments(TicketInfo ticket) {
+        if (ticket.getTicketType() != TicketInfo.RECEIPT_NORMAL) {
+            return true;
+        }
+
+        double paymentTotal = 0.0;
+        for (PaymentInfo payment : ticket.getPayments()) {
+            paymentTotal += payment.getTotal();
+        }
+        return RoundUtils.compare(ticket.getTotal(), paymentTotal) == 0;
+    }
 
     private boolean warrantyCheck(TicketInfo ticket) {    
         warrantyPrint=false;
@@ -3572,7 +3609,10 @@ System.out.println("PanelContainer : Focus Lost");
     }
 
     /**
-     * Replaces the old editable script.SendOrder resource.
+     * Native Java refactor/replacement of the inherited uniCenta GPL
+     * script.SendOrder behavior. The upstream script supplied the basic
+     * P1-P6 dispatch model; KylGis POS adds native execution, pending-line
+     * state handling and the KitchenScreen synchronization safeguards below.
      */
     private static final class RemoteOrderPrinter {
         private final JPanelTicket sales;
