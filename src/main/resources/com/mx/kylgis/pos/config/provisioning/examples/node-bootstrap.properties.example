@@ -1,0 +1,4 @@
+# Minimal file installed on the node.
+# It identifies the node and points to its MASTER.
+node.id=caja1
+config.master=../master/kylgis-master.properties
