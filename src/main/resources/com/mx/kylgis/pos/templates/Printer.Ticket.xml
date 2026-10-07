@@ -47,7 +47,7 @@
         #if (${ticket.printTicketHeaderLine3()} != "")
             <line><text align="center" length="31">${ticket.printTicketHeaderLine3()}</text></line>
         #end
-        <line><text align="center" length="31">Expedido en: 91809</text></line>
+        <line><text align="center" length="31">Expedido en: [configurar]</text></line>
         #if (${ticket.printTicketHeaderLine4()} != "")
             <line><text align="center" length="31">${ticket.printTicketHeaderLine4()}</text></line>
         #end

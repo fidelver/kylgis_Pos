@@ -47,7 +47,7 @@
         #if (${ticket.printTicketHeaderLine3()} != "")
             <line><text align="center" length="31">${ticket.printTicketHeaderLine3()}</text></line>
         #end
-        <line><text align="center" length="31">Expedido en: 91809</text></line>
+        <line><text align="center" length="31">Expedido en: [configurar]</text></line>
         #if (${ticket.printTicketHeaderLine4()} != "")
             <line><text align="center" length="31">${ticket.printTicketHeaderLine4()}</text></line>
         #end
@@ -57,7 +57,7 @@
         #if (${ticket.printTicketHeaderLine6()} != "")
             <line><text align="center" length="31">${ticket.printTicketHeaderLine6()}</text></line>
         #end
-         <!--   <line><text align="center" length="31">Código Postal: 91809</text></line>
+         <!--   <line><text align="center" length="31">Código Postal: [configurar]</text></line>
 
     <line><text align="center" length="31">Vista previa del ticket</text></line> -->
         <line></line>        
@@ -89,7 +89,7 @@
         #end
         <line><text align="left" length="31" bold="true">Venta al Público en General </text></line> 
         <line></line> 
-        <line><text align="left" length="31">Expedido en: 91809</text></line>
+        <line><text align="left" length="31">Expedido en: [configurar]</text></line>
        <!--   <line><text align="left" length="31">${ticket.printTicketHeaderLine4()}</text></line>
         <line><text align="left" length="31">${ticket.printTicketHeaderLine5()}</text></line>
         <line><text align="left" length="31">${ticket.printTicketHeaderLine6()}</text></line>    -->
