@@ -22,6 +22,7 @@ package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.Session;
+import com.mx.kylgis.pos.config.DatabaseSettings;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import java.io.File;
 import java.net.MalformedURLException;
@@ -57,16 +58,18 @@ public class AppViewConnection {
             String dbURL=null;
             String sDBUser=null;
             String sDBPassword=null;
+            DatabaseSettings primary = DatabaseSettings.primary(props);
+            DatabaseSettings secondary = DatabaseSettings.secondary(props);
             String sUserPath = System.getProperty("user.home"); 
             String filePath = sUserPath + "\\open.db";            
             
             if (isJavaWebStart()) {
-                Class.forName(props.getProperty("db.driver"), true, Thread.currentThread().getContextClassLoader());
+                Class.forName(primary.getDriver(), true, Thread.currentThread().getContextClassLoader());
             } else {
                 ClassLoader cloader = new URLClassLoader(new URL[] {
-                    new File(props.getProperty("db.driverlib")).toURI().toURL()});
+                    primary.getDriverLibraryFile().toURI().toURL()});
                 DriverManager.registerDriver(new DriverWrapper((Driver) 
-                        Class.forName(props.getProperty("db.driver"), 
+                        Class.forName(primary.getDriver(), 
                                 true, cloader).newInstance()));
             }
 
@@ -74,58 +77,50 @@ public class AppViewConnection {
                 if (!Files.exists(Paths.get(filePath))) {
                     ImageIcon icon = new ImageIcon("/com/mx/kylgis/pos/images/kylgis_pos.png");
                     Object[] dbs = {
-                    "0 - " + props.getProperty("db.name"),
-                    "1 - " + props.getProperty("db1.name")};
+                    "0 - " + primary.getLabel(),
+                    "1 - " + secondary.getLabel()};
         
                     Object s = (Object)JOptionPane.showInputDialog(
                         null, AppLocal.getIntString("message.databasechoose"),
                         "Selection", JOptionPane.OK_OPTION,
-                        icon, dbs, props.getProperty("db.name"));
+                        icon, dbs, primary.getLabel());
             
                     if (s.toString().startsWith("1")) {
-                        sDBUser = props.getProperty("db1.user");
-                        sDBPassword = props.getProperty("db1.password");
+                        sDBUser = secondary.getUser();
+                        sDBPassword = secondary.getPassword();
                         if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
                             AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
                             sDBPassword = cypher.decrypt(sDBPassword.substring(6));
                         }
-                        dbURL = props.getProperty("db1.URL") +
-                        props.getProperty("db1.schema") +
-                        props.getProperty("db1.options");
+                        dbURL = secondary.getJdbcUrl();
                     } else {
-                        sDBUser = props.getProperty("db.user");
-                        sDBPassword = props.getProperty("db.password");
+                        sDBUser = primary.getUser();
+                        sDBPassword = primary.getPassword();
                         if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
                             AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
                             sDBPassword = cypher.decrypt(sDBPassword.substring(6));
                         }
-                        dbURL = props.getProperty("db.URL") +
-                        props.getProperty("db.schema") +
-                        props.getProperty("db.options");                        
+                        dbURL = primary.getJdbcUrl();                        
                     }
                 } else {
-                    sDBUser = props.getProperty("db.user");
-                    sDBPassword = props.getProperty("db.password");
+                    sDBUser = primary.getUser();
+                    sDBPassword = primary.getPassword();
                     if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
                         AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
                         sDBPassword = cypher.decrypt(sDBPassword.substring(6));
                     }
-                    dbURL = props.getProperty("db.URL") +
-                    props.getProperty("db.schema") +
-                    props.getProperty("db.options");                    
+                    dbURL = primary.getJdbcUrl();                    
                 }    
 
             } else {
-                sDBUser = props.getProperty("db.user");
-                sDBPassword = props.getProperty("db.password");
+                sDBUser = primary.getUser();
+                sDBPassword = primary.getPassword();
                 if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
                     AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
                     sDBPassword = cypher.decrypt(sDBPassword.substring(6));
                 }
 
-                dbURL = props.getProperty("db.URL") +
-                props.getProperty("db.schema") +
-                props.getProperty("db.options");                
+                dbURL = primary.getJdbcUrl();                
             }
 
             return new Session(dbURL, sDBUser,sDBPassword);
