@@ -94,6 +94,14 @@ public final class NodeContext {
         return roles.contains(role);
     }
 
+    /**
+     * Whether this node may administer the KylGis MASTER/topology.
+     * A MASTER node may simultaneously expose POS, SERVER, KITCHEN or other roles.
+     */
+    public boolean isMasterNode() {
+        return roles.contains(NodeRole.MASTER);
+    }
+
     public boolean hasExplicitNodeId() {
         return explicitNodeId;
     }

@@ -10,6 +10,7 @@ package com.mx.kylgis.pos.node;
  */
 public enum NodeRole {
 
+    MASTER("master"),
     SERVER("server"),
     POS("pos"),
     KITCHEN("kitchen"),

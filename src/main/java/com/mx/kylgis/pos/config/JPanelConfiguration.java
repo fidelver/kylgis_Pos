@@ -62,7 +62,9 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         
         PanelConfig panel;
         
-        panel = new JPanelConfigDatabase();
+        panel = config.isProvisioned()
+                ? new JPanelConfigDatabaseStatus()
+                : new JPanelConfigDatabase();
         m_panelconfig.add(panel);
         jPanelDatabase.add(panel.getConfigComponent());
         
@@ -102,6 +104,10 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelCompany.add(panel.getConfigComponent());
 
+        panel = new JPanelConfigNodes();
+        m_panelconfig.add(panel);
+        jTabbedPane1.addTab("Nodos", panel.getConfigComponent());
+
     }
         
     private void restoreProperties() {
@@ -128,8 +134,15 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     private void saveProperties() {
         
         // paneles auxiliares
-        for (PanelConfig c: m_panelconfig) {
-            c.saveProperties(config);
+        try {
+            for (PanelConfig c: m_panelconfig) {
+                c.saveProperties(config);
+            }
+        } catch (IllegalStateException ex) {
+            JMessageDialog.showMessage(this,
+                new MessageInf(MessageInf.SGN_WARNING,
+                        "No se pudo guardar la configuración de nodos", ex));
+            return;
         }
         
         try {

@@ -951,7 +951,6 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
                 jLblAlert.setVisible(false);
                 jPanel1.setVisible(true); 
                 
-        System.out.println(password);
             } else {
                 jLblAlert.setVisible(true);   
                 jPanel1.setVisible(false);                
@@ -1014,7 +1013,6 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
                 fillSchema1();
                 jLblAlert.setVisible(false);
                 
-        System.out.println(password);
             } else {
                 jLblAlert.setVisible(true);                
                 JMessageDialog.showMessage(this, 
