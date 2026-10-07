@@ -22,6 +22,7 @@ package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.instance.InstanceQuery;
+import com.mx.kylgis.pos.node.NodeContext;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,6 +82,9 @@ public class StartPOS {
         SwingUtilities.invokeLater (() -> {
             AppConfig config = new AppConfig(args);
             config.load();
+
+            NodeContext nodeContext = NodeContext.from(config);
+            logger.log(Level.INFO, "KylGis node context: {0}", nodeContext);
 
             // Fast path: if all slots are already occupied, activate an existing
             // instance before initializing the database and the rest of the UI.
