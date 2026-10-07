@@ -28,6 +28,7 @@ public final class NodeProvisioner {
     public static final String NODE_ID_KEY = "node.id";
     public static final String NODE_MODULE_PREFIX = "node.";
     public static final String NODE_MODULE_SUFFIX = ".module";
+    public static final String SECRETS_KEY = "config.secrets";
 
     private NodeProvisioner() {
     }
@@ -43,8 +44,8 @@ public final class NodeProvisioner {
 
         if (masterReference == null) {
             Properties effective = merge(defaults, local);
-            return new ProvisioningResult(false, localFile, null, null,
-                    local, new Properties(), new Properties(), effective);
+            return new ProvisioningResult(false, localFile, null, null, null,
+                    local, new Properties(), new Properties(), effective, effective);
         }
 
         if (!localFile.isFile()) {
@@ -71,9 +72,22 @@ public final class NodeProvisioner {
         File nodeModuleFile = resolveRelative(masterFile.getParentFile(), moduleReference);
         Properties nodeModule = loadRequired(nodeModuleFile, "node module");
 
-        Properties effective = merge(defaults, master, nodeModule, local);
+        Properties rawEffective = merge(defaults, master, nodeModule, local);
+        File secretsFile = null;
+        Properties effective = rawEffective;
+        if (SecretResolver.containsSecretReferences(rawEffective)) {
+            String secretsReference = trimToNull(master.getProperty(SECRETS_KEY));
+            if (secretsReference == null) {
+                throw new IOException("MASTER must define " + SECRETS_KEY
+                        + " because the effective configuration contains !secret references");
+            }
+            secretsFile = resolveRelative(masterFile.getParentFile(), secretsReference);
+            Properties secrets = loadRequired(secretsFile, "secrets");
+            effective = SecretResolver.resolve(rawEffective, secrets);
+        }
+
         return new ProvisioningResult(true, localFile, masterFile, nodeModuleFile,
-                local, master, nodeModule, effective);
+                secretsFile, local, master, nodeModule, rawEffective, effective);
     }
 
     public static void provisionBootstrap(File localFile, File masterFile,

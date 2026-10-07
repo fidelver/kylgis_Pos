@@ -22,6 +22,7 @@ package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.config.provisioning.NodeProvisioner;
 import com.mx.kylgis.pos.config.provisioning.ProvisioningResult;
+import com.mx.kylgis.pos.config.provisioning.SecretResolver;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -314,8 +315,24 @@ public class AppConfig implements AppProperties {
         }
 
         Properties nodeOverrides = provisioningResult.getNodeProperties();
+        Properties rawEffective = provisioningResult.getRawEffectiveProperties();
+        Properties originalEffective = provisioningResult.getEffectiveProperties();
         for (String key : dirtyProperties) {
             String value = m_propsconfig.getProperty(key);
+            String rawValue = rawEffective.getProperty(key);
+            if (SecretResolver.isSecretReference(rawValue)) {
+                String originalValue = originalEffective.getProperty(key);
+                if ((value == null && originalValue == null)
+                        || (value != null && value.equals(originalValue))) {
+                    // The legacy UI re-submitted an unchanged resolved secret.
+                    // Keep the existing alias at its original layer and never
+                    // materialize the secret into the node module.
+                    continue;
+                }
+                throw new IOException("Property " + key
+                        + " is backed by " + rawValue
+                        + "; update the secret store instead of saving plaintext");
+            }
             if (value == null) {
                 nodeOverrides.remove(key);
             } else {

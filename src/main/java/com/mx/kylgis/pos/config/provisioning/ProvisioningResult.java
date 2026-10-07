@@ -16,22 +16,26 @@ public final class ProvisioningResult {
     private final File localFile;
     private final File masterFile;
     private final File nodeModuleFile;
+    private final File secretsFile;
     private final Properties localProperties;
     private final Properties masterProperties;
     private final Properties nodeProperties;
+    private final Properties rawEffectiveProperties;
     private final Properties effectiveProperties;
 
     ProvisioningResult(boolean provisioned, File localFile, File masterFile,
-            File nodeModuleFile, Properties localProperties,
+            File nodeModuleFile, File secretsFile, Properties localProperties,
             Properties masterProperties, Properties nodeProperties,
-            Properties effectiveProperties) {
+            Properties rawEffectiveProperties, Properties effectiveProperties) {
         this.provisioned = provisioned;
         this.localFile = localFile;
         this.masterFile = masterFile;
         this.nodeModuleFile = nodeModuleFile;
+        this.secretsFile = secretsFile;
         this.localProperties = copy(localProperties);
         this.masterProperties = copy(masterProperties);
         this.nodeProperties = copy(nodeProperties);
+        this.rawEffectiveProperties = copy(rawEffectiveProperties);
         this.effectiveProperties = copy(effectiveProperties);
     }
 
@@ -51,6 +55,10 @@ public final class ProvisioningResult {
         return nodeModuleFile;
     }
 
+    public File getSecretsFile() {
+        return secretsFile;
+    }
+
     public Properties getLocalProperties() {
         return copy(localProperties);
     }
@@ -61,6 +69,10 @@ public final class ProvisioningResult {
 
     public Properties getNodeProperties() {
         return copy(nodeProperties);
+    }
+
+    public Properties getRawEffectiveProperties() {
+        return copy(rawEffectiveProperties);
     }
 
     public Properties getEffectiveProperties() {
