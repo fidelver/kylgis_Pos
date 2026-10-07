@@ -190,8 +190,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, BeanFac
     @Override
     public void init(AppView app) throws BeanFactoryException {
 
-        m_config = new AppConfig(new File((System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));
-        m_config.load();
+        m_config = AppConfig.getInstance();
         
         m_App = app;
         restDB = new RestaurantDBUtils(m_App);

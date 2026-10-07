@@ -40,7 +40,7 @@ public class AppConfig implements AppProperties {
 
     private static final Logger logger = Logger.getLogger("com.mx.kylgis.pos.forms.AppConfig");
      
-    private static AppConfig m_instance = null;
+    private static volatile AppConfig m_instance = null;
     private Properties m_propsconfig;
     private File configfile;  
       
@@ -182,11 +182,30 @@ public class AppConfig implements AppProperties {
         }
     }
    
+    /**
+     * Registers the exact configuration selected by the application bootstrap.
+     * Runtime components must use this instance instead of reopening a default
+     * ~/APP_ID.properties file, otherwise explicit node/bootstrap paths would
+     * be ignored by part of the JVM.
+     *
+     * @param config active application configuration
+     */
+    public static void setActiveInstance(AppConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("config is required");
+        }
+        m_instance = config;
+    }
+
     public static AppConfig getInstance() {
 
         if (m_instance == null) {
-            m_instance = new AppConfig(new File(System.getProperty("user.home")
-                , AppLocal.APP_ID + ".properties"));
+            synchronized (AppConfig.class) {
+                if (m_instance == null) {
+                    m_instance = new AppConfig(new File(System.getProperty("user.home")
+                        , AppLocal.APP_ID + ".properties"));
+                }
+            }
         }
         return m_instance;
     }

@@ -80,8 +80,7 @@ public class PaymentPanelMagCard extends javax.swing.JPanel implements PaymentPa
         initComponents();
         
 
-        AppConfig config = new AppConfig(new File(new File(System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));
-        config.load();
+        AppConfig config = AppConfig.getInstance();
 
         String payProcessor = config.getProperty("payment.gateway");
         if ("MercuryPay".equals(payProcessor)) {

@@ -110,9 +110,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_sResponse = null;
         oldTicket=false;
 
-        AppConfig config = new AppConfig(new File(new File(
-            System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));
-        config.load();
+        AppConfig config = AppConfig.getInstance();
         tip = Boolean.valueOf(config.getProperty("machine.showTip"));
         m_isProcessed = false;
         m_locked = null;
@@ -291,9 +289,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     }
     
     public String getHost() {
-      AppConfig m_config_host =  new AppConfig(new File((System.getProperty("user.home")),
-              AppLocal.APP_ID + ".properties"));        
-      m_config_host.load();
+      AppConfig m_config_host = AppConfig.getInstance();
       String machineHostname =(m_config_host.getProperty("machine.hostname"));
       m_config_host = null;
       return machineHostname;
@@ -535,9 +531,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public String printId() {
       
-      AppConfig m_config =  new AppConfig(new File(
-              (System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));        
-      m_config.load();
+      AppConfig m_config = AppConfig.getInstance();
       String receiptSize =(m_config.getProperty("till.receiptsize"));
       String receiptPrefix =(m_config.getProperty("till.receiptprefix"));
      
@@ -648,9 +642,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     }
     
     public String getTicketHeaderFooterData(String data) {
-        AppConfig m_config = new AppConfig(new File((System.getProperty("user.home"))
-                , AppLocal.APP_ID + ".properties"));        
-        m_config.load();
+        AppConfig m_config = AppConfig.getInstance();
         String row =(m_config.getProperty("tkt."+data));
         
         return row;

@@ -82,6 +82,7 @@ public class StartPOS {
         SwingUtilities.invokeLater (() -> {
             AppConfig config = new AppConfig(args);
             config.load();
+            AppConfig.setActiveInstance(config);
 
             NodeContext nodeContext = NodeContext.from(config);
             logger.log(Level.INFO, "KylGis node context: {0}", nodeContext);

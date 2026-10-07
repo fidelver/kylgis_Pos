@@ -84,8 +84,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         
     public DataLogicSales() {
         AppView app = null;        
-        m_config = new AppConfig(new File((System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));
-        m_config.load();
+        m_config = AppConfig.getInstance();
         m_App = app;        
         
         stockdiaryDatas = new Datas[] {

@@ -66,8 +66,7 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         m_jTendered.addEditorKeys(m_jKeys);
         
 // added JDL 11.05.13        
-        AppConfig m_config =  new AppConfig(new File((System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));        
-        m_config.load();        
+        AppConfig m_config = AppConfig.getInstance();
         priceWith00 =("true".equals(m_config.getProperty("till.pricewith00")));
         if (priceWith00) {
             // use '00' instead of '.'
@@ -173,8 +172,7 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
          */
         public ScriptPaymentCash(DataLogicSystem dlSystem) {
 //added 19.04.13 JDL        
-            AppConfig m_config =  new AppConfig(new File((System.getProperty("user.home")), AppLocal.APP_ID + ".properties"));        
-            m_config.load();
+            AppConfig m_config = AppConfig.getInstance();
             this.m_config = m_config;
         
             this.dlSystem = dlSystem;
