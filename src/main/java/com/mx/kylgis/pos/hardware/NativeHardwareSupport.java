@@ -111,7 +111,7 @@ public final class NativeHardwareSupport {
         String os = normalize(osName);
         String cpu = normalize(arch);
         if (os.contains("linux")) {
-            return cpu.matches("(x86|i[3-6]86|x86_64|amd64|ia64)");
+            return cpu.matches("(x86|i[3-6]86|x86_64|amd64)");
         }
         if (os.contains("windows")) {
             return cpu.matches("(x86|i[3-6]86|x86_64|amd64)");
