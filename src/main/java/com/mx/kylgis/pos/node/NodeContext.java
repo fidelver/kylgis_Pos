@@ -51,9 +51,14 @@ public final class NodeContext {
         }
 
         String profile = trimToNull(properties.getProperty("node.profile"));
-        String configuredRoles = trimToNull(properties.getProperty("node.roles"));
-        boolean hasExplicitRoles = configuredRoles != null;
+        String rawRoles = properties.getProperty("node.roles");
+        String configuredRoles = trimToNull(rawRoles);
+        boolean hasExplicitRoles = rawRoles != null;
         EnumSet<NodeRole> resolvedRoles = EnumSet.noneOf(NodeRole.class);
+
+        if (hasExplicitRoles && configuredRoles == null) {
+            throw new IllegalArgumentException("node.roles cannot be empty");
+        }
 
         if (configuredRoles != null) {
             for (String token : configuredRoles.split("[,;\\s]+")) {
@@ -63,15 +68,18 @@ public final class NodeContext {
                 }
                 NodeRole role = NodeRole.fromPropertyValue(normalized);
                 if (role == null) {
-                    LOGGER.log(Level.WARNING,
-                            "Ignoring unknown KylGis node role: {0}", normalized);
-                } else {
-                    resolvedRoles.add(role);
+                    throw new IllegalArgumentException(
+                            "Unknown KylGis node role in node.roles: " + normalized);
                 }
+                resolvedRoles.add(role);
             }
         }
 
         if (resolvedRoles.isEmpty()) {
+            if (hasExplicitRoles) {
+                throw new IllegalArgumentException(
+                        "node.roles must contain at least one valid KylGis role");
+            }
             resolvedRoles.add(NodeRole.POS);
         }
 

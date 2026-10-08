@@ -11,14 +11,19 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.io.File;
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -35,7 +40,8 @@ import javax.swing.event.DocumentListener;
 public final class JPanelConfigNodes extends JPanel implements PanelConfig {
 
     private final JComboBox<String> nodeSelector = new JComboBox<>();
-    private final JTextField roles = new JTextField();
+    private final JPanel rolesPanel = new JPanel(new GridLayout(0, 3, 8, 4));
+    private final Map<NodeRole, JCheckBox> roleChecks = new EnumMap<>(NodeRole.class);
     private final JTextField profile = new JTextField();
     private final JTextField dbServer = new JTextField();
     private final JTextField dbPort = new JTextField();
@@ -61,6 +67,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     public JPanelConfigNodes() {
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        initializeRoleSelector();
         add(buildHeader(), BorderLayout.NORTH);
         add(new JScrollPane(buildForm()), BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
@@ -90,8 +97,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         c.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
-        row = addField(form, c, row, "Roles", roles,
-                "Ej.: pos, kitchen, server, printer_service, scale_service, scanner_service, display_service");
+        row = addComponent(form, c, row, "Funciones", rolesPanel);
         row = addField(form, c, row, "Perfil", profile,
                 "Metadato operativo; no cambia la identidad del producto");
         row = addField(form, c, row, "Servidor BBDD (override)", dbServer,
@@ -118,6 +124,46 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         c.fill = GridBagConstraints.BOTH;
         form.add(Box.createVerticalGlue(), c);
         return form;
+    }
+
+    private void initializeRoleSelector() {
+        rolesPanel.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
+        for (NodeRole role : NodeRole.values()) {
+            JCheckBox check = new JCheckBox(roleLabel(role));
+            check.setToolTipText("node.roles=" + role.getPropertyValue());
+            check.addActionListener(e -> markDirty());
+            roleChecks.put(role, check);
+            rolesPanel.add(check);
+        }
+    }
+
+    private String roleLabel(NodeRole role) {
+        switch (role) {
+            case MASTER: return "MASTER";
+            case SERVER: return "Servidor configuración";
+            case POS: return "Punto de venta";
+            case KITCHEN: return "Cocina";
+            case PRINTER_SERVICE: return "Servicio impresión";
+            case SCALE_SERVICE: return "Servicio báscula";
+            case SCANNER_SERVICE: return "Servicio scanner";
+            case DISPLAY_SERVICE: return "Servicio visor";
+            case REMOTE_SESSIONS: return "Sesiones remotas";
+            default: return role.getPropertyValue();
+        }
+    }
+
+    private int addComponent(JPanel panel, GridBagConstraints c, int row,
+            String label, Component component) {
+        c.gridy = row;
+        c.gridx = 0;
+        c.gridwidth = 1;
+        c.weightx = 0.0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(new JLabel(label + ":"), c);
+        c.gridx = 1;
+        c.weightx = 1.0;
+        panel.add(component, c);
+        return row + 1;
     }
 
     private int addField(JPanel panel, GridBagConstraints c, int row,
@@ -155,7 +201,6 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             @Override public void removeUpdate(DocumentEvent e) { markDirty(); }
             @Override public void changedUpdate(DocumentEvent e) { markDirty(); }
         };
-        roles.getDocument().addDocumentListener(listener);
         profile.getDocument().addDocumentListener(listener);
         dbServer.getDocument().addDocumentListener(listener);
         dbPort.getDocument().addDocumentListener(listener);
@@ -232,7 +277,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         try {
             validateFields();
             String savedNodeId = currentNodeId;
-            String savedRoles = roles.getText();
+            String savedRoles = selectedRoles();
             store.saveNode(savedNodeId, savedRoles, profile.getText(),
                     dbServer.getText(), dbPort.getText(), dbName.getText());
             loadNode(savedNodeId);
@@ -250,8 +295,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     }
 
     private void validateFields() {
-        if (roles.getText().trim().isEmpty()) {
-            throw new IllegalArgumentException("El nodo debe tener al menos un rol");
+        if (selectedRoles().isEmpty()) {
+            throw new IllegalArgumentException("El nodo debe tener al menos una función");
         }
         String port = dbPort.getText().trim();
         if (!port.isEmpty()) {
@@ -328,7 +373,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             loading = true;
             try {
                 currentNodeId = node.getNodeId();
-                roles.setText(node.getRoles());
+                setSelectedRoles(node.getRoles());
                 profile.setText(node.getProfile());
                 dbServer.setText(node.getDatabaseServerOverride());
                 dbPort.setText(node.getDatabasePortOverride());
@@ -345,7 +390,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             } finally {
                 loading = false;
             }
-        } catch (IOException ex) {
+        } catch (IOException | IllegalArgumentException ex) {
             showError("No fue posible cargar el nodo " + nodeId, ex);
         }
     }
@@ -354,7 +399,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         loading = true;
         try {
             currentNodeId = null;
-            roles.setText("");
+            setSelectedRoles("");
             profile.setText("");
             dbServer.setText("");
             dbPort.setText("");
@@ -391,13 +436,43 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
 
     private void setAdministrationEnabled(boolean enabled) {
         administrationEnabled = enabled;
-        roles.setEnabled(enabled);
+        for (JCheckBox check : roleChecks.values()) check.setEnabled(enabled);
         profile.setEnabled(enabled);
         dbServer.setEnabled(enabled);
         dbPort.setEnabled(enabled);
         dbName.setEnabled(enabled);
         saveButton.setEnabled(enabled);
         provisionButton.setEnabled(enabled);
+    }
+
+    private String selectedRoles() {
+        StringBuilder result = new StringBuilder();
+        for (NodeRole role : NodeRole.values()) {
+            JCheckBox check = roleChecks.get(role);
+            if (check != null && check.isSelected()) {
+                if (result.length() > 0) result.append(',');
+                result.append(role.getPropertyValue());
+            }
+        }
+        return result.toString();
+    }
+
+    private void setSelectedRoles(String roleList) {
+        EnumSet<NodeRole> selected = EnumSet.noneOf(NodeRole.class);
+        if (roleList != null && !roleList.trim().isEmpty()) {
+            for (String token : roleList.split("[,;\\s]+")) {
+                String value = token == null ? "" : token.trim();
+                if (value.isEmpty()) continue;
+                NodeRole role = NodeRole.fromPropertyValue(value);
+                if (role == null) {
+                    throw new IllegalArgumentException("Rol de nodo desconocido: " + value);
+                }
+                selected.add(role);
+            }
+        }
+        for (Map.Entry<NodeRole, JCheckBox> entry : roleChecks.entrySet()) {
+            entry.getValue().setSelected(selected.contains(entry.getKey()));
+        }
     }
 
     private boolean containsMasterRole(String roleList) {
@@ -453,7 +528,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             nodeSelector.addItem(context.getNodeId());
             nodeSelector.setSelectedItem(context.getNodeId());
             currentNodeId = context.getNodeId();
-            roles.setText(joinRoles(context));
+            setSelectedRoles(joinRoles(context));
             profile.setText(value(config.getProperty("node.profile")));
             dbServer.setText("");
             dbPort.setText("");
