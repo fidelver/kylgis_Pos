@@ -3,20 +3,26 @@
 package com.mx.kylgis.pos.launcher;
 
 import com.mx.kylgis.pos.forms.AppConfig;
-import com.mx.kylgis.pos.forms.StartPOS;
 import com.mx.kylgis.pos.node.NodeContext;
 import com.mx.kylgis.pos.node.NodeRole;
-import com.mx.kylgis.pos.printer.service.PrintServiceServer;
-import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
-import java.io.IOException;
+import com.mx.kylgis.pos.runtime.CapabilityType;
+import com.mx.kylgis.pos.runtime.RuntimeCapability;
+import com.mx.kylgis.pos.runtime.RuntimeCapabilityRegistry;
+import com.mx.kylgis.pos.runtime.RuntimeHandle;
+import com.mx.kylgis.pos.runtime.RuntimeLaunchContext;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Canonical role-aware entry point for the KylGis POS JAR.
  *
- * Legacy properties without node.roles still resolve to POS through NodeContext,
- * so changing the JAR Main-Class does not require immediate migration.
+ * Legacy properties without node.roles still resolve to POS through NodeContext.
+ * Executable roles are discovered through RuntimeCapabilityRegistry; passive or
+ * not-yet-implemented roles never leak implementation details into this class.
  */
 public final class KylGisRuntime {
 
@@ -29,87 +35,106 @@ public final class KylGisRuntime {
         config.load();
         AppConfig.setActiveInstance(config);
 
-        NodeContext context = NodeContext.from(config);
-        LOG.log(Level.INFO, "Starting KylGis runtime for {0}", context);
+        NodeContext nodeContext = NodeContext.from(config);
+        RuntimeLaunchContext launchContext = new RuntimeLaunchContext(config, nodeContext);
+        RuntimeCapabilityRegistry registry = RuntimeCapabilityRegistry.defaults();
+        LOG.log(Level.INFO, "Starting KylGis runtime for {0}", nodeContext);
 
-        boolean startsPos = context.hasRole(NodeRole.POS);
-        boolean startsPrinterService = context.hasRole(NodeRole.PRINTER_SERVICE);
-
-        if (startsPrinterService) {
-            try {
-                if (startsPos) {
-                    validateCombinedPrinterIsolation(config);
-                }
-                final PrintServiceServer printServer = new PrintServiceServer(config);
-                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                    @Override public void run() {
-                        try { printServer.close(); } catch (IOException ignored) { }
-                    }
-                }, "kylgis-runtime-print-shutdown"));
-
-                if (startsPos) {
-                    Thread serviceThread = new Thread(new Runnable() {
-                        @Override public void run() {
-                            try {
-                                printServer.serve();
-                            } catch (IOException ex) {
-                                LOG.log(Level.SEVERE, "KylGis print service stopped unexpectedly", ex);
-                            }
-                        }
-                    }, "kylgis-runtime-print-service");
-                    serviceThread.setDaemon(true);
-                    serviceThread.start();
-                } else {
-                    // A service-only node deliberately owns the main thread.
-                    printServer.serve();
-                    return;
-                }
-            } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "Cannot start printer_service role", ex);
-                System.exit(1);
-                return;
-            }
-        }
-
-        if (startsPos) {
-            StartPOS.start(config);
+        List<RuntimeCapability> selected = selectCapabilities(nodeContext, registry);
+        if (selected.isEmpty()) {
+            logNonRunnableRoles(nodeContext, registry);
+            LOG.severe("Node has no runnable role in this KylGis artifact: " + nodeContext.getRoles());
+            System.exit(2);
             return;
         }
 
-        if (context.hasRole(NodeRole.KITCHEN)) {
-            LOG.severe("Role kitchen is defined in the topology but is still provided by the KylGis Kitchen Screen artifact; this POS JAR cannot start it yet.");
-        }
-        if (context.hasRole(NodeRole.SERVER)) {
-            LOG.warning("Role server is metadata-only in this build; no server runtime has been implemented yet.");
-        }
-        if (context.hasRole(NodeRole.REMOTE_SESSIONS)) {
-            LOG.warning("Role remote_sessions is metadata-only in this build; no remote-session runtime has been implemented yet.");
-        }
-        if (context.isMasterNode()) {
-            LOG.warning("Role master is an administrative capability and does not start a standalone process by itself.");
+        try {
+            for (RuntimeCapability capability : selected) {
+                capability.validate(launchContext);
+            }
+        } catch (Exception ex) {
+            LOG.log(Level.SEVERE, "KylGis node capability validation failed before startup", ex);
+            System.exit(1);
+            return;
         }
 
-        LOG.severe("Node has no runnable role in this KylGis POS artifact: " + context.getRoles());
-        System.exit(2);
-    }
-    private static void validateCombinedPrinterIsolation(AppConfig config) {
-        String serviceId = config.getProperty("service.id");
-        if (serviceId == null || serviceId.trim().isEmpty()) {
-            throw new IllegalStateException("Combined pos,printer_service node requires service.id");
-        }
-        String allowed = PrintServiceConfig.allowedPrinters(config, serviceId.trim());
-        for (int i = 1; i <= 6; i++) {
-            String index = Integer.toString(i);
-            if (!PrintServiceConfig.isPrinterAllowed(allowed, index)) {
-                continue;
+        final List<RuntimeHandle> handles = new ArrayList<>();
+        try {
+            boolean hasUi = hasUiCapability(selected);
+            for (RuntimeCapability capability : selected) {
+                boolean daemon = capability.getType() == CapabilityType.SERVICE && hasUi;
+                LOG.log(Level.INFO, "Starting capability {0} ({1})",
+                        new Object[]{capability.getRole().getPropertyValue(), capability.getType()});
+                handles.add(capability.start(launchContext, daemon));
             }
-            String routedService = PrintServiceConfig.getServiceId(config, index);
-            if (!serviceId.trim().equals(routedService)) {
-                throw new IllegalStateException("Combined pos,printer_service node must route Printer "
-                        + index + " through its own service " + serviceId
-                        + " using device.printer." + index + ".service");
+        } catch (Exception ex) {
+            closeReverse(handles);
+            LOG.log(Level.SEVERE, "Cannot start KylGis node capabilities", ex);
+            System.exit(1);
+            return;
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override public void run() { closeReverse(handles); }
+        }, "kylgis-runtime-shutdown"));
+
+        logNonRunnableRoles(nodeContext, registry);
+    }
+
+    static List<RuntimeCapability> selectCapabilities(NodeContext context,
+            RuntimeCapabilityRegistry registry) {
+        List<RuntimeCapability> selected = new ArrayList<>();
+        for (NodeRole role : context.getRoles()) {
+            RuntimeCapability capability = registry.get(role);
+            if (capability != null) selected.add(capability);
+        }
+        Collections.sort(selected, new Comparator<RuntimeCapability>() {
+            @Override public int compare(RuntimeCapability left, RuntimeCapability right) {
+                int leftOrder = left.getType() == CapabilityType.SERVICE ? 0 : 1;
+                int rightOrder = right.getType() == CapabilityType.SERVICE ? 0 : 1;
+                if (leftOrder != rightOrder) return leftOrder - rightOrder;
+                return left.getRole().ordinal() - right.getRole().ordinal();
+            }
+        });
+        return selected;
+    }
+
+    private static boolean hasUiCapability(List<RuntimeCapability> capabilities) {
+        for (RuntimeCapability capability : capabilities) {
+            if (capability.getType() == CapabilityType.UI) return true;
+        }
+        return false;
+    }
+
+    private static void logNonRunnableRoles(NodeContext context,
+            RuntimeCapabilityRegistry registry) {
+        for (NodeRole role : context.getRoles()) {
+            if (registry.get(role) != null) continue;
+            switch (role) {
+                case MASTER:
+                    LOG.info("Role master is an administrative capability; it does not start a process by itself.");
+                    break;
+                case KITCHEN:
+                    LOG.warning("Role kitchen is present in topology but is still supplied by the KitchenScreen artifact.");
+                    break;
+                case SERVER:
+                case REMOTE_SESSIONS:
+                    LOG.log(Level.WARNING, "Role {0} has no runtime capability registered yet.", role.getPropertyValue());
+                    break;
+                default:
+                    LOG.log(Level.WARNING, "Role {0} is not executable in this artifact.", role.getPropertyValue());
+                    break;
             }
         }
     }
 
+    private static void closeReverse(List<RuntimeHandle> handles) {
+        for (int i = handles.size() - 1; i >= 0; i--) {
+            try {
+                handles.get(i).close();
+            } catch (Exception ex) {
+                LOG.log(Level.WARNING, "Error stopping KylGis capability", ex);
+            }
+        }
+    }
 }

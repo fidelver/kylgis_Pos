@@ -5,8 +5,9 @@
 package com.mx.kylgis.pos.node;
 
 /**
- * Capabilities that a KylGis node may expose. Roles are metadata only at this
- * stage; declaring a role does not start or stop services.
+ * Capabilities that a KylGis node may expose. Executable roles are resolved by
+ * the runtime capability registry; administrative or not-yet-implemented roles
+ * remain valid topology metadata without forcing a separate product binary.
  */
 public enum NodeRole {
 
