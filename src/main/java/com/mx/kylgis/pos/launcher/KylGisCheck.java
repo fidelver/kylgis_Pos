@@ -42,7 +42,11 @@ public final class KylGisCheck {
             line("runtime.modules", modules == null ? "none" : modules.getAbsolutePath());
             if (modules != null) registry.discoverModules(modules);
 
-            boolean warning = false;
+            boolean warning = !registry.getDiscoveryErrors().isEmpty();
+            int moduleError = 0;
+            for (String error : registry.getDiscoveryErrors()) {
+                System.out.println("runtime.module.error." + (++moduleError) + "=" + error);
+            }
             for (NodeRole role : node.getRoles()) {
                 RuntimeCapability capability = registry.get(role);
                 if (capability == null) {

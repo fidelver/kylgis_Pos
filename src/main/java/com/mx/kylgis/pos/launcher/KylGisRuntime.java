@@ -155,7 +155,7 @@ public final class KylGisRuntime {
                     LOG.info("Role master is an administrative capability; it does not start a process by itself.");
                     break;
                 case KITCHEN:
-                    LOG.warning("Role kitchen is present in topology but is still supplied by the KitchenScreen artifact.");
+                    LOG.warning("Role kitchen has no available runtime capability; install or repair the Kitchen module.");
                     break;
                 case SERVER:
                 case REMOTE_SESSIONS:

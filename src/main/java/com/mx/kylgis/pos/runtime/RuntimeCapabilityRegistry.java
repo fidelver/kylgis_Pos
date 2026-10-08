@@ -24,6 +24,7 @@ public final class RuntimeCapabilityRegistry {
     private static final Logger LOG = Logger.getLogger(RuntimeCapabilityRegistry.class.getName());
     private final Map<NodeRole, RuntimeCapability> capabilities = new EnumMap<>(NodeRole.class);
     private final List<ClassLoader> moduleLoaders = new ArrayList<>();
+    private final List<String> discoveryErrors = new ArrayList<>();
 
     public RuntimeCapabilityRegistry register(RuntimeCapability capability) {
         if (capability == null) throw new IllegalArgumentException("capability is required");
@@ -61,8 +62,14 @@ public final class RuntimeCapabilityRegistry {
             @Override public int compare(File a, File b) { return a.getName().compareToIgnoreCase(b.getName()); }
         });
         for (File child : children) {
-            if (child.isDirectory()) discoverModule(child);
-            else if (isJar(child)) discoverModule(child);
+            if (!child.isDirectory() && !isJar(child)) continue;
+            try {
+                discoverModule(child);
+            } catch (Throwable ex) {
+                String error = moduleError(child, ex);
+                discoveryErrors.add(error);
+                LOG.log(Level.WARNING, error);
+            }
         }
         return this;
     }
@@ -104,6 +111,17 @@ public final class RuntimeCapabilityRegistry {
 
     public RuntimeCapability get(NodeRole role) { return capabilities.get(role); }
     public Collection<RuntimeCapability> all() { return Collections.unmodifiableCollection(capabilities.values()); }
+    public List<String> getDiscoveryErrors() {
+        return Collections.unmodifiableList(new ArrayList<>(discoveryErrors));
+    }
+
+    private static String moduleError(File module, Throwable ex) {
+        String message = ex.getMessage();
+        if (message == null || message.trim().isEmpty()) message = ex.getClass().getSimpleName();
+        message = message.replace('\n', ' ').replace('\r', ' ').trim();
+        if (message.length() > 200) message = message.substring(0, 200);
+        return "Runtime module " + module.getName() + " unavailable: " + message;
+    }
 
     public static RuntimeCapabilityRegistry defaults() {
         return new RuntimeCapabilityRegistry()
