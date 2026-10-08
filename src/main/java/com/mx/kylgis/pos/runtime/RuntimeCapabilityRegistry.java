@@ -109,6 +109,7 @@ public final class RuntimeCapabilityRegistry {
         return new RuntimeCapabilityRegistry()
                 .register(new PosCapability())
                 .register(new PrintServiceCapability())
+                .register(new ConfigServiceCapability())
                 .discover(Thread.currentThread().getContextClassLoader());
     }
 }

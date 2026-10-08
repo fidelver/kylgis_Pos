@@ -5,6 +5,9 @@
 package com.mx.kylgis.pos.config.provisioning;
 
 import com.mx.kylgis.pos.config.DatabaseSettings;
+import com.mx.kylgis.pos.config.remote.ConfigServiceConfig;
+import com.mx.kylgis.pos.config.remote.RemoteConfigClient;
+import com.mx.kylgis.pos.forms.AppProperties;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -46,6 +49,18 @@ public final class NodeProvisioner {
 
         Properties local = loadIfPresent(localFile);
         String masterReference = trimToNull(local.getProperty(MASTER_KEY));
+        String remoteReference = trimToNull(local.getProperty(
+                ConfigServiceConfig.REMOTE_SERVICE_KEY));
+
+        if (masterReference != null && remoteReference != null) {
+            throw new IOException("Node bootstrap cannot define both "
+                    + MASTER_KEY + " and "
+                    + ConfigServiceConfig.REMOTE_SERVICE_KEY);
+        }
+
+        if (remoteReference != null) {
+            return resolveRemote(localFile, local, defaults);
+        }
 
         if (masterReference == null) {
             Properties effective = merge(defaults, local);
@@ -88,6 +103,7 @@ public final class NodeProvisioner {
             rawEffective.putAll(nodeModule);
         }
         rawEffective.putAll(local);
+        stripRestrictedServiceCredentials(rawEffective);
         DatabaseSettings.applyLegacyCompatibility(rawEffective);
         File secretsFile = null;
         Properties effective = rawEffective;
@@ -104,6 +120,130 @@ public final class NodeProvisioner {
 
         return new ProvisioningResult(true, localFile, masterFile, nodeModuleFiles,
                 secretsFile, local, master, nodeModules, rawEffective, effective);
+    }
+
+    private static ProvisioningResult resolveRemote(File localFile,
+            Properties local, Properties defaults) throws IOException {
+        if (!localFile.isFile()) {
+            throw new IOException("Remote node bootstrap does not exist: "
+                    + localFile.getAbsolutePath());
+        }
+        String nodeId = trimToNull(local.getProperty(NODE_ID_KEY));
+        if (nodeId == null) {
+            throw new IOException("Remote node requires explicit " + NODE_ID_KEY
+                    + " in " + localFile.getAbsolutePath());
+        }
+
+        ConfigServiceConfig.RemoteEndpoint endpoint =
+                ConfigServiceConfig.remoteEndpoint(
+                        new BootstrapProperties(local, localFile));
+        Properties remote = RemoteConfigClient.fetch(endpoint, nodeId);
+        Properties effective = merge(defaults, remote);
+        effective.setProperty(NODE_ID_KEY, nodeId);
+        DatabaseSettings.applyLegacyCompatibility(effective);
+
+        // Keep endpoint metadata for diagnostics but never retain the
+        // bootstrap authentication token in ProvisioningResult/AppConfig.
+        Properties safeLocal = new Properties();
+        for (String key : local.stringPropertyNames()) {
+            if (!ConfigServiceConfig.REMOTE_TOKEN_KEY.equals(key)) {
+                safeLocal.setProperty(key, local.getProperty(key));
+            }
+        }
+
+        return new ProvisioningResult(true, true, localFile, null,
+                Collections.<File>emptyList(), null, safeLocal,
+                new Properties(), Collections.<Properties>emptyList(),
+                effective, effective);
+    }
+
+    /**
+     * Builds the effective configuration for one node directly from a MASTER.
+     * This form is used by the remote provisioning service and deliberately
+     * excludes topology metadata and secret-store locations from the payload.
+     */
+    public static Properties resolveEffectiveNode(File masterFile, String nodeId)
+            throws IOException {
+        if (masterFile == null) {
+            throw new IllegalArgumentException("masterFile is required");
+        }
+        String normalizedNodeId = trimToNull(nodeId);
+        if (normalizedNodeId == null) {
+            throw new IllegalArgumentException("nodeId is required");
+        }
+
+        Properties master = loadRequired(masterFile, "MASTER");
+        List<String> moduleReferences = nodeModuleReferences(master, normalizedNodeId);
+        if (moduleReferences.isEmpty()) {
+            throw new IOException("MASTER does not define node modules for " + normalizedNodeId);
+        }
+
+        Properties rawEffective = merge(master);
+        for (String moduleReference : moduleReferences) {
+            File nodeModuleFile = resolveRelative(masterFile.getParentFile(), moduleReference);
+            rawEffective.putAll(loadRequired(nodeModuleFile, "node module"));
+        }
+        rawEffective.setProperty(NODE_ID_KEY, normalizedNodeId);
+        stripRestrictedServiceCredentials(rawEffective);
+        DatabaseSettings.applyLegacyCompatibility(rawEffective);
+
+        Properties effective = rawEffective;
+        if (SecretResolver.containsSecretReferences(rawEffective)) {
+            String secretsReference = trimToNull(master.getProperty(SECRETS_KEY));
+            if (secretsReference == null) {
+                throw new IOException("MASTER must define " + SECRETS_KEY
+                        + " because the node configuration contains !secret references");
+            }
+            File secretsFile = resolveRelative(masterFile.getParentFile(), secretsReference);
+            effective = SecretResolver.resolve(rawEffective,
+                    loadRequired(secretsFile, "secrets"));
+        }
+
+        Properties sanitized = new Properties();
+        sanitized.putAll(effective);
+        sanitizeRemotePayload(sanitized);
+        return sanitized;
+    }
+
+    /**
+     * MASTER service enrolment tokens are server-only credentials. They must
+     * never be resolved into ordinary POS/Kitchen nodes merely because the
+     * token aliases live in the common MASTER.
+     */
+    private static void stripRestrictedServiceCredentials(Properties properties) {
+        if (hasRole(properties, "master") && hasRole(properties, "server")) {
+            return;
+        }
+        List<String> remove = new ArrayList<>();
+        for (String key : properties.stringPropertyNames()) {
+            if (key.startsWith("config.service.") && key.contains(".token.")) {
+                remove.add(key);
+            }
+        }
+        for (String key : remove) properties.remove(key);
+    }
+
+    private static boolean hasRole(Properties properties, String expected) {
+        String roles = trimToNull(properties.getProperty("node.roles"));
+        if (roles == null) return false;
+        for (String token : roles.split("[,;\\s]+")) {
+            if (expected.equalsIgnoreCase(token.trim())) return true;
+        }
+        return false;
+    }
+
+    private static void sanitizeRemotePayload(Properties properties) {
+        List<String> remove = new ArrayList<>();
+        for (String key : properties.stringPropertyNames()) {
+            if ((key.startsWith(NODE_MODULE_PREFIX)
+                    && (key.endsWith(NODE_MODULE_SUFFIX) || key.endsWith(NODE_MODULES_SUFFIX)))
+                    || SECRETS_KEY.equals(key)
+                    || key.startsWith("config.service.")
+                    || key.startsWith("config.remote.")) {
+                remove.add(key);
+            }
+        }
+        for (String key : remove) properties.remove(key);
     }
 
     public static void provisionBootstrap(File localFile, File masterFile,
@@ -141,6 +281,59 @@ public final class NodeProvisioner {
         try (OutputStream out = new FileOutputStream(localFile)) {
             bootstrap.store(out, "KylGis POS node bootstrap. Managed by provisioning.");
         }
+    }
+
+    public static void provisionRemoteBootstrap(File localFile, String nodeId,
+            String serviceId, String host, int port, String token,
+            boolean overwrite) throws IOException {
+        if (localFile == null) {
+            throw new IllegalArgumentException("localFile is required");
+        }
+        String normalizedNodeId = trimToNull(nodeId);
+        String normalizedServiceId = trimToNull(serviceId);
+        String normalizedHost = trimToNull(host);
+        String normalizedToken = trimToNull(token);
+        if (normalizedNodeId == null) throw new IllegalArgumentException("nodeId is required");
+        if (normalizedServiceId == null || !normalizedServiceId.matches("[A-Za-z0-9_.-]{1,128}")) {
+            throw new IllegalArgumentException("Invalid remote service id");
+        }
+        if (!normalizedNodeId.matches("[A-Za-z0-9_.-]{1,128}")) {
+            throw new IllegalArgumentException("Invalid nodeId");
+        }
+        if (normalizedHost == null) throw new IllegalArgumentException("remote host is required");
+        if (port < 1 || port > 65535) throw new IllegalArgumentException("remote port out of range");
+        if (normalizedToken == null || normalizedToken.length() < 16) {
+            throw new IllegalArgumentException("remote token must contain at least 16 characters");
+        }
+        if (localFile.exists() && !overwrite) {
+            throw new IOException("Bootstrap already exists: " + localFile.getAbsolutePath());
+        }
+
+        File parent = localFile.getAbsoluteFile().getParentFile();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+            throw new IOException("Cannot create bootstrap directory: " + parent);
+        }
+
+        Properties bootstrap = new Properties();
+        bootstrap.setProperty(NODE_ID_KEY, normalizedNodeId);
+        bootstrap.setProperty(ConfigServiceConfig.REMOTE_SERVICE_KEY, normalizedServiceId);
+        bootstrap.setProperty(ConfigServiceConfig.REMOTE_HOST_KEY, normalizedHost);
+        bootstrap.setProperty(ConfigServiceConfig.REMOTE_PORT_KEY, Integer.toString(port));
+        bootstrap.setProperty(ConfigServiceConfig.REMOTE_TOKEN_KEY, normalizedToken);
+        try (OutputStream out = new FileOutputStream(localFile)) {
+            bootstrap.store(out, "KylGis remote node bootstrap. Contains enrolment credential.");
+        }
+        restrictBootstrapPermissions(localFile);
+    }
+
+    private static void restrictBootstrapPermissions(File file) {
+        // Best effort and portable: on POSIX this becomes owner read/write only;
+        // on platforms with different ACL semantics the OS may ignore part of it.
+        file.setReadable(false, false);
+        file.setWritable(false, false);
+        file.setExecutable(false, false);
+        file.setReadable(true, true);
+        file.setWritable(true, true);
     }
 
     public static String nodeModuleKey(String nodeId) {
@@ -236,6 +429,24 @@ public final class NodeProvisioner {
             return base.relativize(destination).toString();
         } catch (IOException | IllegalArgumentException ex) {
             return target.getAbsolutePath();
+        }
+    }
+
+    private static final class BootstrapProperties implements AppProperties {
+        private final Properties properties;
+        private final File file;
+
+        BootstrapProperties(Properties properties, File file) {
+            this.properties = properties;
+            this.file = file;
+        }
+
+        @Override public File getConfigFile() { return file; }
+        @Override public String getHost() {
+            return properties.getProperty("machine.hostname");
+        }
+        @Override public String getProperty(String key) {
+            return properties.getProperty(key);
         }
     }
 

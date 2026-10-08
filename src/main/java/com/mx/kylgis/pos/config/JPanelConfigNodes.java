@@ -425,7 +425,13 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     public void loadProperties(AppConfig config) {
         NodeContext context = NodeContext.from(config);
         runtimeNodeId = context.getNodeId();
-        setAdministrationEnabled(context.isMasterNode());
+        setAdministrationEnabled(context.isMasterNode() && !config.isRemoteProvisioned());
+
+        if (config.isRemoteProvisioned()) {
+            loadRemoteCurrentNode(config, context);
+            return;
+        }
+
         store = NodeConfigurationStore.forConfig(config);
         masterPath.setText(store.getMasterFile().getAbsolutePath());
         try {
@@ -437,6 +443,45 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             clearNode();
             status.setText("MASTER no disponible: " + ex.getMessage());
         }
+    }
+
+    private void loadRemoteCurrentNode(AppConfig config, NodeContext context) {
+        store = null;
+        loading = true;
+        try {
+            nodeSelector.removeAllItems();
+            nodeSelector.addItem(context.getNodeId());
+            nodeSelector.setSelectedItem(context.getNodeId());
+            currentNodeId = context.getNodeId();
+            roles.setText(joinRoles(context));
+            profile.setText(value(config.getProperty("node.profile")));
+            dbServer.setText("");
+            dbPort.setText("");
+            dbName.setText("");
+            effectiveServer.setText(valueOrInherited(config.getProperty("database.server")));
+            effectivePort.setText(valueOrInherited(config.getProperty("database.port")));
+            effectiveDatabase.setText(valueOrInherited(config.getProperty("database.name")));
+            masterPath.setText("MASTER remoto");
+            modulePath.setText("Gestionados por MASTER remoto");
+            bootstrapPath.setText(config.getConfigFile().getAbsolutePath());
+            dirty = false;
+            status.setText("Modo consulta: configuración recibida desde MASTER remoto");
+        } finally {
+            loading = false;
+        }
+    }
+
+    private static String joinRoles(NodeContext context) {
+        StringBuilder result = new StringBuilder();
+        for (NodeRole role : context.getRoles()) {
+            if (result.length() > 0) result.append(',');
+            result.append(role.getPropertyValue());
+        }
+        return result.toString();
+    }
+
+    private static String value(String text) {
+        return text == null ? "" : text.trim();
     }
 
     @Override

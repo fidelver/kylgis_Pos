@@ -253,7 +253,11 @@ public class AppConfig implements AppProperties {
             provisioningResult = NodeProvisioner.resolve(configfile, defaults);
             m_propsconfig = provisioningResult.getEffectiveProperties();
             dirtyProperties.clear();
-            if (provisioningResult.isProvisioned()) {
+            if (provisioningResult.isRemoteProvisioned()) {
+                logger.log(Level.INFO,
+                        "Provisioned KylGis node from encrypted remote MASTER: {0}",
+                        configfile.getAbsolutePath());
+            } else if (provisioningResult.isProvisioned()) {
                 logger.log(Level.INFO,
                         "Provisioned KylGis node using MASTER {0} and modules {1}",
                         new Object[]{provisioningResult.getMasterFile(),
@@ -302,6 +306,11 @@ public class AppConfig implements AppProperties {
         return provisioningResult != null && provisioningResult.isProvisioned();
     }
 
+    public boolean isRemoteProvisioned() {
+        return provisioningResult != null
+                && provisioningResult.isRemoteProvisioned();
+    }
+
     public File getMasterConfigFile() {
         return isProvisioned() ? provisioningResult.getMasterFile() : null;
     }
@@ -318,6 +327,9 @@ public class AppConfig implements AppProperties {
     private void saveNodeOverrides() throws IOException {
         if (dirtyProperties.isEmpty()) {
             return;
+        }
+        if (isRemoteProvisioned()) {
+            throw new IOException("Remote-provisioned node configuration is read-only; update the MASTER instead");
         }
 
         Properties nodeOverrides = provisioningResult.getNodeProperties();
