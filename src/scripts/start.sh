@@ -20,28 +20,19 @@
 #    You should have received a copy of the GNU General Public License
 #    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
-DIRNAME=`dirname $0`
-CP=$DIRNAME/kylgispos.jar
-
-CP=$CP:$DIRNAME/locales/
-CP=$CP:$DIRNAME/reports/
-
-# Select the library folder
-case "`uname -s`" in
-    Linux)
-    case "`uname -m`" in
-    i686) LIBRARYPATH=/lib/Linux/i686-unknown-linux-gnu;;
-    ia64) LIBRARYPATH=/lib/Linux/ia64-unknown-linux-gnu;;
-    x86_64|amd64) LIBRARYPATH=/lib/Linux/x86_64-unknown-linux-gnu;;
-    esac;;
-    SunOS)
-    case "`uname -m`" in
-    sparc32) LIBRARYPATH=/Solaris/sparc-solaris/sparc32-sun-solaris2.8;;
-    sparc64) LIBRARYPATH=/Solaris/sparc-solaris/sparc64-sun-solaris2.8;;
-    esac;;
-Darwin) LIBRARYPATH=/lib/Mac_OS_X;;
-CYGWIN*|MINGW32*) LIBRARYPATH=/lib/Windows/i368-mingw32;;
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+OS=$(uname -s 2>/dev/null || echo unknown)
+ARCH=$(uname -m 2>/dev/null || echo unknown)
+NATIVE=
+case "$OS/$ARCH" in
+    Linux/i?86) NATIVE="$DIR/lib/Linux/i686-unknown-linux-gnu" ;;
+    Linux/x86_64|Linux/amd64) NATIVE="$DIR/lib/Linux/x86_64-unknown-linux-gnu" ;;
+    Linux/ia64) NATIVE="$DIR/lib/Linux/ia64-unkown-linux-gnu" ;;
+    Darwin/i?86|Darwin/x86_64|Darwin/amd64) NATIVE="$DIR/lib/Mac_OS_X" ;;
 esac
 
-# start uniCenta oPOS
-java -cp $CP -Xms512m -Xmx1024m -splash:kylgispos_splash_dark.png -Djava.library.path=$DIRNAME$LIBRARYPATH -Ddirname.path=$DIRNAME/ com.mx.kylgis.pos.forms.StartPOS
+if [ -n "$NATIVE" ] && [ -d "$NATIVE" ]; then
+    exec java "-Djava.library.path=$NATIVE" "-Ddirname.path=$DIR/" -jar "$DIR/kylgispos.jar" "$@"
+else
+    exec java "-Ddirname.path=$DIR/" -jar "$DIR/kylgispos.jar" "$@"
+fi

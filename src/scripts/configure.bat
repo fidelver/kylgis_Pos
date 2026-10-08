@@ -21,8 +21,5 @@ REM
 REM    You should have received a copy of the GNU General Public License
 REM    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
-set DIRNAME=%~dp0
-set CP="%DIRNAME%kylgispos.jar"
-set CP=%CP%;"%DIRNAME%locales/"
-
-start /B javaw -cp %CP% com.mx.kylgis.pos.config.JFrmConfig
+set "DIR=%~dp0"
+javaw "-Ddirname.path=%DIR%" -cp "%DIR%kylgispos.jar" com.mx.kylgis.pos.config.JFrmConfig %*

@@ -20,8 +20,5 @@
 #    You should have received a copy of the GNU General Public License
 #    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
-DIRNAME=`dirname $0`
-CP=$DIRNAME/kylgispos.jar
-CP=$CP:$DIRNAME/locales/
-
-java -cp $CP -splash:kylgispos_splash_dark.png com.mx.kylgis.pos.config.JFrmConfig
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec java "-Ddirname.path=$DIR/" -cp "$DIR/kylgispos.jar" com.mx.kylgis.pos.config.JFrmConfig "$@"
