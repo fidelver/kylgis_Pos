@@ -106,17 +106,37 @@ public final class KylGisRuntime {
 
     private static File resolveModulesDirectory(AppConfig config) {
         String configured = config.getProperty("runtime.modules.dir");
-        if (configured == null || configured.trim().isEmpty()) return null;
+        File runtimeBase = resolveRuntimeBaseDirectory(config);
+        if (configured == null || configured.trim().isEmpty()) {
+            File conventional = new File(runtimeBase, "modules");
+            return conventional.isDirectory() ? conventional : null;
+        }
         String path = configured.trim();
         if (path.startsWith("~/") || path.startsWith("~\\")) {
             return new File(System.getProperty("user.home"), path.substring(2)).getAbsoluteFile();
         }
         File candidate = new File(path);
         if (candidate.isAbsolute()) return candidate;
-        File base = config.isProvisioned() && config.getMasterConfigFile() != null
-                ? config.getMasterConfigFile().getAbsoluteFile().getParentFile()
-                : config.getConfigFile().getAbsoluteFile().getParentFile();
-        return new File(base == null ? new File(".") : base, path).getAbsoluteFile();
+        return new File(runtimeBase, path).getAbsoluteFile();
+    }
+
+    private static File resolveRuntimeBaseDirectory(AppConfig config) {
+        String configuredBase = config.getProperty("runtime.base.dir");
+        if (configuredBase != null && !configuredBase.trim().isEmpty()) {
+            String value = configuredBase.trim();
+            if (value.startsWith("~/") || value.startsWith("~\\")) {
+                return new File(System.getProperty("user.home"), value.substring(2)).getAbsoluteFile();
+            }
+            File candidate = new File(value);
+            if (candidate.isAbsolute()) return candidate;
+        }
+        try {
+            File location = new File(KylGisRuntime.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI()).getAbsoluteFile();
+            return location.isFile() ? location.getParentFile() : location;
+        } catch (Exception ex) {
+            return new File(".").getAbsoluteFile();
+        }
     }
 
     private static boolean hasUiCapability(List<RuntimeCapability> capabilities) {
