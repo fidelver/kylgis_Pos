@@ -28,6 +28,8 @@ import com.mx.kylgis.pos.printer.javapos.DeviceDisplayJavaPOS;
 import com.mx.kylgis.pos.printer.javapos.DeviceFiscalPrinterJavaPOS;
 import com.mx.kylgis.pos.printer.javapos.DevicePrinterJavaPOS;
 import com.mx.kylgis.pos.printer.printer.DevicePrinterPrinter;
+import com.mx.kylgis.pos.printer.service.DevicePrinterRemote;
+import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
 import com.mx.kylgis.pos.printer.screen.DeviceDisplayPanel;
 import com.mx.kylgis.pos.printer.screen.DeviceDisplayWindow;
 import com.mx.kylgis.pos.printer.screen.DevicePrinterPanel;
@@ -192,21 +194,42 @@ public class DeviceTicket {
         }
         receiptRasterWidth = Math.max(64, Math.min(2048, ((receiptRasterWidth + 7) / 8) * 8));
 
-        // Empezamos a iterar por las impresoras...
-        int iPrinterIndex = 1;
-        String sPrinterIndex = Integer.toString(iPrinterIndex);
-        String sprinter = props.getProperty("machine.printer");
+        // Printer 1..6 can be local hardware or a remote KylGis print service.
+        // A remote mapping is resolved before ownership/driver initialization so
+        // a client never opens the physical port owned by the service process.
+        for (int iPrinterIndex = 1; iPrinterIndex <= 6; iPrinterIndex++) {
+            String sPrinterIndex = Integer.toString(iPrinterIndex);
+            String remoteServiceId = PrintServiceConfig.getServiceId(props, sPrinterIndex);
+            if (remoteServiceId != null) {
+                try {
+                    addPrinter(sPrinterIndex, new DevicePrinterRemote(
+                            PrintServiceConfig.endpoint(props, remoteServiceId),
+                            PrintServiceConfig.getTargetPrinter(props, sPrinterIndex)));
+                    logger.log(Level.INFO,
+                            "Printer {0} routed to KylGis print service {1}",
+                            new Object[]{sPrinterIndex, remoteServiceId});
+                } catch (IllegalArgumentException ex) {
+                    logger.log(Level.WARNING,
+                            "Invalid remote print service configuration for Printer " + sPrinterIndex, ex);
+                    addPrinter(sPrinterIndex, m_nullprinter);
+                }
+                continue;
+            }
 
-        while (sprinter != null && !"".equals(sprinter)) {
+            String sprinter = iPrinterIndex == 1
+                    ? props.getProperty("machine.printer")
+                    : props.getProperty("machine.printer." + sPrinterIndex);
+            if (sprinter == null || sprinter.trim().isEmpty()) {
+                continue;
+            }
 
             StringParser sp = new StringParser(sprinter);
             String sPrinterType = sp.nextToken(':');
             String sPrinterParam1 = sp.nextToken(',');
             String sPrinterParam2 = sp.nextToken(',');
 
-
-            if ("serial".equals(sPrinterType) 
-                    || "rxtx".equals(sPrinterType) 
+            if ("serial".equals(sPrinterType)
+                    || "rxtx".equals(sPrinterType)
                     || "file".equals(sPrinterType)) {
                 sPrinterParam2 = sPrinterParam1;
                 sPrinterParam1 = sPrinterType;
@@ -222,20 +245,16 @@ public class DeviceTicket {
             } else try {
                 switch (sPrinterType) {
                     case "screen":
-                        // Compatibilidad: screen deja de consumir una posición y pasa
-                        // a ser espejo de la impresora principal.
                         screenMirrorEnabled = true;
                         break;
                     case "digital":
-                        // Compatibilidad: digital deja de consumir una posición.
                         digitalMirrorEnabled = true;
                         if (sPrinterParam1 != null && !sPrinterParam1.trim().isEmpty()) {
                             digitalMirrorPath = sPrinterParam1.trim();
                         }
                         break;
                     case "printer":
-                        // backward compatibility
-                        if (sPrinterParam2 == null || sPrinterParam2.equals("") 
+                        if (sPrinterParam2 == null || sPrinterParam2.equals("")
                                 || sPrinterParam2.equals("true")) {
                             sPrinterParam2 = "receipt";
                         } else if (sPrinterParam2.equals("false")) {
@@ -246,35 +265,34 @@ public class DeviceTicket {
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".y")),
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".width")),
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".height")),
-                                props.getProperty("paper." + sPrinterParam2 + ".mediasizename")
-                                ));
+                                props.getProperty("paper." + sPrinterParam2 + ".mediasizename")));
                         break;
                     case "epson":
                         CodesEpson epsonCodes = new CodesEpson();
                         epsonCodes.setImageWidthOverride(receiptRasterWidth);
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
-                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)
-                                , epsonCodes, new UnicodeTranslatorInt()));
+                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2),
+                                epsonCodes, new UnicodeTranslatorInt()));
                         break;
                     case "tmu220":
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
-                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)
-                                , new CodesTMU220(), new UnicodeTranslatorInt()));
+                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2),
+                                new CodesTMU220(), new UnicodeTranslatorInt()));
                         break;
                     case "star":
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
-                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)
-                                , new CodesStar(), new UnicodeTranslatorStar()));
+                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2),
+                                new CodesStar(), new UnicodeTranslatorStar()));
                         break;
                     case "ithaca":
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
-                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)
-                                , new CodesIthaca(), new UnicodeTranslatorInt()));
+                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2),
+                                new CodesIthaca(), new UnicodeTranslatorInt()));
                         break;
                     case "surepos":
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
-                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)
-                                , new CodesSurePOS(), new UnicodeTranslatorSurePOS()));
+                                pws.getPrinterWritter(sPrinterParam1, sPrinterParam2),
+                                new CodesSurePOS(), new UnicodeTranslatorSurePOS()));
                         break;
                     case "plain":
                         addPrinter(sPrinterIndex, new DevicePrinterPlain(
@@ -284,14 +302,14 @@ public class DeviceTicket {
                         addPrinter(sPrinterIndex, new DevicePrinterJavaPOS(
                                 sPrinterParam1, sPrinterParam2));
                         break;
+                    default:
+                        addPrinter(sPrinterIndex, m_nullprinter);
+                        break;
                 }
             } catch (TicketPrinterException e) {
                 logger.log(Level.WARNING, e.getMessage(), e);
+                addPrinter(sPrinterIndex, m_nullprinter);
             }
-
-            iPrinterIndex++;
-            sPrinterIndex = Integer.toString(iPrinterIndex);
-            sprinter = props.getProperty("machine.printer." + sPrinterIndex);
         }
 
         // La cola lógica principal del recibo se configura con ticket.printer.

@@ -20,6 +20,8 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.printer;
 
+import com.mx.kylgis.pos.printer.service.PrintServiceException;
+
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.LocalRes;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
@@ -204,6 +206,8 @@ public class TicketParser extends DefaultHandler {
             throw new TicketPrinterException(message, eSAX);
         } catch (IOException eIO) {
             throw new TicketPrinterException(LocalRes.getIntString("exception.iofile") , eIO);
+        } catch (PrintServiceException ex) {
+            throw new TicketPrinterException(ex.getMessage(), ex);
         }
     }    
     
