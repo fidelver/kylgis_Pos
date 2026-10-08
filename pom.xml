@@ -230,17 +230,6 @@
       <artifactId>OneWireAPI</artifactId>  
       <version>0.1</version> 
     </dependency>  
-    <!-- 4.2.2 -->  
-    <dependency> 
-      <groupId>org.usb4java</groupId>  
-      <artifactId>usb4java</artifactId>  
-      <version>1.2.0</version> 
-    </dependency>  
-    <dependency> 
-      <groupId>javax.usb</groupId>  
-      <artifactId>usb-api</artifactId>  
-      <version>1.0.2</version> 
-    </dependency>  
     <dependency> 
       <groupId>org.jdatepicker</groupId>  
       <artifactId>jdatepicker</artifactId>  
