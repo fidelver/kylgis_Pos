@@ -6,6 +6,7 @@ import com.mx.kylgis.pos.forms.StartPOS;
 import com.mx.kylgis.pos.hardware.NativeHardwareSupport;
 import com.mx.kylgis.pos.node.NodeRole;
 import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
+import com.mx.kylgis.pos.scanpal2.service.ScannerServiceConfig;
 
 /** Interactive POS capability. */
 public final class PosCapability implements RuntimeCapability {
@@ -19,6 +20,10 @@ public final class PosCapability implements RuntimeCapability {
         String scaleService = ScaleServiceConfig.getServiceId(context.getConfig());
         if (scaleService != null) {
             ScaleServiceConfig.endpoint(context.getConfig(), scaleService);
+        }
+        String scannerService = ScannerServiceConfig.getServiceId(context.getConfig());
+        if (scannerService != null) {
+            ScannerServiceConfig.endpoint(context.getConfig(), scannerService);
         }
         NativeHardwareSupport.validatePos(context.getConfig());
     }

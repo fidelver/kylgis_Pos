@@ -91,7 +91,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
 
         int row = 0;
         row = addField(form, c, row, "Roles", roles,
-                "Ej.: pos, kitchen, server, printer_service, scale_service");
+                "Ej.: pos, kitchen, server, printer_service, scale_service, scanner_service");
         row = addField(form, c, row, "Perfil", profile,
                 "Metadato operativo; no cambia la identidad del producto");
         row = addField(form, c, row, "Servidor BBDD (override)", dbServer,

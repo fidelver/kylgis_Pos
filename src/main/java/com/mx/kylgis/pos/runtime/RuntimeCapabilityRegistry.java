@@ -110,6 +110,7 @@ public final class RuntimeCapabilityRegistry {
                 .register(new PosCapability())
                 .register(new PrintServiceCapability())
                 .register(new ScaleServiceCapability())
+                .register(new ScannerServiceCapability())
                 .register(new ConfigServiceCapability())
                 .discover(Thread.currentThread().getContextClassLoader());
     }

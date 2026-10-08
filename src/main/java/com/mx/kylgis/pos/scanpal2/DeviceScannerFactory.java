@@ -22,6 +22,8 @@ package com.mx.kylgis.pos.scanpal2;
 
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.hardware.HardwareOwnership;
+import com.mx.kylgis.pos.scanpal2.service.DeviceScannerRemote;
+import com.mx.kylgis.pos.scanpal2.service.ScannerServiceConfig;
 import com.mx.kylgis.pos.util.StringParser;
 
 /**
@@ -40,6 +42,10 @@ public class DeviceScannerFactory {
      * @return
      */
     public static DeviceScanner createInstance(AppProperties props) {
+        String remoteServiceId = ScannerServiceConfig.getServiceId(props);
+        if (remoteServiceId != null) {
+            return new DeviceScannerRemote(ScannerServiceConfig.endpoint(props, remoteServiceId));
+        }
         if (!HardwareOwnership.canOpen(props, "scanner")) {
             return null;
         }
@@ -50,6 +56,8 @@ public class DeviceScannerFactory {
         
         if ("scanpal2".equals(sScannerType)) {
             return new DeviceScannerComm(sScannerParam1);
+        } else if ("fake".equals(sScannerType)) {
+            return new DeviceScannerFake();
         } else {
             return null;
         }

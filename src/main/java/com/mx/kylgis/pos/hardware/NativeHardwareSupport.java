@@ -5,6 +5,7 @@ package com.mx.kylgis.pos.hardware;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
 import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
+import com.mx.kylgis.pos.scanpal2.service.ScannerServiceConfig;
 import java.util.Locale;
 
 /** Preflight for legacy native hardware that still depends on RXTX. */
@@ -61,9 +62,10 @@ public final class NativeHardwareSupport {
         }
 
         String scanner = properties.getProperty("machine.scanner");
-        if (HardwareOwnership.canOpen(properties, "scanner") && usesSerialScanner(scanner)) {
+        if (ScannerServiceConfig.getServiceId(properties) == null
+                && HardwareOwnership.canOpen(properties, "scanner") && usesSerialScanner(scanner)) {
             throw unsupported("scanner", scanner, osName, arch,
-                    "Mueva el scanner serie a un nodo/servicio de hardware con driver compatible");
+                    "Configure device.scanner.service para usar un servicio de scanner remoto");
         }
     }
 
@@ -73,6 +75,16 @@ public final class NativeHardwareSupport {
         String scale = properties == null ? null : properties.getProperty("machine.scale");
         if (usesSerialScale(scale)) {
             throw unsupported("scale", scale,
+                    System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
+                    "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
+        }
+    }
+
+    public static void validateScannerService(AppProperties properties, String serviceId) {
+        if (isRxtxSupportedCurrentPlatform()) return;
+        String scanner = properties == null ? null : properties.getProperty("machine.scanner");
+        if (usesSerialScanner(scanner)) {
+            throw unsupported("scanner", scanner,
                     System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
                     "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
         }
