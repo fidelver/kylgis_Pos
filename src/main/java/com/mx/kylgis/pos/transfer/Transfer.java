@@ -2857,7 +2857,7 @@ public final class Transfer extends JPanel implements JPanelView {
                   
         if ("Derby".equals(cbSource.getSelectedItem())) {
             jtxtDbDriverLib.setText(new File(new File(dirname)
-                    , "/lib/derby-10.10.2.0.jar").getAbsolutePath());
+                    , "lib/derby-10.10.2.0.jar").getAbsolutePath());
             jtxtDbDriver.setText("org.apache.derby.jdbc.EmbeddedDriver");
             jtxtDbType.setText("jdbc:derby:");
             jtxtDbServerPort.setText("" + new File(new File(System.getProperty("user.home"))
@@ -2865,14 +2865,14 @@ public final class Transfer extends JPanel implements JPanelView {
             jtxtDbParams.setText("");            
         } else if ("PostgreSQL".equals(cbSource.getSelectedItem())) {
             jtxtDbDriverLib.setText(new File(new File(dirname)
-                , "/lib/postgresql-9.4-1208.jdbc4.jar").getAbsolutePath());
+                , "lib/postgresql-9.4-1208.jdbc4.jar").getAbsolutePath());
             jtxtDbDriver.setText("org.postgresql.Driver");
             jtxtDbType.setText("jdbc:postgresql://");
             jtxtDbServerPort.setText("localhost:5432/");
             jtxtDbParams.setText("");                        
         } else {
             jtxtDbDriverLib.setText(new File(new File(dirname)
-                , "/lib/mysql-connector-java-5.1.39.jar").getAbsolutePath());
+                , "lib/mysql-connector-java-5.1.39.jar").getAbsolutePath());
             jtxtDbDriver.setText("com.mysql.jdbc.Driver");
             jtxtDbType.setText("jdbc:mysql://");
             jtxtDbServerPort.setText("localhost:3306/");

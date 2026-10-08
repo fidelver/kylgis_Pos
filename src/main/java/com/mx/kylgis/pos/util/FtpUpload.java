@@ -20,6 +20,7 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.util;
  
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,7 +45,7 @@ public class FtpUpload extends Thread {
         try {
             sMachine = InetAddress.getLocalHost().getHostName();
 
-            String filePath = System.getProperty("user.home") + "/" + sMachine + ".lau";
+            String filePath = new File(System.getProperty("user.home"), sMachine + ".lau").getPath();
             String uploadPath = sMachine + ".lau";
 
             ftpUrl = String.format(ftpUrl, user, pass, host, uploadPath);

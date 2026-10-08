@@ -21,13 +21,11 @@
 package com.mx.kylgis.pos.payment;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
-import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.util.RoundUtils;
 import java.awt.Component;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 
 /**
  *
