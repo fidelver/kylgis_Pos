@@ -78,14 +78,32 @@ public final class NodeBundleTool {
         File sh = new File(output, "run.sh");
         String shell = "#!/usr/bin/env sh\n"
                 + "DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\n"
-                + "exec java -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n";
+                + "OS=$(uname -s 2>/dev/null || echo unknown)\n"
+                + "ARCH=$(uname -m 2>/dev/null || echo unknown)\n"
+                + "NATIVE=\n"
+                + "case \"$OS/$ARCH\" in\n"
+                + "  Linux/i?86) NATIVE=\"$DIR/lib/Linux/i686-unknown-linux-gnu\" ;;\n"
+                + "  Linux/x86_64|Linux/amd64) NATIVE=\"$DIR/lib/Linux/x86_64-unknown-linux-gnu\" ;;\n"
+                + "  Linux/ia64) NATIVE=\"$DIR/lib/Linux/ia64-unkown-linux-gnu\" ;;\n"
+                + "  Darwin/i?86|Darwin/x86_64|Darwin/amd64) NATIVE=\"$DIR/lib/Mac_OS_X\" ;;\n"
+                + "esac\n"
+                + "if [ -n \"$NATIVE\" ] && [ -d \"$NATIVE\" ]; then\n"
+                + "  exec java \"-Djava.library.path=$NATIVE\" \"-Ddirname.path=$DIR/\" -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n"
+                + "else\n"
+                + "  exec java \"-Ddirname.path=$DIR/\" -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n"
+                + "fi\n";
         Files.write(sh.toPath(), shell.getBytes(StandardCharsets.UTF_8));
         sh.setExecutable(true, true);
 
         File cmd = new File(output, "run.cmd");
         String windows = "@echo off\r\n"
                 + "set \"DIR=%~dp0\"\r\n"
-                + "java -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n";
+                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"ARM64\" goto nonative\r\n"
+                + "java \"-Djava.library.path=%DIR%lib\\Windows\\i368-mingw32\" \"-Ddirname.path=%DIR%\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
+                + "goto end\r\n"
+                + ":nonative\r\n"
+                + "java \"-Ddirname.path=%DIR%\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
+                + ":end\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
     }
 

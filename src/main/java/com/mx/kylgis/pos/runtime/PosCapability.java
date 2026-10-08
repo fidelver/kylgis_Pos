@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.runtime;
 
 import com.mx.kylgis.pos.forms.StartPOS;
+import com.mx.kylgis.pos.hardware.NativeHardwareSupport;
 import com.mx.kylgis.pos.node.NodeRole;
 
 /** Interactive POS capability. */
@@ -13,7 +14,9 @@ public final class PosCapability implements RuntimeCapability {
 
     @Override public NodeRole getRole() { return NodeRole.POS; }
     @Override public CapabilityType getType() { return CapabilityType.UI; }
-    @Override public void validate(RuntimeLaunchContext context) { }
+    @Override public void validate(RuntimeLaunchContext context) {
+        NativeHardwareSupport.validatePos(context.getConfig());
+    }
     @Override public RuntimeHandle start(RuntimeLaunchContext context, boolean daemon) {
         StartPOS.start(context.getConfig());
         return NOOP;

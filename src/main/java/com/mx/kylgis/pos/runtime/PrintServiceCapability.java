@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.runtime;
 
 import com.mx.kylgis.pos.forms.AppConfig;
+import com.mx.kylgis.pos.hardware.NativeHardwareSupport;
 import com.mx.kylgis.pos.node.NodeRole;
 import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
 import com.mx.kylgis.pos.printer.service.PrintServiceServer;
@@ -25,6 +26,7 @@ public final class PrintServiceCapability implements RuntimeCapability {
         PrintServiceConfig.endpoint(config, serviceId);
         PrintServiceConfig.bindAddress(config, serviceId);
         String allowed = PrintServiceConfig.allowedPrinters(config, serviceId);
+        NativeHardwareSupport.validatePrintService(config, serviceId, allowed);
 
         if (context.getNodeContext().hasRole(NodeRole.POS)) {
             for (int i = 1; i <= 6; i++) {
