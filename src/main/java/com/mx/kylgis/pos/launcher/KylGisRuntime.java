@@ -104,7 +104,7 @@ public final class KylGisRuntime {
         return selected;
     }
 
-    private static File resolveModulesDirectory(AppConfig config) {
+    static File resolveModulesDirectory(AppConfig config) {
         String configured = config.getProperty("runtime.modules.dir");
         File runtimeBase = resolveRuntimeBaseDirectory(config);
         if (configured == null || configured.trim().isEmpty()) {
