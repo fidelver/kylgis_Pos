@@ -27,7 +27,6 @@ NATIVE=
 case "$OS/$ARCH" in
     Linux/i?86) NATIVE="$DIR/lib/Linux/i686-unknown-linux-gnu" ;;
     Linux/x86_64|Linux/amd64) NATIVE="$DIR/lib/Linux/x86_64-unknown-linux-gnu" ;;
-    Linux/ia64) NATIVE="$DIR/lib/Linux/ia64-unkown-linux-gnu" ;;
     Darwin/i?86|Darwin/x86_64|Darwin/amd64) NATIVE="$DIR/lib/Mac_OS_X" ;;
 esac
 

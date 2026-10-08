@@ -1,3 +1,2 @@
 #!/bin/sh
-
-sh /opt/kylgispos/start.sh
+exec /opt/kylgispos/start.sh "$@"

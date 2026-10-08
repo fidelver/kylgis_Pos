@@ -22,7 +22,10 @@ REM    You should have received a copy of the GNU General Public License
 REM    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
 set "DIR=%~dp0"
-if /I "%PROCESSOR_ARCHITECTURE%"=="ARM64" goto nonative
+if /I "%PROCESSOR_ARCHITECTURE%"=="x86" goto native
+if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto native
+goto nonative
+:native
 java "-Djava.library.path=%DIR%lib\Windows\i368-mingw32" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
 goto end
 :nonative

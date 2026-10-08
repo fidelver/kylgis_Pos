@@ -97,7 +97,10 @@ public final class NodeBundleTool {
         File cmd = new File(output, "run.cmd");
         String windows = "@echo off\r\n"
                 + "set \"DIR=%~dp0\"\r\n"
-                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"ARM64\" goto nonative\r\n"
+                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"x86\" goto native\r\n"
+                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" goto native\r\n"
+                + "goto nonative\r\n"
+                + ":native\r\n"
                 + "java \"-Djava.library.path=%DIR%lib\\Windows\\i368-mingw32\" \"-Ddirname.path=%DIR%\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
                 + "goto end\r\n"
                 + ":nonative\r\n"
