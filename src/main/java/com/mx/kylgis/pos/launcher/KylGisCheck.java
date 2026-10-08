@@ -9,6 +9,7 @@ import com.mx.kylgis.pos.node.NodeRole;
 import com.mx.kylgis.pos.runtime.RuntimeCapability;
 import com.mx.kylgis.pos.runtime.RuntimeCapabilityRegistry;
 import com.mx.kylgis.pos.runtime.RuntimeLaunchContext;
+import com.mx.kylgis.pos.runtime.JavaRuntimeSupport;
 import java.io.File;
 import java.util.List;
 
@@ -36,6 +37,13 @@ public final class KylGisCheck {
             line("os.name", System.getProperty("os.name"));
             line("os.arch", System.getProperty("os.arch"));
             line("java.version", System.getProperty("java.version"));
+            int javaMajor = JavaRuntimeSupport.currentMajor();
+            String javaCompatibility = JavaRuntimeSupport.classification(javaMajor);
+            line("java.compatibility", javaCompatibility);
+            if ("UNSUPPORTED".equals(javaCompatibility)) {
+                System.out.println("result=FAIL:java-8-or-newer-required");
+                return 1;
+            }
             line("provisioning", provisioning(config));
 
             String bundleDir = System.getProperty("kylgis.bundle.dir");
@@ -59,7 +67,8 @@ public final class KylGisCheck {
             line("runtime.modules", modules == null ? "none" : modules.getAbsolutePath());
             if (modules != null) registry.discoverModules(modules);
 
-            boolean warning = !registry.getDiscoveryErrors().isEmpty();
+            boolean warning = "UNVERIFIED_NEWER".equals(javaCompatibility)
+                    || !registry.getDiscoveryErrors().isEmpty();
             int moduleError = 0;
             for (String error : registry.getDiscoveryErrors()) {
                 System.out.println("runtime.module.error." + (++moduleError) + "=" + error);
