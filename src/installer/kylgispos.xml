@@ -1,7 +1,7 @@
 <project>
     <shortName>kylgispos</shortName>
     <fullName>KylGis POS</fullName>
-    <version>4.6</version>
+    <version>1.0</version>
     <installerFilename>${product_shortname}-${platform_name}-installer.${platform_exec_suffix}</installerFilename>
     <readmeFile>README</readmeFile>
     <licenseFile>licensing/KylGis POS Notice.txt</licenseFile>
@@ -246,7 +246,7 @@ Then continue with KylGis POS installation.</text>
     <productUrlHelpLink>https://pos.kylgis.com</productUrlHelpLink>
     <productUrlInfoAbout>https://pos.kylgis.com</productUrlInfoAbout>
     <readmeFileEncoding>utf-8</readmeFileEncoding>
-    <release>4.6</release>
+    <release>1.0</release>
     <requireInstallationByRootUser>1</requireInstallationByRootUser>
     <saveRelativePaths>1</saveRelativePaths>
     <splashScreenDelay>4</splashScreenDelay>
@@ -256,7 +256,7 @@ Then continue with KylGis POS installation.</text>
     <windowsExecutableIcon>kylgispos.ico</windowsExecutableIcon>
     <windowsResourceComments>KylGis POS Punto de Venta Táctil - software libre bajo GNU GPL 3</windowsResourceComments>
     <windowsResourceFileDescription>KylGis POS executable</windowsResourceFileDescription>
-    <windowsResourceFileVersion>4.6</windowsResourceFileVersion>
+    <windowsResourceFileVersion>1.0.0.0</windowsResourceFileVersion>
     <windowsResourceInternalName>KylGis POS</windowsResourceInternalName>
     <windowsResourceLegalTrademarks>KylGis POS</windowsResourceLegalTrademarks>
     <windowsUninstallerExecutableIcon>kylgispos.ico</windowsUninstallerExecutableIcon>
@@ -265,8 +265,8 @@ Then continue with KylGis POS installation.</text>
             <name>installdir</name>
             <description>Installer.Parameter.installdir.description</description>
             <explanation>Installer.Parameter.installdir.explanation</explanation>
-            <value>${platform_install_prefix}/${product_shortname}-${product_version}</value>
-            <default>${platform_install_prefix}/${product_shortname}-${product_version}</default>
+            <value>${platform_install_prefix}/${product_shortname}</value>
+            <default>${platform_install_prefix}/${product_shortname}</default>
             <allowEmptyValue>0</allowEmptyValue>
             <cliOptionName>prefix</cliOptionName>
             <mustBeWritable>1</mustBeWritable>

@@ -1,12 +1,11 @@
-Project: KylGis POS v4.6
+Project: KylGis POS 1.0
 Topic:	README installer
-Author:	Jack Gerrard
-Date: 	5 August 2018
+Maintainer:	KylGis POS Project
+Date: 	8 October 2026
 
-Acknowledgement: The content of the language/Locale files are
-compiled from the efforts of KylGis POS and KylGis POS Community
-Members. We appreciate and acknowledge everyone who has contributed
-to making this distribution possible.
+Acknowledgement: Locale files include work inherited from Openbravo POS,
+uniCenta oPOS, Chromis and community contributors, plus KylGis updates.
+See the licensing and contribution files for historical attribution.
 
 All files, including these Locale files, are made available under the
 GPL v3 License and within those terms must be passed on to any person
@@ -16,7 +15,7 @@ who requests them
 
 Please refer to Locales Guide for installation details.
 
-KylGis POS v4.6 is delivered with support for 15 languages.
+KylGis POS 1.0 includes the locale resources shipped with this distribution.
 
 Full translations provided by KylGis POS include:
 English UK - the default language set.
