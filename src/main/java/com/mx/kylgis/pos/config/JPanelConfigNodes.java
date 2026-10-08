@@ -62,8 +62,10 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private String currentNodeId;
     private boolean loading;
     private boolean dirty;
+    private boolean rolesDirty;
     private boolean administrationEnabled;
     private String runtimeNodeId;
+    private String originalRolesOverride = "";
 
     public JPanelConfigNodes() {
         setLayout(new BorderLayout(8, 8));
@@ -132,7 +134,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         for (NodeRole role : NodeRole.values()) {
             JCheckBox check = new JCheckBox(roleLabel(role));
             check.setToolTipText("node.roles=" + role.getPropertyValue());
-            check.addActionListener(e -> markDirty());
+            check.addActionListener(e -> markRolesDirty());
             roleChecks.put(role, check);
             rolesPanel.add(check);
         }
@@ -220,6 +222,13 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         }
     }
 
+    private void markRolesDirty() {
+        if (!loading) {
+            rolesDirty = true;
+            markDirty();
+        }
+    }
+
     private void handleNodeSelection() {
         if (loading || store == null) {
             return;
@@ -279,7 +288,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             validateFields();
             String savedNodeId = currentNodeId;
             String savedRoles = selectedRoles();
-            store.saveNode(savedNodeId, savedRoles, profile.getText(),
+            String rolesToPersist = rolesDirty ? savedRoles : originalRolesOverride;
+            store.saveNode(savedNodeId, rolesToPersist, profile.getText(),
                     dbServer.getText(), dbPort.getText(), dbName.getText());
             loadNode(savedNodeId);
             if (savedNodeId.equals(runtimeNodeId) && !containsMasterRole(savedRoles)) {
@@ -377,6 +387,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             try {
                 currentNodeId = node.getNodeId();
                 setSelectedRoles(node.getRoles());
+                originalRolesOverride = node.getRolesOverride();
+                rolesDirty = false;
                 profile.setText(node.getProfile());
                 dbServer.setText(node.getDatabaseServerOverride());
                 dbPort.setText(node.getDatabasePortOverride());
@@ -403,6 +415,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         try {
             currentNodeId = null;
             setSelectedRoles("");
+            originalRolesOverride = "";
+            rolesDirty = false;
             profile.setText("");
             dbServer.setText("");
             dbPort.setText("");
@@ -538,6 +552,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             nodeSelector.setSelectedItem(context.getNodeId());
             currentNodeId = context.getNodeId();
             setSelectedRoles(joinRoles(context));
+            originalRolesOverride = "";
+            rolesDirty = false;
             profile.setText(value(config.getProperty("node.profile")));
             dbServer.setText("");
             dbPort.setText("");

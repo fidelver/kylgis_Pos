@@ -108,6 +108,7 @@ public final class NodeConfigurationStore {
         return new NodeDefinition(id, moduleFiles,
                 moduleReferences.subList(0, moduleReferences.size() - 1),
                 value(effective, "node.roles"),
+                value(writableModule, "node.roles"),
                 value(effective, "node.profile"),
                 value(writableModule, "database.server"),
                 value(writableModule, "database.port"),
@@ -410,6 +411,7 @@ public final class NodeConfigurationStore {
         private final List<File> moduleFiles;
         private final List<String> reusableModuleReferences;
         private final String roles;
+        private final String rolesOverride;
         private final String profile;
         private final String databaseServerOverride;
         private final String databasePortOverride;
@@ -420,7 +422,7 @@ public final class NodeConfigurationStore {
 
         private NodeDefinition(String nodeId, List<File> moduleFiles,
                 List<String> reusableModuleReferences, String roles,
-                String profile, String databaseServerOverride,
+                String rolesOverride, String profile, String databaseServerOverride,
                 String databasePortOverride, String databaseNameOverride,
                 String effectiveDatabaseServer, String effectiveDatabasePort,
                 String effectiveDatabaseName) {
@@ -429,6 +431,7 @@ public final class NodeConfigurationStore {
             this.reusableModuleReferences = Collections.unmodifiableList(
                     new ArrayList<>(reusableModuleReferences));
             this.roles = roles;
+            this.rolesOverride = rolesOverride;
             this.profile = profile;
             this.databaseServerOverride = databaseServerOverride;
             this.databasePortOverride = databasePortOverride;
@@ -445,6 +448,7 @@ public final class NodeConfigurationStore {
         public List<File> getModuleFiles() { return moduleFiles; }
         public List<String> getReusableModuleReferences() { return reusableModuleReferences; }
         public String getRoles() { return roles; }
+        public String getRolesOverride() { return rolesOverride; }
         public String getProfile() { return profile; }
         public String getDatabaseServerOverride() { return databaseServerOverride; }
         public String getDatabasePortOverride() { return databasePortOverride; }
