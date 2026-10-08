@@ -53,7 +53,8 @@ public final class PrintServiceServer implements AutoCloseable {
         this.allowedPrinters = bootstrap.allowedPrinters;
         // Hardware is opened only after service identity, endpoint and token
         // have been validated successfully by prepare().
-        this.deviceTicket = new DeviceTicket(null, bootstrap.properties);
+        this.deviceTicket = new DeviceTicket(null,
+                new LocalHardwareProperties(bootstrap.properties));
         this.serverSocket = new ServerSocket();
         this.serverSocket.setReuseAddress(true);
         this.serverSocket.bind(new InetSocketAddress(
@@ -152,6 +153,24 @@ public final class PrintServiceServer implements AutoCloseable {
         running = false;
         serverSocket.close();
         clients.shutdownNow();
+    }
+
+    /**
+     * The service process must see the physical printer configuration even when
+     * the same node also runs POS and routes that logical printer back through
+     * its own service. Only client-side device.printer.N.service keys are hidden.
+     */
+    private static final class LocalHardwareProperties implements AppProperties {
+        private final AppProperties delegate;
+        LocalHardwareProperties(AppProperties delegate) { this.delegate = delegate; }
+        @Override public java.io.File getConfigFile() { return delegate.getConfigFile(); }
+        @Override public String getHost() { return delegate.getHost(); }
+        @Override public String getProperty(String key) {
+            if (key != null && key.matches("device\\.printer\\.[1-6]\\.service(?:\\.target)?")) {
+                return null;
+            }
+            return delegate.getProperty(key);
+        }
     }
 
     private static final class ServerBootstrap {

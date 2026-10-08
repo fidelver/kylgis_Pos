@@ -82,59 +82,64 @@ public class StartPOS {
         return false;
     }
 
-    public static void main (final String args[]) {
+    public static void main(final String args[]) {
+        AppConfig config = new AppConfig(args);
+        config.load();
+        start(config);
+    }
 
-        SwingUtilities.invokeLater (() -> {
-            AppConfig config = new AppConfig(args);
-            config.load();
-            AppConfig.setActiveInstance(config);
+    /**
+     * Starts the POS UI using an already resolved active configuration.
+     * This is the canonical entry used by the role-aware KylGis runtime so the
+     * same AppConfig/NodeContext can be shared by POS and background services.
+     */
+    public static void start(final AppConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("config is required");
+        }
+        AppConfig.setActiveInstance(config);
+        SwingUtilities.invokeLater(() -> startOnEdt(config));
+    }
 
-            NodeContext nodeContext = NodeContext.from(config);
-            logger.log(Level.INFO, "KylGis node context: {0}", nodeContext);
+    private static void startOnEdt(AppConfig config) {
+        NodeContext nodeContext = NodeContext.from(config);
+        logger.log(Level.INFO, "KylGis node context: {0}", nodeContext);
 
-            // Fast path: if all slots are already occupied, activate an existing
-            // instance before initializing the database and the rest of the UI.
-            if (instanceLimitReached(config)) {
-                System.exit(1);
-                return;
+        if (instanceLimitReached(config)) {
+            System.exit(1);
+            return;
+        }
+
+        String slang = config.getProperty("user.language");
+        String scountry = config.getProperty("user.country");
+        String svariant = config.getProperty("user.variant");
+        if (slang != null
+                && !slang.equals("")
+                && scountry != null
+                && svariant != null) {
+            Locale.setDefault(new Locale(slang, scountry, svariant));
+        }
+
+        Formats.setIntegerPattern(config.getProperty("format.integer"));
+        Formats.setDoublePattern(config.getProperty("format.double"));
+        Formats.setCurrencyPattern(config.getProperty("format.currency"));
+        Formats.setPercentPattern(config.getProperty("format.percent"));
+        Formats.setDatePattern(config.getProperty("format.date"));
+        Formats.setTimePattern(config.getProperty("format.time"));
+        Formats.setDateTimePattern(config.getProperty("format.datetime"));
+
+        try {
+            Object laf = Class.forName(config.getProperty("swing.defaultlaf")).newInstance();
+            if (laf instanceof LookAndFeel) {
+                UIManager.setLookAndFeel((LookAndFeel) laf);
+            } else if (laf instanceof SubstanceSkin) {
+                SubstanceLookAndFeel.setSkin((SubstanceSkin) laf);
             }
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+            logger.log(Level.WARNING, "Cannot set Look and Feel", e);
+        }
 
-            String slang = config.getProperty("user.language");
-            String scountry = config.getProperty("user.country");
-            String svariant = config.getProperty("user.variant");
-            if (slang != null
-                    && !slang.equals("")
-                    && scountry != null
-                    && svariant != null) {
-                Locale.setDefault(new Locale(slang, scountry, svariant));
-            }
-            
-            Formats.setIntegerPattern(config.getProperty("format.integer"));
-            Formats.setDoublePattern(config.getProperty("format.double"));
-            Formats.setCurrencyPattern(config.getProperty("format.currency"));
-            Formats.setPercentPattern(config.getProperty("format.percent"));
-            Formats.setDatePattern(config.getProperty("format.date"));
-            Formats.setTimePattern(config.getProperty("format.time"));
-            Formats.setDateTimePattern(config.getProperty("format.datetime"));
-            
-            // Set the look and feel.
-            try {
-                
-                Object laf = Class.forName(config.getProperty("swing.defaultlaf")).newInstance();
-                if (laf instanceof LookAndFeel){
-                    UIManager.setLookAndFeel((LookAndFeel) laf);
-                } else if (laf instanceof SubstanceSkin) {
-                    SubstanceLookAndFeel.setSkin((SubstanceSkin) laf);
-                }
-// JG 6 May 2013 to multicatch
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-                logger.log(Level.WARNING, "Cannot set Look and Feel", e);
-            }
-            
-// JG July 2014 Hostname for Tickets
-        String hostname = config.getProperty("machine.hostname");
-        TicketInfo.setHostname(hostname);
-
+        TicketInfo.setHostname(config.getProperty("machine.hostname"));
         String screenmode = config.getProperty("machine.screenmode");
 
         if ("fullscreen".equals(screenmode)) {
@@ -152,6 +157,6 @@ public class StartPOS {
                 Logger.getLogger(StartPOS.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        });    
-    }    
+    }
+
 }
