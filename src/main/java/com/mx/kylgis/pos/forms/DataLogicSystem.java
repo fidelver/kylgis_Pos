@@ -461,7 +461,7 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
      * @throws BasicException
      */
     public final String findVersion() throws BasicException {
-        return (String) m_version.find(AppLocal.APP_ID);
+        return (String) m_version.find(ApplicationIdentity.getDatabaseId(AppConfig.getInstance()));
     }
     
     /**

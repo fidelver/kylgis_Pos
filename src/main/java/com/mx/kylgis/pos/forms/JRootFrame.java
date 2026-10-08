@@ -83,7 +83,7 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
             } catch (IOException e) {
             }
 
-            setTitle(AppLocal.APP_NAME + " - " + AppLocal.APP_VERSION);
+            setTitle(ApplicationIdentity.getDisplayName(props) + " - " + ApplicationIdentity.getVersion());
             pack();
             setLocationRelativeTo(null);
             // Start as a normal decorated window maximized to the desktop work area.

@@ -83,7 +83,7 @@ public class AppConfig implements AppProperties {
     
     private File getDefaultConfig() {
         return new File(new File(System.getProperty("user.home"))
-            , AppLocal.APP_ID + ".properties");            
+            , ApplicationIdentity.getDatabaseId(null) + ".properties");
     }
     
     /**
@@ -210,7 +210,7 @@ public class AppConfig implements AppProperties {
             synchronized (AppConfig.class) {
                 if (m_instance == null) {
                     m_instance = new AppConfig(new File(System.getProperty("user.home")
-                        , AppLocal.APP_ID + ".properties"));
+                        , ApplicationIdentity.getDatabaseId(null) + ".properties"));
                 }
             }
         }
@@ -293,7 +293,7 @@ public class AppConfig implements AppProperties {
         }
 
         try (OutputStream out = new FileOutputStream(configfile)) {
-            m_propsconfig.store(out, AppLocal.APP_NAME + ". Configuration file.");
+            m_propsconfig.store(out, ApplicationIdentity.getDisplayName(this) + ". Configuration file.");
         }
         dirtyProperties.clear();
     }
@@ -348,7 +348,7 @@ public class AppConfig implements AppProperties {
 
         File nodeModuleFile = provisioningResult.getNodeModuleFile();
         try (OutputStream out = new FileOutputStream(nodeModuleFile)) {
-            nodeOverrides.store(out, AppLocal.APP_NAME + ". Node module.");
+            nodeOverrides.store(out, ApplicationIdentity.getDisplayName(this) + ". Node module.");
         }
 
         load();

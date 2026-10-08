@@ -388,9 +388,9 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
                     
                     try {
                         BatchSentence bsentence = new BatchSentenceResource(session, sScript);
-                        bsentence.putParameter("APP_ID", Matcher.quoteReplacement(AppLocal.APP_ID));
-                        bsentence.putParameter("APP_NAME", Matcher.quoteReplacement(AppLocal.APP_NAME));
-                        bsentence.putParameter("APP_VERSION", Matcher.quoteReplacement(AppLocal.APP_VERSION));
+                        bsentence.putParameter("APP_ID", Matcher.quoteReplacement(ApplicationIdentity.getDatabaseId(m_props)));
+                        bsentence.putParameter("APP_NAME", Matcher.quoteReplacement(ApplicationIdentity.getDatabaseName(m_props)));
+                        bsentence.putParameter("APP_VERSION", Matcher.quoteReplacement(ApplicationIdentity.getVersion()));
 
                         java.util.List l = bsentence.list();
 
@@ -437,9 +437,9 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         Instant machineTimestamp = Instant.now();
         String sContent = sUserPath + "," 
                 + machineTimestamp + "," 
-                + AppLocal.APP_ID + "," 
-                + AppLocal.APP_NAME + "," 
-                + AppLocal.APP_VERSION + "\n";
+                + ApplicationIdentity.getDatabaseId(m_props) + ","
+                + ApplicationIdentity.getDatabaseName(m_props) + ","
+                + ApplicationIdentity.getVersion() + "\n";
         
         try {
             Files.write(Paths.get(filePath), sContent.getBytes(), 
@@ -776,12 +776,12 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         
         String sresource = m_dlSystem.getResourceAsXML("Printer.Start");
         if (sresource == null) {
-            m_TP.getDeviceDisplay().writeVisor(AppLocal.APP_NAME, AppLocal.APP_VERSION);
+            m_TP.getDeviceDisplay().writeVisor(ApplicationIdentity.getDisplayName(m_props), ApplicationIdentity.getVersion());
         } else {
             try {
                 m_TTP.printTicket(sresource);
             } catch (TicketPrinterException eTP) {
-                m_TP.getDeviceDisplay().writeVisor(AppLocal.APP_NAME, AppLocal.APP_VERSION);
+                m_TP.getDeviceDisplay().writeVisor(ApplicationIdentity.getDisplayName(m_props), ApplicationIdentity.getVersion());
             }
         }        
     }

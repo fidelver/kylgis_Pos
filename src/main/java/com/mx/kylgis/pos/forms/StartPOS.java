@@ -67,9 +67,9 @@ public class StartPOS {
         }
         String nodeId = config.getProperty("node.id");
         if (nodeId != null && !nodeId.trim().isEmpty()) {
-            return AppLocal.APP_ID + ":" + nodeId.trim();
+            return ApplicationIdentity.getDatabaseId(config) + ":" + nodeId.trim();
         }
-        return AppLocal.APP_ID;
+        return ApplicationIdentity.getDatabaseId(config);
     }
 
     private static boolean instanceLimitReached(AppProperties config) {

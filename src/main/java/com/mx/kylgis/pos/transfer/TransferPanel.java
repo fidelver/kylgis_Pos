@@ -23,6 +23,7 @@ package com.mx.kylgis.pos.transfer;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.forms.ApplicationIdentity;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.forms.JRootFrame;
 import java.awt.BorderLayout;
@@ -49,8 +50,8 @@ public class TransferPanel extends javax.swing.JFrame {
                 .class.getResourceAsStream("/com/mx/kylgis/pos/images/favicon.png")));
         } catch (IOException e) {
         }   
-        setTitle(AppLocal.APP_NAME + " - " 
-                + AppLocal.APP_VERSION + " - " 
+        setTitle(ApplicationIdentity.getDisplayName(props) + " - "
+                + ApplicationIdentity.getVersion() + " - "
                 + AppLocal.getIntString("Menu.Configuration"));
         
         addWindowListener(new MyFrameListener()); 
@@ -103,6 +104,7 @@ public class TransferPanel extends javax.swing.JFrame {
                 
                 AppConfig config = new AppConfig(args);
                 config.load();    
+                AppConfig.setActiveInstance(config);
 
                 new TransferPanel(config).setVisible(true);                
 

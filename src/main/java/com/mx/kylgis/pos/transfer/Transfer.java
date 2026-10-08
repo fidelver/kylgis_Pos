@@ -262,9 +262,9 @@ public final class Transfer extends JPanel implements JPanelView {
             BatchSentence bsentence = new BatchSentenceResource(session_target, targetCreate);
             bsentence = new BatchSentenceResource(session_target, targetFKdrop);
             
-            bsentence.putParameter("APP_ID", Matcher.quoteReplacement(AppLocal.APP_ID));
-            bsentence.putParameter("APP_NAME", Matcher.quoteReplacement(AppLocal.APP_NAME));
-            bsentence.putParameter("APP_VERSION", Matcher.quoteReplacement(AppLocal.APP_VERSION));
+            bsentence.putParameter("APP_ID", Matcher.quoteReplacement(ApplicationIdentity.getDatabaseId(m_props)));
+            bsentence.putParameter("APP_NAME", Matcher.quoteReplacement(ApplicationIdentity.getDatabaseName(m_props)));
+            bsentence.putParameter("APP_VERSION", Matcher.quoteReplacement(ApplicationIdentity.getVersion()));
 
             java.util.List l = bsentence.list();
             

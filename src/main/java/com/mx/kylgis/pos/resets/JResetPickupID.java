@@ -23,6 +23,7 @@ package com.mx.kylgis.pos.resets;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.forms.ApplicationIdentity;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.forms.JRootFrame;
 import com.mx.kylgis.pos.sales.JPanelResetPickupId;
@@ -56,7 +57,7 @@ public class JResetPickupID extends javax.swing.JFrame {
             this.setIconImage(ImageIO.read(JRootFrame.class.getResourceAsStream("/com/mx/kylgis/pos/images/favicon.png")));
         } catch (IOException e) {
         }   
-        setTitle(AppLocal.APP_NAME + " - " + AppLocal.APP_VERSION + " - " + AppLocal.getIntString("Menu.Resetpickup"));
+        setTitle(ApplicationIdentity.getDisplayName(props) + " - " + ApplicationIdentity.getVersion() + " - " + AppLocal.getIntString("Menu.Resetpickup"));
         
         addWindowListener(new MyFrameListener()); 
         
@@ -107,6 +108,7 @@ public class JResetPickupID extends javax.swing.JFrame {
                 
                 AppConfig config = new AppConfig(args);
                 config.load();    
+                AppConfig.setActiveInstance(config);
                 
 // Set the look and feel.
 // JG 6 May 2013 to Multicatch                

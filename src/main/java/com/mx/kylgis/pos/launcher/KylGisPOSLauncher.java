@@ -19,13 +19,25 @@
 
 package com.mx.kylgis.pos.launcher;
 
+import com.mx.kylgis.pos.forms.ApplicationIdentity;
 import com.mx.kylgis.pos.forms.StartPOS;
+import java.io.File;
 
 public final class KylGisPOSLauncher {
     private KylGisPOSLauncher() {
     }
 
     public static void main(String[] args) {
-        StartPOS.main(args);
+        ApplicationIdentity.setCompatibilityFallback(
+                "kylgispos", "KylGis POS", "KylGis POS");
+        StartPOS.main(withDefaultConfig(args, "kylgispos.properties"));
+    }
+
+    static String[] withDefaultConfig(String[] args, String fileName) {
+        if (args != null && args.length > 0) {
+            return args;
+        }
+        File config = new File(System.getProperty("user.home"), fileName);
+        return new String[] {config.getAbsolutePath()};
     }
 }
