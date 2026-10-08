@@ -105,7 +105,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         row = addValue(form, c, row, "Puerto efectivo", effectivePort);
         row = addValue(form, c, row, "BBDD efectiva", effectiveDatabase);
         row = addValue(form, c, row, "MASTER", masterPath);
-        row = addValue(form, c, row, "Módulo", modulePath);
+        row = addValue(form, c, row, "Módulos (orden)", modulePath);
         row = addValue(form, c, row, "Bootstrap", bootstrapPath);
         row = addValue(form, c, row, "Credenciales",
                 new JLabel("Gestionadas por MASTER / secrets.properties"));
@@ -337,7 +337,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
                 effectivePort.setText(valueOrInherited(node.getEffectiveDatabasePort()));
                 effectiveDatabase.setText(valueOrInherited(node.getEffectiveDatabaseName()));
                 masterPath.setText(store.getMasterFile().getAbsolutePath());
-                modulePath.setText(node.getModuleFile().getAbsolutePath());
+                modulePath.setText(formatModulePaths(node.getModuleFiles()));
                 bootstrapPath.setText(store.getBootstrapFile(nodeId).getAbsolutePath());
                 nodeSelector.setSelectedItem(nodeId);
                 dirty = false;
@@ -368,6 +368,21 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         } finally {
             loading = false;
         }
+    }
+
+    private String formatModulePaths(List<File> files) {
+        if (files == null || files.isEmpty()) {
+            return "-";
+        }
+        StringBuilder result = new StringBuilder("<html>");
+        for (int i = 0; i < files.size(); i++) {
+            if (i > 0) {
+                result.append(" &rarr; ");
+            }
+            result.append(files.get(i).getAbsolutePath());
+        }
+        result.append("</html>");
+        return result.toString();
     }
 
     private String valueOrInherited(String value) {

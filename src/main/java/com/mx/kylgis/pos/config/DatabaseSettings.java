@@ -114,9 +114,11 @@ public final class DatabaseSettings {
 
         String host = firstNonBlank(server, "localhost");
         String port = firstNonBlank(p.getProperty(modernPrefix + ".port"), "3306");
-        String schema = firstNonBlank(databaseName, p.getProperty(legacyPrefix + ".schema"), "");
-        String options = firstNonBlank(p.getProperty(modernPrefix + ".options"),
-                p.getProperty(legacyPrefix + ".options"), "");
+        String schema = valueOrEmpty(firstNonBlank(databaseName,
+                p.getProperty(legacyPrefix + ".schema")));
+        String options = valueOrEmpty(firstNonBlank(
+                p.getProperty(modernPrefix + ".options"),
+                p.getProperty(legacyPrefix + ".options")));
 
         p.setProperty(legacyPrefix + ".URL", "jdbc:mysql://" + host + ":" + port + "/");
         p.setProperty(legacyPrefix + ".schema", schema);

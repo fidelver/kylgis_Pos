@@ -5,6 +5,9 @@
 package com.mx.kylgis.pos.config.provisioning;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -15,26 +18,26 @@ public final class ProvisioningResult {
     private final boolean provisioned;
     private final File localFile;
     private final File masterFile;
-    private final File nodeModuleFile;
+    private final List<File> nodeModuleFiles;
     private final File secretsFile;
     private final Properties localProperties;
     private final Properties masterProperties;
-    private final Properties nodeProperties;
+    private final List<Properties> nodeModuleProperties;
     private final Properties rawEffectiveProperties;
     private final Properties effectiveProperties;
 
     ProvisioningResult(boolean provisioned, File localFile, File masterFile,
-            File nodeModuleFile, File secretsFile, Properties localProperties,
-            Properties masterProperties, Properties nodeProperties,
+            List<File> nodeModuleFiles, File secretsFile, Properties localProperties,
+            Properties masterProperties, List<Properties> nodeModuleProperties,
             Properties rawEffectiveProperties, Properties effectiveProperties) {
         this.provisioned = provisioned;
         this.localFile = localFile;
         this.masterFile = masterFile;
-        this.nodeModuleFile = nodeModuleFile;
+        this.nodeModuleFiles = copyFiles(nodeModuleFiles);
         this.secretsFile = secretsFile;
         this.localProperties = copy(localProperties);
         this.masterProperties = copy(masterProperties);
-        this.nodeProperties = copy(nodeProperties);
+        this.nodeModuleProperties = copyPropertiesList(nodeModuleProperties);
         this.rawEffectiveProperties = copy(rawEffectiveProperties);
         this.effectiveProperties = copy(effectiveProperties);
     }
@@ -51,8 +54,17 @@ public final class ProvisioningResult {
         return masterFile;
     }
 
+    /**
+     * Returns the writable node overlay. With a module stack this is the last
+     * module, preserving the legacy single-module contract.
+     */
     public File getNodeModuleFile() {
-        return nodeModuleFile;
+        return nodeModuleFiles.isEmpty() ? null
+                : nodeModuleFiles.get(nodeModuleFiles.size() - 1);
+    }
+
+    public List<File> getNodeModuleFiles() {
+        return Collections.unmodifiableList(new ArrayList<>(nodeModuleFiles));
     }
 
     public File getSecretsFile() {
@@ -67,8 +79,24 @@ public final class ProvisioningResult {
         return copy(masterProperties);
     }
 
+    /**
+     * Returns the writable node overlay properties (last module in the stack).
+     */
     public Properties getNodeProperties() {
-        return copy(nodeProperties);
+        return nodeModuleProperties.isEmpty() ? new Properties()
+                : copy(nodeModuleProperties.get(nodeModuleProperties.size() - 1));
+    }
+
+    public List<Properties> getNodeModuleProperties() {
+        return copyPropertiesList(nodeModuleProperties);
+    }
+
+    public Properties getMergedNodeProperties() {
+        Properties merged = new Properties();
+        for (Properties module : nodeModuleProperties) {
+            merged.putAll(module);
+        }
+        return merged;
     }
 
     public Properties getRawEffectiveProperties() {
@@ -77,6 +105,24 @@ public final class ProvisioningResult {
 
     public Properties getEffectiveProperties() {
         return copy(effectiveProperties);
+    }
+
+    private static List<File> copyFiles(List<File> source) {
+        List<File> copy = new ArrayList<>();
+        if (source != null) {
+            copy.addAll(source);
+        }
+        return copy;
+    }
+
+    private static List<Properties> copyPropertiesList(List<Properties> source) {
+        List<Properties> copy = new ArrayList<>();
+        if (source != null) {
+            for (Properties item : source) {
+                copy.add(copy(item));
+            }
+        }
+        return copy;
     }
 
     private static Properties copy(Properties source) {

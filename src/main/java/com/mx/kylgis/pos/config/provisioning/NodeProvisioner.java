@@ -12,16 +12,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 /**
  * Resolves KylGis configuration layers for one node.
  *
  * Legacy mode (no config.master): DEFAULT + LOCAL.
- * Provisioned mode: DEFAULT + MASTER + NODE MODULE + LOCAL BOOTSTRAP.
+ * Provisioned mode: DEFAULT + MASTER + ORDERED NODE MODULES + LOCAL BOOTSTRAP.
  *
  * The local file remains the bootstrap identity of the node. The MASTER owns
- * the topology and points to the module associated with each node.
+ * the topology and points to the ordered module stack associated with each node.
  */
 public final class NodeProvisioner {
 
@@ -29,6 +32,7 @@ public final class NodeProvisioner {
     public static final String NODE_ID_KEY = "node.id";
     public static final String NODE_MODULE_PREFIX = "node.";
     public static final String NODE_MODULE_SUFFIX = ".module";
+    public static final String NODE_MODULES_SUFFIX = ".modules";
     public static final String SECRETS_KEY = "config.secrets";
 
     private NodeProvisioner() {
@@ -45,8 +49,9 @@ public final class NodeProvisioner {
 
         if (masterReference == null) {
             Properties effective = merge(defaults, local);
-            return new ProvisioningResult(false, localFile, null, null, null,
-                    local, new Properties(), new Properties(), effective, effective);
+            return new ProvisioningResult(false, localFile, null,
+                    Collections.<File>emptyList(), null, local, new Properties(),
+                    Collections.<Properties>emptyList(), effective, effective);
         }
 
         if (!localFile.isFile()) {
@@ -63,17 +68,26 @@ public final class NodeProvisioner {
         File masterFile = resolveRelative(localFile.getParentFile(), masterReference);
         Properties master = loadRequired(masterFile, "MASTER");
 
-        String moduleKey = nodeModuleKey(nodeId);
-        String moduleReference = trimToNull(master.getProperty(moduleKey));
-        if (moduleReference == null) {
-            throw new IOException("MASTER does not define " + moduleKey
-                    + " for node " + nodeId);
+        List<String> moduleReferences = nodeModuleReferences(master, nodeId);
+        if (moduleReferences.isEmpty()) {
+            throw new IOException("MASTER does not define " + nodeModulesKey(nodeId)
+                    + " or legacy " + nodeModuleKey(nodeId) + " for node " + nodeId);
         }
 
-        File nodeModuleFile = resolveRelative(masterFile.getParentFile(), moduleReference);
-        Properties nodeModule = loadRequired(nodeModuleFile, "node module");
+        List<File> nodeModuleFiles = new ArrayList<>();
+        List<Properties> nodeModules = new ArrayList<>();
+        for (String moduleReference : moduleReferences) {
+            File nodeModuleFile = resolveRelative(masterFile.getParentFile(), moduleReference);
+            Properties nodeModule = loadRequired(nodeModuleFile, "node module");
+            nodeModuleFiles.add(nodeModuleFile);
+            nodeModules.add(nodeModule);
+        }
 
-        Properties rawEffective = merge(defaults, master, nodeModule, local);
+        Properties rawEffective = merge(defaults, master);
+        for (Properties nodeModule : nodeModules) {
+            rawEffective.putAll(nodeModule);
+        }
+        rawEffective.putAll(local);
         DatabaseSettings.applyLegacyCompatibility(rawEffective);
         File secretsFile = null;
         Properties effective = rawEffective;
@@ -88,8 +102,8 @@ public final class NodeProvisioner {
             effective = SecretResolver.resolve(rawEffective, secrets);
         }
 
-        return new ProvisioningResult(true, localFile, masterFile, nodeModuleFile,
-                secretsFile, local, master, nodeModule, rawEffective, effective);
+        return new ProvisioningResult(true, localFile, masterFile, nodeModuleFiles,
+                secretsFile, local, master, nodeModules, rawEffective, effective);
     }
 
     public static void provisionBootstrap(File localFile, File masterFile,
@@ -106,12 +120,14 @@ public final class NodeProvisioner {
         }
 
         Properties master = loadRequired(masterFile, "MASTER");
-        String moduleReference = trimToNull(master.getProperty(nodeModuleKey(normalizedNodeId)));
-        if (moduleReference == null) {
-            throw new IOException("MASTER does not define node module for " + normalizedNodeId);
+        List<String> moduleReferences = nodeModuleReferences(master, normalizedNodeId);
+        if (moduleReferences.isEmpty()) {
+            throw new IOException("MASTER does not define node modules for " + normalizedNodeId);
         }
-        File nodeModule = resolveRelative(masterFile.getParentFile(), moduleReference);
-        loadRequired(nodeModule, "node module");
+        for (String moduleReference : moduleReferences) {
+            File nodeModule = resolveRelative(masterFile.getParentFile(), moduleReference);
+            loadRequired(nodeModule, "node module");
+        }
 
         File parent = localFile.getAbsoluteFile().getParentFile();
         if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
@@ -129,6 +145,41 @@ public final class NodeProvisioner {
 
     public static String nodeModuleKey(String nodeId) {
         return NODE_MODULE_PREFIX + nodeId + NODE_MODULE_SUFFIX;
+    }
+
+    public static String nodeModulesKey(String nodeId) {
+        return NODE_MODULE_PREFIX + nodeId + NODE_MODULES_SUFFIX;
+    }
+
+    /**
+     * Returns the ordered module stack for one node. The plural key is the
+     * canonical form. The legacy singular key remains a transparent fallback.
+     */
+    public static List<String> nodeModuleReferences(Properties master, String nodeId) {
+        if (master == null) {
+            return Collections.emptyList();
+        }
+        String id = trimToNull(nodeId);
+        if (id == null) {
+            return Collections.emptyList();
+        }
+
+        String configured = trimToNull(master.getProperty(nodeModulesKey(id)));
+        if (configured == null) {
+            configured = trimToNull(master.getProperty(nodeModuleKey(id)));
+        }
+        if (configured == null) {
+            return Collections.emptyList();
+        }
+
+        List<String> result = new ArrayList<>();
+        for (String token : configured.split("[,;]+")) {
+            String reference = trimToNull(token);
+            if (reference != null) {
+                result.add(reference);
+            }
+        }
+        return Collections.unmodifiableList(result);
     }
 
     private static Properties loadIfPresent(File file) throws IOException {

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
@@ -254,9 +255,9 @@ public class AppConfig implements AppProperties {
             dirtyProperties.clear();
             if (provisioningResult.isProvisioned()) {
                 logger.log(Level.INFO,
-                        "Provisioned KylGis node using MASTER {0} and module {1}",
+                        "Provisioned KylGis node using MASTER {0} and modules {1}",
                         new Object[]{provisioningResult.getMasterFile(),
-                            provisioningResult.getNodeModuleFile()});
+                            provisioningResult.getNodeModuleFiles()});
             }
         } catch (IOException ex) {
             provisioningResult = null;
@@ -307,6 +308,11 @@ public class AppConfig implements AppProperties {
 
     public File getNodeModuleFile() {
         return isProvisioned() ? provisioningResult.getNodeModuleFile() : null;
+    }
+
+    public List<File> getNodeModuleFiles() {
+        return isProvisioned() ? provisioningResult.getNodeModuleFiles()
+                : java.util.Collections.<File>emptyList();
     }
 
     private void saveNodeOverrides() throws IOException {

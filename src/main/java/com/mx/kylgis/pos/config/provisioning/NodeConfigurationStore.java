@@ -14,13 +14,16 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Storage facade used by the node administration UI.
  *
- * It edits only node modules. MASTER ownership and secrets stay separate.
+ * It composes ordered node modules and edits only the final node overlay.
+ * MASTER ownership, shared modules and secrets stay separate.
  */
 public final class NodeConfigurationStore {
 
@@ -65,17 +68,25 @@ public final class NodeConfigurationStore {
 
     public List<String> listNodeIds() throws IOException {
         Properties master = loadRequired(masterFile, "MASTER");
-        List<String> result = new ArrayList<>();
+        Set<String> ids = new LinkedHashSet<>();
         for (String key : master.stringPropertyNames()) {
+            String suffix = null;
             if (key.startsWith(NodeProvisioner.NODE_MODULE_PREFIX)
+                    && key.endsWith(NodeProvisioner.NODE_MODULES_SUFFIX)) {
+                suffix = NodeProvisioner.NODE_MODULES_SUFFIX;
+            } else if (key.startsWith(NodeProvisioner.NODE_MODULE_PREFIX)
                     && key.endsWith(NodeProvisioner.NODE_MODULE_SUFFIX)) {
+                suffix = NodeProvisioner.NODE_MODULE_SUFFIX;
+            }
+            if (suffix != null) {
                 String id = key.substring(NodeProvisioner.NODE_MODULE_PREFIX.length(),
-                        key.length() - NodeProvisioner.NODE_MODULE_SUFFIX.length());
+                        key.length() - suffix.length());
                 if (!id.trim().isEmpty()) {
-                    result.add(id);
+                    ids.add(id);
                 }
             }
         }
+        List<String> result = new ArrayList<>(ids);
         Collections.sort(result);
         return result;
     }
@@ -83,18 +94,21 @@ public final class NodeConfigurationStore {
     public NodeDefinition loadNode(String nodeId) throws IOException {
         String id = normalizeNodeId(nodeId);
         Properties master = loadRequired(masterFile, "MASTER");
-        File moduleFile = resolveModuleFile(master, id);
-        Properties module = loadRequired(moduleFile, "node module");
+        List<File> moduleFiles = resolveModuleFiles(master, id);
+        List<Properties> modules = loadModules(moduleFiles);
         Properties effective = new Properties();
         effective.putAll(master);
-        effective.putAll(module);
+        for (Properties module : modules) {
+            effective.putAll(module);
+        }
+        Properties writableModule = modules.get(modules.size() - 1);
 
-        return new NodeDefinition(id, moduleFile,
-                value(module, "node.roles"),
-                value(module, "node.profile"),
-                value(module, "database.server"),
-                value(module, "database.port"),
-                value(module, "database.name"),
+        return new NodeDefinition(id, moduleFiles,
+                value(effective, "node.roles"),
+                value(effective, "node.profile"),
+                value(writableModule, "database.server"),
+                value(writableModule, "database.port"),
+                value(writableModule, "database.name"),
                 value(effective, "database.server"),
                 value(effective, "database.port"),
                 value(effective, "database.name"));
@@ -105,15 +119,16 @@ public final class NodeConfigurationStore {
             String databaseNameOverride) throws IOException {
         String id = normalizeNodeId(nodeId);
         Properties master = loadRequired(masterFile, "MASTER");
-        File moduleFile = resolveModuleFile(master, id);
-        Properties module = loadRequired(moduleFile, "node module");
+        List<File> moduleFiles = resolveModuleFiles(master, id);
+        File moduleFile = moduleFiles.get(moduleFiles.size() - 1);
+        Properties module = loadRequired(moduleFile, "writable node module");
 
         putOrRemove(module, "node.roles", roles);
         putOrRemove(module, "node.profile", profile);
         putOrRemove(module, "database.server", databaseServerOverride);
         putOrRemove(module, "database.port", databasePortOverride);
         putOrRemove(module, "database.name", databaseNameOverride);
-        atomicStore(moduleFile, module, "KylGis POS node module: " + id);
+        atomicStore(moduleFile, module, "KylGis POS node overlay: " + id);
     }
 
     public File provisionBootstrap(String nodeId, boolean overwrite) throws IOException {
@@ -138,15 +153,26 @@ public final class NodeConfigurationStore {
         return new File(bootstrapDirectory, normalizeNodeId(nodeId) + ".properties");
     }
 
-    private File resolveModuleFile(Properties master, String nodeId) throws IOException {
-        String key = NodeProvisioner.nodeModuleKey(nodeId);
-        String reference = trimToNull(master.getProperty(key));
-        if (reference == null) {
-            throw new IOException("MASTER does not define " + key);
+    private List<File> resolveModuleFiles(Properties master, String nodeId) throws IOException {
+        List<String> references = NodeProvisioner.nodeModuleReferences(master, nodeId);
+        if (references.isEmpty()) {
+            throw new IOException("MASTER does not define modules for node " + nodeId);
         }
-        File candidate = new File(reference);
-        return candidate.isAbsolute() ? candidate
-                : new File(masterFile.getParentFile(), reference).getAbsoluteFile();
+        List<File> files = new ArrayList<>();
+        for (String reference : references) {
+            File candidate = new File(reference);
+            files.add(candidate.isAbsolute() ? candidate
+                    : new File(masterFile.getParentFile(), reference).getAbsoluteFile());
+        }
+        return files;
+    }
+
+    private static List<Properties> loadModules(List<File> files) throws IOException {
+        List<Properties> modules = new ArrayList<>();
+        for (File file : files) {
+            modules.add(loadRequired(file, "node module"));
+        }
+        return modules;
     }
 
     private static Properties loadRequired(File file, String label) throws IOException {
@@ -221,7 +247,7 @@ public final class NodeConfigurationStore {
 
     public static final class NodeDefinition {
         private final String nodeId;
-        private final File moduleFile;
+        private final List<File> moduleFiles;
         private final String roles;
         private final String profile;
         private final String databaseServerOverride;
@@ -231,13 +257,13 @@ public final class NodeConfigurationStore {
         private final String effectiveDatabasePort;
         private final String effectiveDatabaseName;
 
-        private NodeDefinition(String nodeId, File moduleFile, String roles,
+        private NodeDefinition(String nodeId, List<File> moduleFiles, String roles,
                 String profile, String databaseServerOverride,
                 String databasePortOverride, String databaseNameOverride,
                 String effectiveDatabaseServer, String effectiveDatabasePort,
                 String effectiveDatabaseName) {
             this.nodeId = nodeId;
-            this.moduleFile = moduleFile;
+            this.moduleFiles = Collections.unmodifiableList(new ArrayList<>(moduleFiles));
             this.roles = roles;
             this.profile = profile;
             this.databaseServerOverride = databaseServerOverride;
@@ -249,7 +275,10 @@ public final class NodeConfigurationStore {
         }
 
         public String getNodeId() { return nodeId; }
-        public File getModuleFile() { return moduleFile; }
+        public File getModuleFile() {
+            return moduleFiles.get(moduleFiles.size() - 1);
+        }
+        public List<File> getModuleFiles() { return moduleFiles; }
         public String getRoles() { return roles; }
         public String getProfile() { return profile; }
         public String getDatabaseServerOverride() { return databaseServerOverride; }
