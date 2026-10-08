@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.launcher;
 
 import com.mx.kylgis.pos.forms.AppConfig;
+import com.mx.kylgis.pos.config.provisioning.BundleIntegrity;
 import com.mx.kylgis.pos.node.NodeContext;
 import com.mx.kylgis.pos.node.NodeRole;
 import com.mx.kylgis.pos.runtime.RuntimeCapability;
@@ -36,6 +37,22 @@ public final class KylGisCheck {
             line("os.arch", System.getProperty("os.arch"));
             line("java.version", System.getProperty("java.version"));
             line("provisioning", provisioning(config));
+
+            String bundleDir = System.getProperty("kylgis.bundle.dir");
+            if (bundleDir != null && !bundleDir.trim().isEmpty()) {
+                BundleIntegrity.Verification integrity = BundleIntegrity.verify(new File(bundleDir.trim()));
+                if (!integrity.isPresent()) {
+                    line("bundle.integrity", "MISSING");
+                    System.out.println("result=FAIL:bundle-manifest-missing");
+                    return 1;
+                }
+                if (!integrity.isValid()) {
+                    line("bundle.integrity", "FAIL:" + integrity.getProblems());
+                    System.out.println("result=FAIL:bundle-integrity");
+                    return 1;
+                }
+                line("bundle.integrity", "OK");
+            }
 
             RuntimeCapabilityRegistry registry = RuntimeCapabilityRegistry.defaults();
             File modules = KylGisRuntime.resolveModulesDirectory(config);

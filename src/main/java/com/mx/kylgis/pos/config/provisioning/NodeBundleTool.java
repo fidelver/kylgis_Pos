@@ -73,6 +73,7 @@ public final class NodeBundleTool {
 
         writeLaunchers(output);
         writeCheckLaunchers(output);
+        BundleIntegrity.write(output);
     }
 
     private static void writeLaunchers(File output) throws IOException {
@@ -114,7 +115,7 @@ public final class NodeBundleTool {
         File sh = new File(output, "check.sh");
         String shell = "#!/usr/bin/env sh\n"
                 + "DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\n"
-                + "exec java \"-Ddirname.path=$DIR/\" -cp \"$DIR/kylgispos.jar:$DIR/lib/*\" "
+                + "exec java \"-Ddirname.path=$DIR/\" \"-Dkylgis.bundle.dir=$DIR\" -cp \"$DIR/kylgispos.jar:$DIR/lib/*\" "
                 + "com.mx.kylgis.pos.launcher.KylGisCheck \"$DIR/config/node.properties\" \"$@\"\n";
         Files.write(sh.toPath(), shell.getBytes(StandardCharsets.UTF_8));
         sh.setExecutable(true, true);
@@ -122,7 +123,7 @@ public final class NodeBundleTool {
         File cmd = new File(output, "check.cmd");
         String windows = "@echo off\r\n"
                 + "set \"DIR=%~dp0\"\r\n"
-                + "java \"-Ddirname.path=%DIR%\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
+                + "java \"-Ddirname.path=%DIR%\" \"-Dkylgis.bundle.dir=%DIR%\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
                 + "com.mx.kylgis.pos.launcher.KylGisCheck \"%DIR%config\\node.properties\" %*\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
     }
