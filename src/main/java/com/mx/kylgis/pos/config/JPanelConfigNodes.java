@@ -7,6 +7,7 @@ import com.mx.kylgis.pos.config.provisioning.NodeConfigurationStore.NodeDefiniti
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.node.NodeContext;
 import com.mx.kylgis.pos.node.NodeRole;
+import com.mx.kylgis.pos.node.NodeRolePolicy;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
@@ -295,9 +296,11 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     }
 
     private void validateFields() {
-        if (selectedRoles().isEmpty()) {
+        EnumSet<NodeRole> selected = selectedRoleSet();
+        if (selected.isEmpty()) {
             throw new IllegalArgumentException("El nodo debe tener al menos una función");
         }
+        NodeRolePolicy.validate(selected);
         String port = dbPort.getText().trim();
         if (!port.isEmpty()) {
             int number;
@@ -445,14 +448,20 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         provisionButton.setEnabled(enabled);
     }
 
-    private String selectedRoles() {
-        StringBuilder result = new StringBuilder();
+    private EnumSet<NodeRole> selectedRoleSet() {
+        EnumSet<NodeRole> selected = EnumSet.noneOf(NodeRole.class);
         for (NodeRole role : NodeRole.values()) {
             JCheckBox check = roleChecks.get(role);
-            if (check != null && check.isSelected()) {
-                if (result.length() > 0) result.append(',');
-                result.append(role.getPropertyValue());
-            }
+            if (check != null && check.isSelected()) selected.add(role);
+        }
+        return selected;
+    }
+
+    private String selectedRoles() {
+        StringBuilder result = new StringBuilder();
+        for (NodeRole role : selectedRoleSet()) {
+            if (result.length() > 0) result.append(',');
+            result.append(role.getPropertyValue());
         }
         return result.toString();
     }

@@ -83,6 +83,7 @@ public final class NodeContext {
             resolvedRoles.add(NodeRole.POS);
         }
 
+        NodeRolePolicy.validate(resolvedRoles);
         return new NodeContext(resolvedId, profile, resolvedRoles, hasExplicitId, hasExplicitRoles);
     }
 
