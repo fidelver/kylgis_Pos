@@ -10,6 +10,7 @@ import com.mx.kylgis.pos.runtime.RuntimeCapability;
 import com.mx.kylgis.pos.runtime.RuntimeCapabilityRegistry;
 import com.mx.kylgis.pos.runtime.RuntimeHandle;
 import com.mx.kylgis.pos.runtime.RuntimeLaunchContext;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,6 +39,10 @@ public final class KylGisRuntime {
         NodeContext nodeContext = NodeContext.from(config);
         RuntimeLaunchContext launchContext = new RuntimeLaunchContext(config, nodeContext);
         RuntimeCapabilityRegistry registry = RuntimeCapabilityRegistry.defaults();
+        File modulesDirectory = resolveModulesDirectory(config);
+        if (modulesDirectory != null) {
+            registry.discoverModules(modulesDirectory);
+        }
         LOG.log(Level.INFO, "Starting KylGis runtime for {0}", nodeContext);
 
         List<RuntimeCapability> selected = selectCapabilities(nodeContext, registry);
@@ -97,6 +102,21 @@ public final class KylGisRuntime {
             }
         });
         return selected;
+    }
+
+    private static File resolveModulesDirectory(AppConfig config) {
+        String configured = config.getProperty("runtime.modules.dir");
+        if (configured == null || configured.trim().isEmpty()) return null;
+        String path = configured.trim();
+        if (path.startsWith("~/") || path.startsWith("~\\")) {
+            return new File(System.getProperty("user.home"), path.substring(2)).getAbsoluteFile();
+        }
+        File candidate = new File(path);
+        if (candidate.isAbsolute()) return candidate;
+        File base = config.isProvisioned() && config.getMasterConfigFile() != null
+                ? config.getMasterConfigFile().getAbsoluteFile().getParentFile()
+                : config.getConfigFile().getAbsoluteFile().getParentFile();
+        return new File(base == null ? new File(".") : base, path).getAbsoluteFile();
     }
 
     private static boolean hasUiCapability(List<RuntimeCapability> capabilities) {
