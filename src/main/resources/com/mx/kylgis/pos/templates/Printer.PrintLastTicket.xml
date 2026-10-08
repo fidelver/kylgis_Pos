@@ -29,7 +29,7 @@
         <line><text align="center" length="20">Gracias</text></line>
     </display>
 
-    <ticket printer="1">
+    <ticket printer="$config.getProperty('ticket.printer')">
         #set ($ancho = 32)
         #if ($config.getProperty("ticket.width"))
             #set ($ancho = $config.getProperty("ticket.width"))

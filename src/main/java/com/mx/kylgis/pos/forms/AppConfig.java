@@ -427,6 +427,7 @@ public class AppConfig implements AppProperties {
         m_propsconfig.setProperty("screen.receipt.columns", "31");        
         m_propsconfig.setProperty("ticket.paper.size", "58");
         m_propsconfig.setProperty("ticket.width", "32");
+        m_propsconfig.setProperty("ticket.printer", "1");
         m_propsconfig.setProperty("screen.ticket.enabled", "true");
         m_propsconfig.setProperty("digital.ticket.enabled", "false");
         m_propsconfig.setProperty("digital.ticket.path", new File(System.getProperty("user.home"), "KylGisPOS").getPath());

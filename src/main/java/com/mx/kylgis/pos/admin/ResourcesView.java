@@ -27,6 +27,7 @@ import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.data.user.EditorRecord;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.printer.TicketTemplateValidator;
 import com.mx.kylgis.pos.util.Base64Encoder;
 import java.awt.CardLayout;
 import java.awt.Component;
@@ -191,6 +192,7 @@ public final class ResourcesView extends JPanel implements EditorRecord {
         ResourceType restype = (ResourceType) m_ResourceModel.getSelectedItem();
         resource[2] = restype.getKey();
         if (restype == ResourceType.TEXT) {
+            TicketTemplateValidator.validateForSave(m_jName.getText(), m_jText.getText());
             resource[3] = Formats.BYTEA.parseValue(m_jText.getText());
         } else if (restype == ResourceType.IMAGE) {
             resource[3] = ImageUtils.writeImage(m_jImage.getImage());

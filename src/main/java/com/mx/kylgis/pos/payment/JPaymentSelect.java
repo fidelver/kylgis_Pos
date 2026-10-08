@@ -118,6 +118,17 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         return printselected;
     }
 
+    private void applyReceiptPrintPolicy() {
+        boolean printingDisabled = Boolean.parseBoolean(
+                app.getProperties().getProperty("till.receiptprintoff"));
+        if (printingDisabled) {
+            printselected = false;
+        }
+        m_jButtonPrint.setSelected(printselected);
+        m_jButtonPrint.setEnabled(!printingDisabled);
+        jlblPrinterStatus.setText(printselected ? "Printer ON" : "Printer OFF");
+    }
+
     public List<PaymentInfo> getSelectedPayments() {
         return m_aPaymentInfo.getPayments();
     }
@@ -132,8 +143,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         m_dTotal = total;
         
         this.customerext = customerext;        
-        m_jButtonPrint.setVisible(true);        
-        m_jButtonPrint.setSelected(printselected);
+        m_jButtonPrint.setVisible(true);
+        applyReceiptPrintPolicy();
         m_jTotalEuros.setText(Formats.CURRENCY.formatValue(m_dTotal));
         
         addTabs();
@@ -159,15 +170,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         
         this.customerext = customerext;        
 
-        setPrintSelected(!Boolean.parseBoolean(app.getProperties().getProperty("till.receiptprintoff")));
-        m_jButtonPrint.setSelected(printselected);
+        applyReceiptPrintPolicy();
         m_jTotalEuros.setText(Formats.CURRENCY.formatValue(m_dTotal));
-        
-        if (printselected) {
-            jlblPrinterStatus.setText("Printer ON");            
-        } else {
-            jlblPrinterStatus.setText("Printer OFF");
-        }         
         
  //       m_jPayTotal.setText(Formats.CURRENCY.formatValue(m_dTotal));
         

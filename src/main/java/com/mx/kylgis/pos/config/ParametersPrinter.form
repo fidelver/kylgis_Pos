@@ -61,7 +61,7 @@
         </Property>
         <Property name="selected" type="boolean" value="true"/>
         <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-          <ResourceString bundle="pos_messages.properties" key="label.receiptprinter" replaceFormat="AppLocal.getIntString(&quot;label.receiptprinter&quot;)"/>
+          <ResourceString bundle="pos_messages.properties" key="label.receiptpaperprofile" replaceFormat="AppLocal.getIntString(&quot;label.receiptpaperprofile&quot;)"/>
         </Property>
         <Property name="opaque" type="boolean" value="false"/>
       </Properties>

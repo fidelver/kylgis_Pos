@@ -21,6 +21,7 @@
 package com.mx.kylgis.pos.scripting;
 
 import com.mx.kylgis.pos.forms.AppView;
+import com.mx.kylgis.pos.forms.AppConfig;
 // import com.mx.kylgis.pos.util.ScriptletUtil;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -68,7 +69,8 @@ class ScriptEngineVelocity implements ScriptEngine {
                 throw new ScriptException("Cannot initialize Velocity Engine", e);
             } 
         }
-         c = new VelocityContext();     
+         c = new VelocityContext();
+         c.put("config", AppConfig.getInstance());
 
 // Add JG uniCenta - see com.mx.kylgis.pos.ScriptletUtil
 //         this.put("scriptletutil", new ScriptletUtil());                        

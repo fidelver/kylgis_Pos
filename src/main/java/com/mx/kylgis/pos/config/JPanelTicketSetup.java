@@ -59,6 +59,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private javax.swing.JCheckBox digitalMirrorCheck;
     private javax.swing.JTextField digitalMirrorPath;
     private javax.swing.JButton digitalMirrorBrowse;
+    private javax.swing.JComboBox<String> receiptPrinterRoute;
     
     /**
      *
@@ -109,6 +110,10 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         outputs.add(note, java.awt.BorderLayout.NORTH);
 
         javax.swing.JPanel checks = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        receiptPrinterRoute = new javax.swing.JComboBox<>(new String[]{
+                "Printer 1", "Printer 2", "Printer 3", "Printer 4", "Printer 5", "Printer 6"});
+        checks.add(new javax.swing.JLabel("Impresora lógica del recibo:"));
+        checks.add(receiptPrinterRoute);
         screenMirrorCheck = new javax.swing.JCheckBox("Mostrar copia del recibo en pantalla");
         digitalMirrorCheck = new javax.swing.JCheckBox("Generar ticket digital");
         checks.add(screenMirrorCheck);
@@ -123,6 +128,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         path.add(digitalMirrorBrowse, java.awt.BorderLayout.EAST);
         outputs.add(path, java.awt.BorderLayout.SOUTH);
 
+        receiptPrinterRoute.addActionListener(dirty);
         screenMirrorCheck.addActionListener(dirty);
         digitalMirrorCheck.addActionListener(dirty);
         digitalMirrorCheck.addActionListener(e -> updateDigitalControls());
@@ -136,6 +142,22 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         ticketSetupContainer.add(outputs, java.awt.BorderLayout.SOUTH);
         ticketSetupContainer.setPreferredSize(new java.awt.Dimension(700, 500));
         updateDigitalControls();
+    }
+
+    private static String normalizeReceiptPrinter(String value) {
+        if (value != null && value.trim().matches("[1-6]")) {
+            return value.trim();
+        }
+        return "1";
+    }
+
+    private String selectedReceiptPrinter() {
+        Object selected = receiptPrinterRoute == null ? null : receiptPrinterRoute.getSelectedItem();
+        if (selected != null) {
+            String value = selected.toString().replace("Printer", "").trim();
+            return normalizeReceiptPrinter(value);
+        }
+        return "1";
     }
 
     private void updateDigitalControls() {
@@ -209,6 +231,8 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
              loadingTicketFormat = false;
          }
 
+        String receiptPrinter = normalizeReceiptPrinter(config.getProperty("ticket.printer"));
+        receiptPrinterRoute.setSelectedItem("Printer " + receiptPrinter);
         screenMirrorCheck.setSelected(Boolean.parseBoolean(config.getProperty("screen.ticket.enabled")));
         digitalMirrorCheck.setSelected(Boolean.parseBoolean(config.getProperty("digital.ticket.enabled")));
         String mirrorPath = config.getProperty("digital.ticket.path");
@@ -245,6 +269,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         config.setProperty("till.receiptprintoff",Boolean.toString(m_jReceiptPrintOff.isSelected()));
         config.setProperty("ticket.paper.size", TicketFormatSettings.getPaperSize());
         config.setProperty("ticket.width", Integer.toString(TicketFormatSettings.getWidth()));
+        config.setProperty("ticket.printer", selectedReceiptPrinter());
         config.setProperty("screen.ticket.enabled", Boolean.toString(screenMirrorCheck.isSelected()));
         config.setProperty("digital.ticket.enabled", Boolean.toString(digitalMirrorCheck.isSelected()));
         String mirrorPath = digitalMirrorPath.getText() == null ? "" : digitalMirrorPath.getText().trim();

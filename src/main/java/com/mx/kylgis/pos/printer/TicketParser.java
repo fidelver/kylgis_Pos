@@ -81,6 +81,7 @@ public class TicketParser extends DefaultHandler {
     private static final int OUTPUT_FISCAL = 3;
     private DevicePrinter m_oOutputPrinter;
     private DevicePrinter m_outputOverride;
+    private String m_outputOverridePrinterIndex;
     private DateFormat df= new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     private Date today;
     private String cUser;
@@ -107,11 +108,13 @@ public class TicketParser extends DefaultHandler {
     public void printTicket(String sIn, TicketInfo ticket) throws TicketPrinterException {
         prepareDocumentContext(ticket);
         m_outputOverride = null;
+        m_outputOverridePrinterIndex = null;
         try {
             printTicket(new StringReader(sIn));
         } finally {
             documentTicket = null;
             m_outputOverride = null;
+            m_outputOverridePrinterIndex = null;
         }
     }
 
@@ -126,11 +129,13 @@ public class TicketParser extends DefaultHandler {
     public void printTicketPreview(String sIn, TicketInfo ticket) throws TicketPrinterException {
         prepareDocumentContext(ticket);
         m_outputOverride = m_printer.getPreviewPrinter();
+        m_outputOverridePrinterIndex = null;
         try {
             printTicket(new StringReader(sIn));
         } finally {
             documentTicket = null;
             m_outputOverride = null;
+            m_outputOverridePrinterIndex = null;
         }
     }
 
@@ -141,11 +146,13 @@ public class TicketParser extends DefaultHandler {
     public void printCurrentTicket(String sIn, TicketInfo ticket) throws TicketPrinterException {
         prepareDocumentContext(ticket);
         m_outputOverride = m_printer.getCurrentTicketPrinter();
+        m_outputOverridePrinterIndex = m_printer.getReceiptPrinterIndex();
         try {
             printTicket(new StringReader(sIn));
         } finally {
             documentTicket = null;
             m_outputOverride = null;
+            m_outputOverridePrinterIndex = null;
         }
     }
 
@@ -243,10 +250,20 @@ public class TicketParser extends DefaultHandler {
                 if (printerIndex == null || printerIndex.trim().isEmpty()) {
                     throw new SAXException("El elemento <ticket> requiere el atributo printer.");
                 }
+                printerIndex = printerIndex.trim();
+                if (!printerIndex.matches("[1-6]")) {
+                    throw new SAXException("El atributo printer debe tener un valor entre 1 y 6.");
+                }
+                if (m_outputOverridePrinterIndex != null
+                        && !m_outputOverridePrinterIndex.equals(printerIndex)) {
+                    throw new SAXException("La plantilla solicita Printer " + printerIndex
+                            + " pero el recibo está configurado para Printer "
+                            + m_outputOverridePrinterIndex + ".");
+                }
                 m_iOutputType = OUTPUT_TICKET;
                 m_oOutputPrinter = m_outputOverride != null
                         ? m_outputOverride
-                        : m_printer.getDevicePrinter(printerIndex.trim());
+                        : m_printer.getDevicePrinter(printerIndex);
                 m_oOutputPrinter.setDocumentContext(documentTicket);
                 m_oOutputPrinter.beginReceipt();
                 break;

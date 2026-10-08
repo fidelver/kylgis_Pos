@@ -113,7 +113,7 @@ public class ParametersPrinter extends javax.swing.JPanel implements ParametersC
 
         jReceiptPrinter.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jReceiptPrinter.setSelected(true);
-        jReceiptPrinter.setText(AppLocal.getIntString("label.receiptprinter")); // NOI18N
+        jReceiptPrinter.setText(AppLocal.getIntString("label.receiptpaperprofile")); // NOI18N
         jReceiptPrinter.setOpaque(false);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);

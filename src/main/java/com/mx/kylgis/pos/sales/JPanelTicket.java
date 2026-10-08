@@ -1820,7 +1820,7 @@ System.out.println("PanelContainer : Focus Lost");
                             executeEvent(ticket, ticketext, "ticket.close", 
                                     new ScriptArg("print", paymentdialog.isPrintSelected()));
 
-                                printTicket(paymentdialog.isPrintSelected() || warrantyPrint
+                                printTicket(paymentdialog.isPrintSelected()
                                     ? "Printer.Ticket"
                                     : "Printer.Ticket2", ticket, ticketext);  
                                     Notify(AppLocal.getIntString("notify.printing"));                 
@@ -1980,7 +1980,7 @@ System.out.println("PanelContainer : Focus Lost");
             script.put("warranty", warrantyPrint);
             script.put("pickupid", getPickupString(m_oTicket));
 
-            m_TTP.printTicket(script.eval(sresource).toString(), m_oTicket);
+            m_TTP.printCurrentTicket(script.eval(sresource).toString(), m_oTicket);
             Notify(AppLocal.getIntString("notify.printed"));
         } catch (ScriptException | TicketPrinterException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,

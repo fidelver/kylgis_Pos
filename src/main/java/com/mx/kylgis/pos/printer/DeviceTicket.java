@@ -52,6 +52,7 @@ public class DeviceTicket {
     private DevicePrinter m_nullprinter;
     private DevicePrinter m_previewprinter;
     private DevicePrinter m_currentticketprinter;
+    private String m_receiptprinterindex = "1";
     private Map<String, DevicePrinter> m_deviceprinters;
     private List<DevicePrinter> m_deviceprinterslist;
 
@@ -151,6 +152,8 @@ public class DeviceTicket {
         m_nullprinter = new DevicePrinterNull();
         m_previewprinter = m_nullprinter;
         m_currentticketprinter = m_nullprinter;
+        m_receiptprinterindex = normalizeReceiptPrinter(props.getProperty("ticket.printer"));
+        boolean receiptPrintDisabled = Boolean.parseBoolean(props.getProperty("till.receiptprintoff"));
 
         m_deviceprinters = new HashMap<>();
         m_deviceprinterslist = new ArrayList<>();
@@ -277,13 +280,13 @@ public class DeviceTicket {
             sprinter = props.getProperty("machine.printer." + sPrinterIndex);
         }
 
-        // Printer 1 es la cola principal de recibos. Las salidas espejo no
-        // consumen posiciones 2-6 ni requieren cambios en las plantillas.
-        DevicePrinter primary = m_deviceprinters.get("1");
+        // La cola lógica principal del recibo se configura con ticket.printer.
+        // El valor por defecto sigue siendo Printer 1 para compatibilidad.
+        DevicePrinter primary = m_deviceprinters.get(m_receiptprinterindex);
         if (primary == null) {
             primary = m_nullprinter;
         }
-        m_currentticketprinter = primary;
+        m_currentticketprinter = receiptPrintDisabled ? m_nullprinter : primary;
 
         if (screenMirrorEnabled || digitalMirrorEnabled) {
             int screenTicketColumns = 42;
@@ -304,9 +307,10 @@ public class DeviceTicket {
             // El boton de ticket actual usa las tres salidas del recibo:
             // virtual -> pantalla -> fisica. KitchenScreen sigue siendo una
             // accion independiente y no forma parte de esta cadena.
+            DevicePrinter currentPhysical = receiptPrintDisabled ? m_nullprinter : primary;
             m_currentticketprinter = (screenMirror != null || currentTicketDigitalMirror != null)
-                    ? new DevicePrinterMirror(primary, screenMirror, currentTicketDigitalMirror)
-                    : primary;
+                    ? new DevicePrinterMirror(currentPhysical, screenMirror, currentTicketDigitalMirror)
+                    : currentPhysical;
 
             DevicePrinter mirror = new DevicePrinterMirror(primary, screenMirror, digitalMirror);
 
@@ -316,8 +320,15 @@ public class DeviceTicket {
             } else {
                 m_deviceprinterslist.add(0, mirror);
             }
-            m_deviceprinters.put("1", mirror);
+            m_deviceprinters.put(m_receiptprinterindex, mirror);
         }
+    }
+
+    private static String normalizeReceiptPrinter(String value) {
+        if (value != null && value.trim().matches("[1-6]")) {
+            return value.trim();
+        }
+        return "1";
     }
 
     private void addPrinter(String sPrinterIndex, DevicePrinter p) {
@@ -397,6 +408,10 @@ public class DeviceTicket {
      */
     public DevicePrinter getCurrentTicketPrinter() {
         return m_currentticketprinter == null ? m_nullprinter : m_currentticketprinter;
+    }
+
+    public String getReceiptPrinterIndex() {
+        return m_receiptprinterindex;
     }
 
     /**
