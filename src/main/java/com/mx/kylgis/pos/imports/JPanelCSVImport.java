@@ -1756,7 +1756,7 @@ public class JPanelCSVImport extends JPanel implements JPanelView {
         resetFields();
         setWorker();        
 
-        JFileChooser chooser = new JFileChooser(last_folder == null ? "C:\\" : last_folder);
+        JFileChooser chooser = new JFileChooser(last_folder == null ? System.getProperty("user.home") : last_folder);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("csv files", "csv");
         chooser.setFileFilter(filter);
         chooser.showOpenDialog(null);

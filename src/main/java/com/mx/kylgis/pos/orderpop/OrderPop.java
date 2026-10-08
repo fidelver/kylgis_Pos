@@ -22,7 +22,6 @@ package com.mx.kylgis.pos.orderpop;
 
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.util.AltEncrypter;
-import com.sun.javafx.application.LauncherImpl;
 import javafx.application.Application;
 import javafx.collections.*;
 import javafx.concurrent.Task;

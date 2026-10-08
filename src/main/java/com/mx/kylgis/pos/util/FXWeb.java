@@ -36,7 +36,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import com.sun.javafx.application.PlatformImpl;
 
 /**
  * SwingFXWebView
@@ -106,7 +105,7 @@ public class FXWeb extends JPanel
      */
     private void createScene()
     {
-        PlatformImpl.startup(() -> {
+        Platform.runLater(() -> {
             FXWeb.this.stage = new Stage();
             FXWeb.this.stage.setTitle("Hello Java FX");
             FXWeb.this.stage.setResizable(true);
