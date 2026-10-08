@@ -22,6 +22,7 @@ package com.mx.kylgis.pos.scale;
 
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppProperties;
+import com.mx.kylgis.pos.hardware.HardwareOwnership;
 import com.mx.kylgis.pos.util.StringParser;
 import java.awt.Component;
 
@@ -41,6 +42,11 @@ public class DeviceScale {
         String sScaleType = sd.nextToken(':');
         String sScaleParam1 = sd.nextToken(',');
         // String sScaleParam2 = sd.nextToken(',');
+        boolean virtualScale = "fake".equals(sScaleType) || "screen".equals(sScaleType);
+        if (!virtualScale && !HardwareOwnership.canOpen(props, "scale")) {
+            m_scale = null;
+            return;
+        }
         switch (sScaleType) {
             case "acompc100":
                 m_scale = new ScaleAcomPC100(sScaleParam1);

@@ -21,6 +21,7 @@
 package com.mx.kylgis.pos.scanpal2;
 
 import com.mx.kylgis.pos.forms.AppProperties;
+import com.mx.kylgis.pos.hardware.HardwareOwnership;
 import com.mx.kylgis.pos.util.StringParser;
 
 /**
@@ -39,7 +40,9 @@ public class DeviceScannerFactory {
      * @return
      */
     public static DeviceScanner createInstance(AppProperties props) {
-        
+        if (!HardwareOwnership.canOpen(props, "scanner")) {
+            return null;
+        }
         StringParser sd = new StringParser(props.getProperty("machine.scanner"));
         String sScannerType = sd.nextToken(':');
         String sScannerParam1 = sd.nextToken(',');

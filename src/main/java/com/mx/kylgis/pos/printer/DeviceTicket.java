@@ -21,6 +21,7 @@
 package com.mx.kylgis.pos.printer;
 
 import com.mx.kylgis.pos.forms.AppProperties;
+import com.mx.kylgis.pos.hardware.HardwareOwnership;
 import com.mx.kylgis.pos.printer.escpos.*;
 import com.mx.kylgis.pos.printer.digital.DevicePrinterDigital;
 import com.mx.kylgis.pos.printer.javapos.DeviceDisplayJavaPOS;
@@ -91,8 +92,12 @@ public class DeviceTicket {
         StringParser sf = new StringParser(props.getProperty("machine.fiscalprinter"));
         String sFiscalType = sf.nextToken(':');
         String sFiscalParam1 = sf.nextToken(',');
+        boolean fiscalOwned = HardwareOwnership.canOpen(props, "fiscalprinter");
         try {
-            if ("javapos".equals(sFiscalType)) {
+            if (!fiscalOwned) {
+                logOwnershipDenied(props, "fiscalprinter");
+                m_deviceFiscal = new DeviceFiscalPrinterNull();
+            } else if ("javapos".equals(sFiscalType)) {
                 m_deviceFiscal = new DeviceFiscalPrinterJavaPOS(sFiscalParam1);
             } else {
                 m_deviceFiscal = new DeviceFiscalPrinterNull();
@@ -114,9 +119,13 @@ public class DeviceTicket {
             sDisplayType = "epson";
         }
 
+        boolean virtualDisplay = "screen".equals(sDisplayType) || "window".equals(sDisplayType);
+        boolean displayOwned = virtualDisplay || HardwareOwnership.canOpen(props, "display");
         try {
-         
-            switch (sDisplayType) {
+            if (!displayOwned) {
+                logOwnershipDenied(props, "display");
+                m_devicedisplay = new DeviceDisplayNull();
+            } else switch (sDisplayType) {
                 case "screen":
                     m_devicedisplay = new DeviceDisplayPanel();
                     break;
@@ -204,8 +213,13 @@ public class DeviceTicket {
                 sPrinterType = "epson";
             }
 
-            try {
-        
+            boolean virtualPrinter = "screen".equals(sPrinterType) || "digital".equals(sPrinterType);
+            boolean printerOwned = virtualPrinter
+                    || HardwareOwnership.canOpen(props, "printer." + sPrinterIndex);
+            if (!printerOwned) {
+                logOwnershipDenied(props, "printer." + sPrinterIndex);
+                addPrinter(sPrinterIndex, m_nullprinter);
+            } else try {
                 switch (sPrinterType) {
                     case "screen":
                         // Compatibilidad: screen deja de consumir una posición y pasa
@@ -322,6 +336,15 @@ public class DeviceTicket {
             }
             m_deviceprinters.put(m_receiptprinterindex, mirror);
         }
+    }
+
+    private static void logOwnershipDenied(AppProperties props, String deviceId) {
+        logger.log(Level.INFO,
+                "Hardware {0} not opened: owner={1}, currentNode={2}, service={3}",
+                new Object[]{deviceId,
+                    HardwareOwnership.getConfiguredOwner(props, deviceId),
+                    HardwareOwnership.getCurrentNodeId(props),
+                    HardwareOwnership.getCurrentServiceId(props)});
     }
 
     private static String normalizeReceiptPrinter(String value) {
