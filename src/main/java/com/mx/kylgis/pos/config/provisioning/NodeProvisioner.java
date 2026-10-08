@@ -7,6 +7,8 @@ package com.mx.kylgis.pos.config.provisioning;
 import com.mx.kylgis.pos.config.DatabaseSettings;
 import com.mx.kylgis.pos.config.remote.ConfigServiceConfig;
 import com.mx.kylgis.pos.config.remote.RemoteConfigClient;
+import com.mx.kylgis.pos.config.remote.RemoteConfigCache;
+import com.mx.kylgis.pos.config.remote.RemoteConfigException;
 import com.mx.kylgis.pos.forms.AppProperties;
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Resolves KylGis configuration layers for one node.
@@ -30,6 +34,8 @@ import java.util.Properties;
  * the topology and points to the ordered module stack associated with each node.
  */
 public final class NodeProvisioner {
+
+    private static final Logger LOGGER = Logger.getLogger(NodeProvisioner.class.getName());
 
     public static final String MASTER_KEY = "config.master";
     public static final String NODE_ID_KEY = "node.id";
@@ -134,10 +140,44 @@ public final class NodeProvisioner {
                     + " in " + localFile.getAbsolutePath());
         }
 
+        BootstrapProperties bootstrap = new BootstrapProperties(local, localFile);
         ConfigServiceConfig.RemoteEndpoint endpoint =
-                ConfigServiceConfig.remoteEndpoint(
-                        new BootstrapProperties(local, localFile));
-        Properties remote = RemoteConfigClient.fetch(endpoint, nodeId);
+                ConfigServiceConfig.remoteEndpoint(bootstrap);
+        boolean cacheEnabled = ConfigServiceConfig.remoteCacheEnabled(bootstrap);
+        boolean cacheFallback = false;
+        Properties remote;
+        try {
+            remote = RemoteConfigClient.fetch(endpoint, nodeId);
+            if (cacheEnabled) {
+                try {
+                    RemoteConfigCache.store(ConfigServiceConfig.remoteCacheFile(bootstrap),
+                            endpoint.getServiceId(), nodeId, endpoint.getToken(), remote);
+                } catch (IOException cacheEx) {
+                    LOGGER.log(Level.WARNING,
+                            "Remote configuration received but cache could not be updated", cacheEx);
+                }
+            }
+        } catch (RemoteConfigException authOrProtocolFailure) {
+            // Explicit rejection/authentication/protocol failures must never be
+            // bypassed using an older cached authorization.
+            throw authOrProtocolFailure;
+        } catch (IOException transportFailure) {
+            if (!cacheEnabled) throw transportFailure;
+            try {
+                RemoteConfigCache.CachedConfiguration cached = RemoteConfigCache.load(
+                        ConfigServiceConfig.remoteCacheFile(bootstrap),
+                        endpoint.getServiceId(), nodeId, endpoint.getToken(),
+                        ConfigServiceConfig.remoteCacheMaxAgeMs(bootstrap));
+                remote = cached.getProperties();
+                cacheFallback = true;
+                LOGGER.log(Level.WARNING,
+                        "Remote MASTER unavailable; using encrypted cached configuration from {0}",
+                        new java.util.Date(cached.getTimestamp()));
+            } catch (IOException cacheFailure) {
+                transportFailure.addSuppressed(cacheFailure);
+                throw transportFailure;
+            }
+        }
         Properties effective = merge(defaults, remote);
         effective.setProperty(NODE_ID_KEY, nodeId);
         DatabaseSettings.applyLegacyCompatibility(effective);
@@ -151,7 +191,7 @@ public final class NodeProvisioner {
             }
         }
 
-        return new ProvisioningResult(true, true, localFile, null,
+        return new ProvisioningResult(true, true, cacheFallback, localFile, null,
                 Collections.<File>emptyList(), null, safeLocal,
                 new Properties(), Collections.<Properties>emptyList(),
                 effective, effective);
@@ -320,6 +360,8 @@ public final class NodeProvisioner {
         bootstrap.setProperty(ConfigServiceConfig.REMOTE_HOST_KEY, normalizedHost);
         bootstrap.setProperty(ConfigServiceConfig.REMOTE_PORT_KEY, Integer.toString(port));
         bootstrap.setProperty(ConfigServiceConfig.REMOTE_TOKEN_KEY, normalizedToken);
+        bootstrap.setProperty(ConfigServiceConfig.REMOTE_CACHE_ENABLED_KEY, "true");
+        bootstrap.setProperty(ConfigServiceConfig.REMOTE_CACHE_MAXAGE_HOURS_KEY, "168");
         try (OutputStream out = new FileOutputStream(localFile)) {
             bootstrap.store(out, "KylGis remote node bootstrap. Contains enrolment credential.");
         }

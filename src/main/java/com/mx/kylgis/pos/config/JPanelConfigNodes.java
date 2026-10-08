@@ -461,11 +461,14 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             effectiveServer.setText(valueOrInherited(config.getProperty("database.server")));
             effectivePort.setText(valueOrInherited(config.getProperty("database.port")));
             effectiveDatabase.setText(valueOrInherited(config.getProperty("database.name")));
-            masterPath.setText("MASTER remoto");
+            masterPath.setText(config.isRemoteCacheFallback()
+                    ? "MASTER remoto (offline: cache cifrado)" : "MASTER remoto");
             modulePath.setText("Gestionados por MASTER remoto");
             bootstrapPath.setText(config.getConfigFile().getAbsolutePath());
             dirty = false;
-            status.setText("Modo consulta: configuración recibida desde MASTER remoto");
+            status.setText(config.isRemoteCacheFallback()
+                    ? "Modo consulta: MASTER remoto no disponible; usando última configuración válida"
+                    : "Modo consulta: configuración recibida desde MASTER remoto");
         } finally {
             loading = false;
         }

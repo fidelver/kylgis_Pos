@@ -254,8 +254,10 @@ public class AppConfig implements AppProperties {
             m_propsconfig = provisioningResult.getEffectiveProperties();
             dirtyProperties.clear();
             if (provisioningResult.isRemoteProvisioned()) {
-                logger.log(Level.INFO,
-                        "Provisioned KylGis node from encrypted remote MASTER: {0}",
+                logger.log(provisioningResult.isRemoteCacheFallback() ? Level.WARNING : Level.INFO,
+                        provisioningResult.isRemoteCacheFallback()
+                                ? "Remote MASTER unavailable; KylGis node started from encrypted cached configuration: {0}"
+                                : "Provisioned KylGis node from encrypted remote MASTER: {0}",
                         configfile.getAbsolutePath());
             } else if (provisioningResult.isProvisioned()) {
                 logger.log(Level.INFO,
@@ -309,6 +311,11 @@ public class AppConfig implements AppProperties {
     public boolean isRemoteProvisioned() {
         return provisioningResult != null
                 && provisioningResult.isRemoteProvisioned();
+    }
+
+    public boolean isRemoteCacheFallback() {
+        return provisioningResult != null
+                && provisioningResult.isRemoteCacheFallback();
     }
 
     public File getMasterConfigFile() {

@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.config.remote;
 
 import com.mx.kylgis.pos.forms.AppProperties;
+import java.io.File;
 
 /** Configuration keys for the encrypted MASTER provisioning service. */
 public final class ConfigServiceConfig {
@@ -11,6 +12,9 @@ public final class ConfigServiceConfig {
     public static final String REMOTE_HOST_KEY = "config.remote.host";
     public static final String REMOTE_PORT_KEY = "config.remote.port";
     public static final String REMOTE_TOKEN_KEY = "config.remote.token";
+    public static final String REMOTE_CACHE_ENABLED_KEY = "config.remote.cache.enabled";
+    public static final String REMOTE_CACHE_MAXAGE_HOURS_KEY = "config.remote.cache.maxage.hours";
+    public static final String REMOTE_CACHE_FILE_KEY = "config.remote.cache.file";
 
     private ConfigServiceConfig() { }
 
@@ -39,6 +43,29 @@ public final class ConfigServiceConfig {
         int port = intRange(required(p.getProperty(REMOTE_PORT_KEY), REMOTE_PORT_KEY), 1, 65535, REMOTE_PORT_KEY);
         String token = required(p.getProperty(REMOTE_TOKEN_KEY), REMOTE_TOKEN_KEY);
         return new RemoteEndpoint(id, host, port, token);
+    }
+
+    public static boolean remoteCacheEnabled(AppProperties p) {
+        String value = p.getProperty(REMOTE_CACHE_ENABLED_KEY);
+        return value == null || value.trim().isEmpty() || Boolean.parseBoolean(value.trim());
+    }
+
+    public static long remoteCacheMaxAgeMs(AppProperties p) {
+        String value = first(p.getProperty(REMOTE_CACHE_MAXAGE_HOURS_KEY), "168");
+        int hours = intRange(value, 1, 8760, REMOTE_CACHE_MAXAGE_HOURS_KEY);
+        return hours * 60L * 60L * 1000L;
+    }
+
+    public static File remoteCacheFile(AppProperties p) {
+        File bootstrap = p.getConfigFile();
+        String configured = p.getProperty(REMOTE_CACHE_FILE_KEY);
+        if (configured == null || configured.trim().isEmpty()) {
+            return new File(bootstrap.getAbsolutePath() + ".cache");
+        }
+        File candidate = new File(configured.trim());
+        if (candidate.isAbsolute()) return candidate;
+        File parent = bootstrap.getAbsoluteFile().getParentFile();
+        return new File(parent == null ? new File(".") : parent, configured.trim()).getAbsoluteFile();
     }
 
     private static int intRange(String value, int min, int max, String key) {

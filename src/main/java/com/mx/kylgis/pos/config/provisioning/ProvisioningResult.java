@@ -17,6 +17,7 @@ public final class ProvisioningResult {
 
     private final boolean provisioned;
     private final boolean remoteProvisioned;
+    private final boolean remoteCacheFallback;
     private final File localFile;
     private final File masterFile;
     private final List<File> nodeModuleFiles;
@@ -31,19 +32,20 @@ public final class ProvisioningResult {
             List<File> nodeModuleFiles, File secretsFile, Properties localProperties,
             Properties masterProperties, List<Properties> nodeModuleProperties,
             Properties rawEffectiveProperties, Properties effectiveProperties) {
-        this(provisioned, false, localFile, masterFile, nodeModuleFiles,
+        this(provisioned, false, false, localFile, masterFile, nodeModuleFiles,
                 secretsFile, localProperties, masterProperties,
                 nodeModuleProperties, rawEffectiveProperties,
                 effectiveProperties);
     }
 
     ProvisioningResult(boolean provisioned, boolean remoteProvisioned,
-            File localFile, File masterFile, List<File> nodeModuleFiles,
+            boolean remoteCacheFallback, File localFile, File masterFile, List<File> nodeModuleFiles,
             File secretsFile, Properties localProperties,
             Properties masterProperties, List<Properties> nodeModuleProperties,
             Properties rawEffectiveProperties, Properties effectiveProperties) {
         this.provisioned = provisioned;
         this.remoteProvisioned = remoteProvisioned;
+        this.remoteCacheFallback = remoteCacheFallback;
         this.localFile = localFile;
         this.masterFile = masterFile;
         this.nodeModuleFiles = copyFiles(nodeModuleFiles);
@@ -61,6 +63,10 @@ public final class ProvisioningResult {
 
     public boolean isRemoteProvisioned() {
         return remoteProvisioned;
+    }
+
+    public boolean isRemoteCacheFallback() {
+        return remoteCacheFallback;
     }
 
     public File getLocalFile() {
