@@ -95,6 +95,15 @@ public class AppConfig implements AppProperties {
     public String getProperty(String sKey) {
         return m_propsconfig.getProperty(sKey);
     }
+
+    /**
+     * Immutable-by-copy view used by isolated runtime capabilities. Secrets may
+     * be present because this is the already-authorized effective configuration;
+     * callers must keep it in memory and never persist it as a generated file.
+     */
+    public Properties getPropertiesSnapshot() {
+        return copyProperties(m_propsconfig);
+    }
     
     /**
      *
