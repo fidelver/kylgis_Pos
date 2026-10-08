@@ -95,9 +95,6 @@
                         <distributionFile>
                             <origin>../../target/start.sh</origin>
                         </distributionFile>
-                        <distributionFile>
-                            <origin>orderpop.bat</origin>
-                        </distributionFile>
                         <distributionDirectory>
                             <origin>../../target/Configs</origin>
                         </distributionDirectory>
@@ -153,16 +150,6 @@
                     <runAsAdmin>0</runAsAdmin>
                     <runInTerminal>0</runInTerminal>
                     <windowsExec>${installdir}/start.bat</windowsExec>
-                    <windowsExecArgs></windowsExecArgs>
-                    <windowsIcon>${installdir}/kylgispos.ico</windowsIcon>
-                    <windowsPath>${installdir}</windowsPath>
-                </startMenuShortcut>
-                <startMenuShortcut>
-                    <comment>Run KylGis POS Remote Order popup</comment>
-                    <name>Order Pop</name>
-                    <runAsAdmin>0</runAsAdmin>
-                    <runInTerminal>0</runInTerminal>
-                    <windowsExec>${installdir}/orderpop.bat</windowsExec>
                     <windowsExecArgs></windowsExecArgs>
                     <windowsIcon>${installdir}/kylgispos.ico</windowsIcon>
                     <windowsPath>${installdir}</windowsPath>

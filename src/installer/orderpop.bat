@@ -1,4 +1,0 @@
-@echo off
-set DIRNAME=%~dp0
-set CP="%DIRNAME%kylgispos.jar"
-start /B javaw -cp %CP% com.mx.kylgis.pos.orderpop.OrderPop
