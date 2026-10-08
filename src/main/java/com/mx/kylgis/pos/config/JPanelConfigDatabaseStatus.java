@@ -35,44 +35,22 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
     private static final Logger LOGGER = Logger.getLogger(JPanelConfigDatabaseStatus.class.getName());
 
     private final JLabel indicator = new JLabel("●", SwingConstants.CENTER);
-    private final JLabel status = new JLabel("Comprobando conexión...", SwingConstants.CENTER);
-    private final JLabel managed = new JLabel(
-            "Configuración automática administrada por KylGis MASTER",
-            SwingConstants.CENTER);
     private SwingWorker<Boolean, Void> worker;
 
     public JPanelConfigDatabaseStatus() {
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(70, 20, 70, 20));
 
-        JPanel center = new JPanel();
-        center.setLayout(new javax.swing.BoxLayout(center, javax.swing.BoxLayout.Y_AXIS));
-
-        indicator.setFont(new Font("SansSerif", Font.BOLD, 64));
+        indicator.setFont(new Font("SansSerif", Font.BOLD, 72));
         indicator.setForeground(Color.GRAY);
-        indicator.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        status.setFont(new Font("Arial", Font.BOLD, 20));
-        status.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        managed.setFont(new Font("Arial", Font.PLAIN, 13));
-        managed.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        center.add(javax.swing.Box.createVerticalGlue());
-        center.add(indicator);
-        center.add(javax.swing.Box.createVerticalStrut(8));
-        center.add(status);
-        center.add(javax.swing.Box.createVerticalStrut(8));
-        center.add(managed);
-        center.add(javax.swing.Box.createVerticalGlue());
-
-        add(center, BorderLayout.CENTER);
+        indicator.setToolTipText("Comprobando conexión con la base de datos");
+        add(indicator, BorderLayout.CENTER);
     }
 
     @Override
     public void loadProperties(final AppConfig config) {
         indicator.setForeground(Color.GRAY);
-        status.setText("Comprobando conexión...");
+        indicator.setToolTipText("Comprobando conexión con la base de datos");
 
         if (worker != null && !worker.isDone()) {
             worker.cancel(true);
@@ -96,7 +74,9 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
                     LOGGER.log(Level.WARNING, "Automatic database status check failed", ex);
                 }
                 indicator.setForeground(connected ? new Color(0, 140, 0) : Color.RED);
-                status.setText(connected ? "Conectado" : "Sin conexión");
+                indicator.setToolTipText(connected
+                        ? "Conexión con la base de datos establecida"
+                        : "Base de datos no disponible");
             }
         };
         worker.execute();
