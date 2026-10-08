@@ -23,6 +23,8 @@ package com.mx.kylgis.pos.scale;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.hardware.HardwareOwnership;
+import com.mx.kylgis.pos.scale.service.ScaleRemote;
+import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
 import com.mx.kylgis.pos.util.StringParser;
 import java.awt.Component;
 
@@ -38,6 +40,11 @@ public class DeviceScale {
      * @param parent
      * @param props */
     public DeviceScale(Component parent, AppProperties props) {
+        String remoteServiceId = ScaleServiceConfig.getServiceId(props);
+        if (remoteServiceId != null) {
+            m_scale = new ScaleRemote(ScaleServiceConfig.endpoint(props, remoteServiceId));
+            return;
+        }
         StringParser sd = new StringParser(props.getProperty("machine.scale"));
         String sScaleType = sd.nextToken(':');
         String sScaleParam1 = sd.nextToken(',');

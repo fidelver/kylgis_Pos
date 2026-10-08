@@ -4,6 +4,7 @@ package com.mx.kylgis.pos.hardware;
 
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
+import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
 import java.util.Locale;
 
 /** Preflight for legacy native hardware that still depends on RXTX. */
@@ -53,15 +54,27 @@ public final class NativeHardwareSupport {
         }
 
         String scale = properties.getProperty("machine.scale");
-        if (HardwareOwnership.canOpen(properties, "scale") && usesSerialScale(scale)) {
+        if (ScaleServiceConfig.getServiceId(properties) == null
+                && HardwareOwnership.canOpen(properties, "scale") && usesSerialScale(scale)) {
             throw unsupported("scale", scale, osName, arch,
-                    "Mueva la báscula a un nodo/servicio de hardware con driver compatible");
+                    "Configure device.scale.service para usar un servicio de báscula remoto");
         }
 
         String scanner = properties.getProperty("machine.scanner");
         if (HardwareOwnership.canOpen(properties, "scanner") && usesSerialScanner(scanner)) {
             throw unsupported("scanner", scanner, osName, arch,
                     "Mueva el scanner serie a un nodo/servicio de hardware con driver compatible");
+        }
+    }
+
+
+    public static void validateScaleService(AppProperties properties, String serviceId) {
+        if (isRxtxSupportedCurrentPlatform()) return;
+        String scale = properties == null ? null : properties.getProperty("machine.scale");
+        if (usesSerialScale(scale)) {
+            throw unsupported("scale", scale,
+                    System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
+                    "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
         }
     }
 

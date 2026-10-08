@@ -246,21 +246,51 @@ public final class NodeProvisioner {
     }
 
     /**
-     * MASTER service enrolment tokens are server-only credentials. They must
-     * never be resolved into ordinary POS/Kitchen nodes merely because the
-     * token aliases live in the common MASTER.
+     * Removes service credentials that the effective node is not authorized to
+     * consume. Filtering happens before SecretResolver so foreign aliases are
+     * never resolved from the secret store.
      */
     private static void stripRestrictedServiceCredentials(Properties properties) {
-        if (hasRole(properties, "master") && hasRole(properties, "server")) {
-            return;
-        }
         List<String> remove = new ArrayList<>();
+        boolean configServer = hasRole(properties, "master") && hasRole(properties, "server");
         for (String key : properties.stringPropertyNames()) {
             if (key.startsWith("config.service.") && key.contains(".token.")) {
-                remove.add(key);
+                if (!configServer) remove.add(key);
+                continue;
+            }
+            if (key.startsWith("print.service.") && key.endsWith(".token")) {
+                String id = serviceIdFromTokenKey(key, "print.service.");
+                if (!canUsePrintService(properties, id)) remove.add(key);
+                continue;
+            }
+            if (key.startsWith("scale.service.") && key.endsWith(".token")) {
+                String id = serviceIdFromTokenKey(key, "scale.service.");
+                if (!canUseScaleService(properties, id)) remove.add(key);
             }
         }
         for (String key : remove) properties.remove(key);
+    }
+
+    private static String serviceIdFromTokenKey(String key, String prefix) {
+        return key.substring(prefix.length(), key.length() - ".token".length());
+    }
+
+    private static boolean canUsePrintService(Properties properties, String serviceId) {
+        if (serviceId == null || serviceId.isEmpty()) return false;
+        if (hasRole(properties, "printer_service")
+                && serviceId.equals(properties.getProperty("service.id"))) return true;
+        for (int i = 1; i <= 6; i++) {
+            String mapped = properties.getProperty("device.printer." + i + ".service");
+            if (serviceId.equals(mapped)) return true;
+        }
+        return false;
+    }
+
+    private static boolean canUseScaleService(Properties properties, String serviceId) {
+        if (serviceId == null || serviceId.isEmpty()) return false;
+        if (hasRole(properties, "scale_service")
+                && serviceId.equals(properties.getProperty("service.id"))) return true;
+        return serviceId.equals(properties.getProperty("device.scale.service"));
     }
 
     private static boolean hasRole(Properties properties, String expected) {

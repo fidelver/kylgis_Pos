@@ -16,6 +16,7 @@ public enum NodeRole {
     POS("pos"),
     KITCHEN("kitchen"),
     PRINTER_SERVICE("printer_service"),
+    SCALE_SERVICE("scale_service"),
     REMOTE_SESSIONS("remote_sessions");
 
     private final String propertyValue;

@@ -5,6 +5,7 @@ package com.mx.kylgis.pos.runtime;
 import com.mx.kylgis.pos.forms.StartPOS;
 import com.mx.kylgis.pos.hardware.NativeHardwareSupport;
 import com.mx.kylgis.pos.node.NodeRole;
+import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
 
 /** Interactive POS capability. */
 public final class PosCapability implements RuntimeCapability {
@@ -15,6 +16,10 @@ public final class PosCapability implements RuntimeCapability {
     @Override public NodeRole getRole() { return NodeRole.POS; }
     @Override public CapabilityType getType() { return CapabilityType.UI; }
     @Override public void validate(RuntimeLaunchContext context) {
+        String scaleService = ScaleServiceConfig.getServiceId(context.getConfig());
+        if (scaleService != null) {
+            ScaleServiceConfig.endpoint(context.getConfig(), scaleService);
+        }
         NativeHardwareSupport.validatePos(context.getConfig());
     }
     @Override public RuntimeHandle start(RuntimeLaunchContext context, boolean daemon) {
