@@ -105,11 +105,6 @@
       <version>2.2</version> 
     </dependency>  
     <dependency> 
-      <groupId>org.jpos</groupId>  
-      <artifactId>jpos</artifactId>  
-      <version>2.0.10</version> 
-    </dependency>  
-    <dependency> 
       <groupId>org.swinglabs.swingx</groupId>  
       <artifactId>swingx-all</artifactId>  
       <version>1.6.5-1</version> 
