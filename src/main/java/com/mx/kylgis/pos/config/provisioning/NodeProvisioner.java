@@ -271,6 +271,11 @@ public final class NodeProvisioner {
             if (key.startsWith("scanner.service.") && key.endsWith(".token")) {
                 String id = serviceIdFromTokenKey(key, "scanner.service.");
                 if (!canUseScannerService(properties, id)) remove.add(key);
+                continue;
+            }
+            if (key.startsWith("display.service.") && key.endsWith(".token")) {
+                String id = serviceIdFromTokenKey(key, "display.service.");
+                if (!canUseDisplayService(properties, id)) remove.add(key);
             }
         }
         for (String key : remove) properties.remove(key);
@@ -296,6 +301,13 @@ public final class NodeProvisioner {
         if (hasRole(properties, "scale_service")
                 && serviceId.equals(properties.getProperty("service.id"))) return true;
         return serviceId.equals(properties.getProperty("device.scale.service"));
+    }
+
+    private static boolean canUseDisplayService(Properties properties, String serviceId) {
+        if (serviceId == null || serviceId.isEmpty()) return false;
+        if (hasRole(properties, "display_service")
+                && serviceId.equals(properties.getProperty("service.id"))) return true;
+        return serviceId.equals(properties.getProperty("device.display.service"));
     }
 
     private static boolean canUseScannerService(Properties properties, String serviceId) {

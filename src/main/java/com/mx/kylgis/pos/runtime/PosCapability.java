@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.runtime;
 
 import com.mx.kylgis.pos.forms.StartPOS;
+import com.mx.kylgis.pos.display.service.DisplayServiceConfig;
 import com.mx.kylgis.pos.hardware.NativeHardwareSupport;
 import com.mx.kylgis.pos.node.NodeRole;
 import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
@@ -17,6 +18,10 @@ public final class PosCapability implements RuntimeCapability {
     @Override public NodeRole getRole() { return NodeRole.POS; }
     @Override public CapabilityType getType() { return CapabilityType.UI; }
     @Override public void validate(RuntimeLaunchContext context) {
+        String displayService = DisplayServiceConfig.getServiceId(context.getConfig());
+        if (displayService != null) {
+            DisplayServiceConfig.endpoint(context.getConfig(), displayService);
+        }
         String scaleService = ScaleServiceConfig.getServiceId(context.getConfig());
         if (scaleService != null) {
             ScaleServiceConfig.endpoint(context.getConfig(), scaleService);

@@ -18,6 +18,7 @@ public enum NodeRole {
     PRINTER_SERVICE("printer_service"),
     SCALE_SERVICE("scale_service"),
     SCANNER_SERVICE("scanner_service"),
+    DISPLAY_SERVICE("display_service"),
     REMOTE_SESSIONS("remote_sessions");
 
     private final String propertyValue;

@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.hardware;
 
 import com.mx.kylgis.pos.forms.AppProperties;
+import com.mx.kylgis.pos.display.service.DisplayServiceConfig;
 import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
 import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
 import com.mx.kylgis.pos.scanpal2.service.ScannerServiceConfig;
@@ -38,9 +39,10 @@ public final class NativeHardwareSupport {
         if (properties == null || isRxtxSupported(osName, arch)) return;
 
         String display = properties.getProperty("machine.display");
-        if (HardwareOwnership.canOpen(properties, "display") && usesRxtxConnection(display)) {
+        if (DisplayServiceConfig.getServiceId(properties) == null
+                && HardwareOwnership.canOpen(properties, "display") && usesRxtxConnection(display)) {
             throw unsupported("display", display, osName, arch,
-                    "Use un display virtual o mueva el periférico a un servicio/nodo compatible");
+                    "Configure device.display.service para usar un servicio de visor remoto");
         }
 
         for (int i = 1; i <= 6; i++) {
@@ -69,6 +71,16 @@ public final class NativeHardwareSupport {
         }
     }
 
+
+    public static void validateDisplayService(AppProperties properties, String serviceId) {
+        if (isRxtxSupportedCurrentPlatform()) return;
+        String display = properties == null ? null : properties.getProperty("machine.display");
+        if (usesRxtxConnection(display)) {
+            throw unsupported("display", display,
+                    System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
+                    "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
+        }
+    }
 
     public static void validateScaleService(AppProperties properties, String serviceId) {
         if (isRxtxSupportedCurrentPlatform()) return;

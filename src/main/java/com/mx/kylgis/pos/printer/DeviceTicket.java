@@ -21,6 +21,8 @@
 package com.mx.kylgis.pos.printer;
 
 import com.mx.kylgis.pos.forms.AppProperties;
+import com.mx.kylgis.pos.display.service.DeviceDisplayRemote;
+import com.mx.kylgis.pos.display.service.DisplayServiceConfig;
 import com.mx.kylgis.pos.hardware.HardwareOwnership;
 import com.mx.kylgis.pos.printer.escpos.*;
 import com.mx.kylgis.pos.printer.digital.DevicePrinterDigital;
@@ -112,7 +114,19 @@ public class DeviceTicket {
         String sDisplayType = sd.nextToken(':');
         String sDisplayParam1 = sd.nextToken(',');
         String sDisplayParam2 = sd.nextToken(',');
+        String remoteDisplayServiceId = DisplayServiceConfig.getServiceId(props);
 
+        if (remoteDisplayServiceId != null) {
+            try {
+                m_devicedisplay = new DeviceDisplayRemote(
+                        DisplayServiceConfig.endpoint(props, remoteDisplayServiceId));
+                logger.log(Level.INFO, "Display routed to KylGis display service {0}",
+                        remoteDisplayServiceId);
+            } catch (IllegalArgumentException ex) {
+                logger.log(Level.WARNING, "Invalid remote display service configuration", ex);
+                m_devicedisplay = new DeviceDisplayNull(ex.getMessage());
+            }
+        } else {
         if ("serial".equals(sDisplayType) 
                 || "rxtx".equals(sDisplayType) 
                 || "file".equals(sDisplayType)) {
@@ -158,6 +172,7 @@ public class DeviceTicket {
         } catch (TicketPrinterException e) {
             logger.log(Level.WARNING, e.getMessage(), e);
             m_devicedisplay = new DeviceDisplayNull(e.getMessage());
+        }
         }
 
         m_nullprinter = new DevicePrinterNull();
