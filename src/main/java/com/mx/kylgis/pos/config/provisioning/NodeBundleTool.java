@@ -117,10 +117,10 @@ public final class NodeBundleTool {
                 + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" goto native\r\n"
                 + "goto nonative\r\n"
                 + ":native\r\n"
-                + "java \"-Djava.library.path=%DIR%lib\\Windows\\i368-mingw32\" \"-Ddirname.path=%DIR%\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
+                + "java \"-Djava.library.path=%DIR%lib\\Windows\\i368-mingw32\" \"-Ddirname.path=%DIR%.\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
                 + "goto end\r\n"
                 + ":nonative\r\n"
-                + "java \"-Ddirname.path=%DIR%\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
+                + "java \"-Ddirname.path=%DIR%.\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
                 + ":end\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
     }
@@ -137,7 +137,7 @@ public final class NodeBundleTool {
         File cmd = new File(output, "check.cmd");
         String windows = "@echo off\r\n"
                 + "set \"DIR=%~dp0\"\r\n"
-                + "java \"-Ddirname.path=%DIR%\" \"-Dkylgis.bundle.dir=%DIR%\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
+                + "java \"-Ddirname.path=%DIR%.\" \"-Dkylgis.bundle.dir=%DIR%.\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
                 + "com.mx.kylgis.pos.launcher.KylGisCheck \"%DIR%config\\node.properties\" %*\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
     }
