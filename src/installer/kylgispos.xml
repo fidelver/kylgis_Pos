@@ -141,6 +141,19 @@
                             <origin>kylgispos</origin>
                         </distributionFile>
                     </distributionFileList>
+                    <actionList>
+                        <substitute>
+                            <encoding>utf-8</encoding>
+                            <files>/usr/bin/kylgispos</files>
+                            <type>exact</type>
+                            <substitutionList>
+                                <substitution>
+                                    <pattern>@@KYLGIS_INSTALLDIR@@</pattern>
+                                    <value>${installdir}</value>
+                                </substitution>
+                            </substitutionList>
+                        </substitute>
+                    </actionList>
                 </folder>
             </folderList>
             <startMenuShortcutList>
