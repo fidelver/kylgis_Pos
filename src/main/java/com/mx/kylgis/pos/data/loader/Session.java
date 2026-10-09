@@ -23,6 +23,7 @@ package com.mx.kylgis.pos.data.loader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 
 /**
  *
@@ -31,6 +32,8 @@ import java.sql.SQLException;
  *
  */
 public final class Session {
+
+    private static final int CONNECTION_VALIDATION_TIMEOUT_SECONDS = 2;
     
     private final String m_surl;
     private final String m_sappuser;
@@ -165,17 +168,31 @@ public final class Session {
     }
     
     private void ensureConnection() throws SQLException {
-        // solo se invoca si isTransaction == false
-        
-        boolean bclosed;
-        try {
-            bclosed = m_c == null || m_c.isClosed();
-        } catch (SQLException e) {
-            bclosed = true;
+        // Solo se invoca si isTransaction == false. isClosed() no detecta
+        // conexiones que el servidor cerro por wait_timeout, por lo que se
+        // valida el socket antes de reutilizarlo.
+        boolean reconnect = m_c == null;
+
+        if (!reconnect) {
+            try {
+                reconnect = m_c.isClosed();
+                if (!reconnect) {
+                    try {
+                        reconnect = !m_c.isValid(CONNECTION_VALIDATION_TIMEOUT_SECONDS);
+                    } catch (SQLFeatureNotSupportedException | AbstractMethodError e) {
+                        // Drivers JDBC antiguos pueden no implementar isValid().
+                        // En ese caso conservamos el comportamiento historico.
+                        reconnect = false;
+                    }
+                }
+            } catch (SQLException e) {
+                // Una excepcion durante la validacion tambien significa que la
+                // conexion ya no es reutilizable de forma segura.
+                reconnect = true;
+            }
         }
 
-        // reconnect if closed
-        if (bclosed) {
+        if (reconnect) {
             connect();
         }
     }  
