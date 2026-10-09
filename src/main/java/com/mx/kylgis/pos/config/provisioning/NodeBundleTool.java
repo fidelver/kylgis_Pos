@@ -55,7 +55,21 @@ public final class NodeBundleTool {
         }
 
         copyFile(jar.toPath(), new File(output, "kylgispos.jar").toPath());
-        copyTree(lib.toPath(), new File(output, "lib").toPath());
+        File outputLib = new File(output, "lib");
+        copyTree(lib.toPath(), outputLib.toPath());
+
+        // The legacy POS distribution carries JPA 1.0, while the Kitchen
+        // runtime module carries Hibernate's JPA 2.1 API. URLClassLoader is
+        // parent-first, so keeping both would make JPA 1.0 shadow JPA 2.1 and
+        // Hibernate 4.3 would fail with NoSuchMethodError (UniqueConstraint.name).
+        // For a bundle whose module supplies JPA 2.1, replace the legacy API in
+        // the parent classpath with that JPA 2.1 JAR. POS-only bundles keep JPA 1.0.
+        File moduleJpa21 = findJpa21(modules);
+        if (moduleJpa21 != null) {
+            Files.deleteIfExists(new File(outputLib, "persistence-api-1.0.2.jar").toPath());
+            copyFile(moduleJpa21.toPath(), new File(outputLib, moduleJpa21.getName()).toPath());
+        }
+
         File configDir = new File(output, "config");
         if (!configDir.mkdirs() && !configDir.isDirectory()) throw new IOException("Cannot create config/");
         File nodeConfig = new File(configDir, "node.properties");
@@ -126,6 +140,31 @@ public final class NodeBundleTool {
                 + "java \"-Ddirname.path=%DIR%\" \"-Dkylgis.bundle.dir=%DIR%\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
                 + "com.mx.kylgis.pos.launcher.KylGisCheck \"%DIR%config\\node.properties\" %*\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static File findJpa21(List<File> modules) {
+        if (modules == null) return null;
+        for (File module : modules) {
+            File found = findJpa21(module);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private static File findJpa21(File file) {
+        if (file == null || !file.exists()) return null;
+        if (file.isFile()) {
+            String name = file.getName().toLowerCase();
+            return name.startsWith("hibernate-jpa-2.1-api-") && name.endsWith(".jar")
+                    ? file : null;
+        }
+        File[] children = file.listFiles();
+        if (children == null) return null;
+        for (File child : children) {
+            File found = findJpa21(child);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private static void copyFile(Path source, Path target) throws IOException {
