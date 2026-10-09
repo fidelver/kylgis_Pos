@@ -126,6 +126,7 @@ public final class DatabaseSettings {
         copyIfPresent(p, modernPrefix + ".user", legacyPrefix + ".user");
         copyIfPresent(p, modernPrefix + ".password", legacyPrefix + ".password");
         copyIfPresent(p, modernPrefix + ".label", legacyPrefix + ".name");
+        copyIfPresent(p, modernPrefix + ".dialect", legacyPrefix + ".dialect");
 
         if ("db".equals(legacyPrefix)) {
             copyIfPresent(p, modernPrefix + ".driver", "db.driver");
