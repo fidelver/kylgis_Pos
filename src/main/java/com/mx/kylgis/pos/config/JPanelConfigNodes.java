@@ -26,10 +26,13 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -43,6 +46,13 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private final JComboBox<String> nodeSelector = new JComboBox<>();
     private final JPanel rolesPanel = new JPanel(new GridLayout(0, 3, 8, 4));
     private final Map<NodeRole, JCheckBox> roleChecks = new EnumMap<>(NodeRole.class);
+    private final DefaultListModel<String> moduleStackModel = new DefaultListModel<>();
+    private final JList<String> moduleStackList = new JList<>(moduleStackModel);
+    private final JComboBox<String> moduleCatalog = new JComboBox<>();
+    private final JButton addModuleButton = new JButton("Agregar");
+    private final JButton removeModuleButton = new JButton("Quitar");
+    private final JButton moduleUpButton = new JButton("↑");
+    private final JButton moduleDownButton = new JButton("↓");
     private final JTextField profile = new JTextField();
     private final JTextField dbServer = new JTextField();
     private final JTextField dbPort = new JTextField();
@@ -63,6 +73,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private boolean loading;
     private boolean dirty;
     private boolean rolesDirty;
+    private boolean modulesDirty;
     private boolean administrationEnabled;
     private String runtimeNodeId;
     private String originalRolesOverride = "";
@@ -101,6 +112,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
 
         int row = 0;
         row = addComponent(form, c, row, "Funciones", rolesPanel);
+        row = addComponent(form, c, row, "Módulos reutilizables", buildModuleEditor());
         row = addField(form, c, row, "Perfil", profile,
                 "Metadato operativo; no cambia la identidad del producto");
         row = addField(form, c, row, "Servidor BBDD (override)", dbServer,
@@ -127,6 +139,34 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         c.fill = GridBagConstraints.BOTH;
         form.add(Box.createVerticalGlue(), c);
         return form;
+    }
+
+    private JPanel buildModuleEditor() {
+        JPanel editor = new JPanel(new BorderLayout(4, 4));
+        JPanel addRow = new JPanel();
+        addRow.setLayout(new BoxLayout(addRow, BoxLayout.X_AXIS));
+        moduleCatalog.setPrototypeDisplayValue("modules/receipt-printer-remote.properties     ");
+        addRow.add(moduleCatalog);
+        addRow.add(Box.createHorizontalStrut(6));
+        addRow.add(addModuleButton);
+
+        moduleStackList.setVisibleRowCount(4);
+        moduleStackList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane listScroll = new JScrollPane(moduleStackList);
+
+        JPanel actions = new JPanel();
+        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
+        actions.add(removeModuleButton);
+        actions.add(Box.createHorizontalStrut(6));
+        actions.add(moduleUpButton);
+        actions.add(Box.createHorizontalStrut(4));
+        actions.add(moduleDownButton);
+        actions.add(Box.createHorizontalGlue());
+
+        editor.add(addRow, BorderLayout.NORTH);
+        editor.add(listScroll, BorderLayout.CENTER);
+        editor.add(actions, BorderLayout.SOUTH);
+        return editor;
     }
 
     private void initializeRoleSelector() {
@@ -213,6 +253,10 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         reloadButton.addActionListener(e -> reloadAll());
         saveButton.addActionListener(e -> saveFromButton());
         provisionButton.addActionListener(e -> provisionBootstrap());
+        addModuleButton.addActionListener(e -> addSelectedModule());
+        removeModuleButton.addActionListener(e -> removeSelectedModule());
+        moduleUpButton.addActionListener(e -> moveSelectedModule(-1));
+        moduleDownButton.addActionListener(e -> moveSelectedModule(1));
     }
 
     private void markDirty() {
@@ -227,6 +271,71 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             rolesDirty = true;
             markDirty();
         }
+    }
+
+    private void markModulesDirty() {
+        if (!loading) {
+            modulesDirty = true;
+            markDirty();
+        }
+    }
+
+    private void addSelectedModule() {
+        if (!administrationEnabled) return;
+        String module = (String) moduleCatalog.getSelectedItem();
+        if (module == null || module.trim().isEmpty()) return;
+        for (int i = 0; i < moduleStackModel.size(); i++) {
+            if (module.equals(moduleStackModel.get(i))) {
+                moduleStackList.setSelectedIndex(i);
+                status.setText("El módulo ya está asignado: " + module);
+                return;
+            }
+        }
+        moduleStackModel.addElement(module);
+        moduleStackList.setSelectedIndex(moduleStackModel.size() - 1);
+        markModulesDirty();
+    }
+
+    private void removeSelectedModule() {
+        if (!administrationEnabled) return;
+        int index = moduleStackList.getSelectedIndex();
+        if (index < 0) return;
+        moduleStackModel.remove(index);
+        if (!moduleStackModel.isEmpty()) {
+            moduleStackList.setSelectedIndex(Math.min(index, moduleStackModel.size() - 1));
+        }
+        markModulesDirty();
+    }
+
+    private void moveSelectedModule(int delta) {
+        if (!administrationEnabled) return;
+        int from = moduleStackList.getSelectedIndex();
+        int to = from + delta;
+        if (from < 0 || to < 0 || to >= moduleStackModel.size()) return;
+        String value = moduleStackModel.remove(from);
+        moduleStackModel.add(to, value);
+        moduleStackList.setSelectedIndex(to);
+        markModulesDirty();
+    }
+
+    private List<String> currentReusableModules() {
+        List<String> result = new java.util.ArrayList<>();
+        for (int i = 0; i < moduleStackModel.size(); i++) result.add(moduleStackModel.get(i));
+        return result;
+    }
+
+    private void setReusableModules(List<String> modules) {
+        moduleStackModel.clear();
+        if (modules != null) {
+            for (String module : modules) moduleStackModel.addElement(module);
+        }
+        modulesDirty = false;
+    }
+
+    private void loadAvailableModules() throws IOException {
+        moduleCatalog.removeAllItems();
+        if (store == null) return;
+        for (String module : store.listAvailableModules()) moduleCatalog.addItem(module);
     }
 
     private void handleNodeSelection() {
@@ -289,8 +398,21 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             String savedNodeId = currentNodeId;
             String savedRoles = selectedRoles();
             String rolesToPersist = rolesDirty ? savedRoles : originalRolesOverride;
-            store.saveNode(savedNodeId, rolesToPersist, profile.getText(),
-                    dbServer.getText(), dbPort.getText(), dbName.getText());
+            boolean nodeSaved = false;
+            if (rolesDirty && modulesDirty) {
+                // Persist the already validated role override first so the
+                // intermediate stack cannot lose its explicit role.
+                store.saveNode(savedNodeId, rolesToPersist, profile.getText(),
+                        dbServer.getText(), dbPort.getText(), dbName.getText());
+                nodeSaved = true;
+            }
+            if (modulesDirty) {
+                store.saveModuleStack(savedNodeId, currentReusableModules());
+            }
+            if (!nodeSaved) {
+                store.saveNode(savedNodeId, rolesToPersist, profile.getText(),
+                        dbServer.getText(), dbPort.getText(), dbName.getText());
+            }
             loadNode(savedNodeId);
             if (savedNodeId.equals(runtimeNodeId) && !containsMasterRole(savedRoles)) {
                 setAdministrationEnabled(false);
@@ -389,6 +511,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
                 setSelectedRoles(node.getRoles());
                 originalRolesOverride = node.getRolesOverride();
                 rolesDirty = false;
+                setReusableModules(node.getReusableModuleReferences());
                 profile.setText(node.getProfile());
                 dbServer.setText(node.getDatabaseServerOverride());
                 dbPort.setText(node.getDatabasePortOverride());
@@ -417,6 +540,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             setSelectedRoles("");
             originalRolesOverride = "";
             rolesDirty = false;
+            setReusableModules(java.util.Collections.<String>emptyList());
             profile.setText("");
             dbServer.setText("");
             dbPort.setText("");
@@ -454,6 +578,12 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private void setAdministrationEnabled(boolean enabled) {
         administrationEnabled = enabled;
         for (JCheckBox check : roleChecks.values()) check.setEnabled(enabled);
+        moduleCatalog.setEnabled(enabled);
+        moduleStackList.setEnabled(enabled);
+        addModuleButton.setEnabled(enabled);
+        removeModuleButton.setEnabled(enabled);
+        moduleUpButton.setEnabled(enabled);
+        moduleDownButton.setEnabled(enabled);
         profile.setEnabled(enabled);
         dbServer.setEnabled(enabled);
         dbPort.setEnabled(enabled);
@@ -533,6 +663,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         store = NodeConfigurationStore.forConfig(config);
         masterPath.setText(store.getMasterFile().getAbsolutePath());
         try {
+            loadAvailableModules();
             loadNodeList(currentNodeId);
             if (!administrationEnabled) {
                 status.setText("Modo consulta: " + runtimeNodeId + " no tiene rol master");
@@ -547,6 +678,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         store = null;
         loading = true;
         try {
+            moduleCatalog.removeAllItems();
+            setReusableModules(java.util.Collections.<String>emptyList());
             nodeSelector.removeAllItems();
             nodeSelector.addItem(context.getNodeId());
             nodeSelector.setSelectedItem(context.getNodeId());

@@ -3,6 +3,8 @@
 package com.mx.kylgis.pos.config.provisioning;
 
 import com.mx.kylgis.pos.forms.AppConfig;
+import com.mx.kylgis.pos.node.NodeRole;
+import com.mx.kylgis.pos.node.NodeRolePolicy;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -15,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
@@ -104,6 +107,7 @@ public final class NodeConfigurationStore {
             effective.putAll(module);
         }
         Properties writableModule = modules.get(modules.size() - 1);
+        validateEffectiveRoles(id, effective);
 
         return new NodeDefinition(id, moduleFiles,
                 moduleReferences.subList(0, moduleReferences.size() - 1),
@@ -158,6 +162,7 @@ public final class NodeConfigurationStore {
             }
         }
         normalized.add(overlayReference);
+        validateProposedModuleStack(master, id, normalized);
         atomicUpdateMasterModuleStack(masterFile,
                 NodeProvisioner.nodeModulesKey(id), join(normalized),
                 NodeProvisioner.nodeModuleKey(id));
@@ -223,6 +228,45 @@ public final class NodeConfigurationStore {
                     + expectedOverlay.getAbsolutePath());
         }
         return files;
+    }
+
+    private void validateProposedModuleStack(Properties master, String nodeId,
+            List<String> references) throws IOException {
+        Properties effective = new Properties();
+        effective.putAll(master);
+        for (String reference : references) {
+            File candidate = new File(reference);
+            File file = candidate.isAbsolute() ? candidate
+                    : new File(masterFile.getParentFile(), reference);
+            effective.putAll(loadRequired(file.getCanonicalFile(), "node module"));
+        }
+        validateEffectiveRoles(nodeId, effective);
+    }
+
+    private static void validateEffectiveRoles(String nodeId, Properties effective)
+            throws IOException {
+        String configured = trimToNull(effective.getProperty("node.roles"));
+        if (configured == null) {
+            throw new IOException("Provisioned node " + nodeId
+                    + " module stack must resolve an explicit node.roles value");
+        }
+        EnumSet<NodeRole> roles = EnumSet.noneOf(NodeRole.class);
+        for (String token : configured.split("[,;\\s]+")) {
+            String value = trimToNull(token);
+            if (value == null) continue;
+            NodeRole role = NodeRole.fromPropertyValue(value);
+            if (role == null) {
+                throw new IOException("Unknown KylGis node role in module stack for "
+                        + nodeId + ": " + value);
+            }
+            roles.add(role);
+        }
+        try {
+            NodeRolePolicy.validate(roles);
+        } catch (IllegalArgumentException ex) {
+            throw new IOException("Invalid role combination for node " + nodeId
+                    + ": " + ex.getMessage(), ex);
+        }
     }
 
     private void collectModuleReferences(File directory,
