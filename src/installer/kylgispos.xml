@@ -108,34 +108,57 @@
                             <origin>template.Ticket.A4_Beta.vm</origin>
                         </distributionFile>
                     </distributionFileList>
+                    <actionList>
+                        <runProgram>
+                            <program>${installdir}/helper/fix-unix-permissions.sh</program>
+                            <programArguments>"${installdir}"</programArguments>
+                            <ruleList>
+                                <platformTest>
+                                    <type>unix</type>
+                                </platformTest>
+                            </ruleList>
+                        </runProgram>
+                    </actionList>
                 </folder>
                 <folder>
                     <description>DEB1</description>
                     <destination>/usr/share/icons</destination>
                     <name>kylgisposicon</name>
-                    <platforms>linux</platforms>
+                    <platforms>linux linux-x64 linux-arm64 linux-arm32 linux-ia64 linux-ppc linux-s390 linux-s390x</platforms>
                     <distributionFileList>
                         <distributionFile>
                             <origin>kylgispos.png</origin>
                         </distributionFile>
                     </distributionFileList>
+                    <actionList>
+                        <changePermissions>
+                            <files>/usr/share/icons/kylgispos.png</files>
+                            <permissions>0644</permissions>
+                        </changePermissions>
+                    </actionList>
                 </folder>
                 <folder>
                     <description>DEB2</description>
                     <destination>/usr/share/applications</destination>
                     <name>kylgisposdesktop</name>
-                    <platforms>linux</platforms>
+                    <platforms>linux linux-x64 linux-arm64 linux-arm32 linux-ia64 linux-ppc linux-s390 linux-s390x</platforms>
                     <distributionFileList>
                         <distributionFile>
                             <origin>kylgispos.desktop</origin>
                         </distributionFile>
                     </distributionFileList>
+                    <actionList>
+                        <changePermissions>
+                            <files>/usr/share/applications/kylgispos.desktop</files>
+                            <permissions>0644</permissions>
+                        </changePermissions>
+                    </actionList>
                 </folder>
                 <folder>
                     <description>DEB3</description>
                     <destination>/usr/bin/</destination>
                     <name>kylgisposexec</name>
-                    <platforms>linux</platforms>
+                    <platforms>linux linux-x64 linux-arm64 linux-arm32 linux-ia64 linux-ppc linux-s390 linux-s390x</platforms>
                     <distributionFileList>
                         <distributionFile>
                             <origin>kylgispos</origin>
@@ -153,6 +176,10 @@
                                 </substitution>
                             </substitutionList>
                         </substitute>
+                        <changePermissions>
+                            <files>/usr/bin/kylgispos</files>
+                            <permissions>0755</permissions>
+                        </changePermissions>
                     </actionList>
                 </folder>
             </folderList>
