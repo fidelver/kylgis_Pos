@@ -28,6 +28,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,6 +45,7 @@ import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.data.gui.NullIcon;
 import com.mx.kylgis.pos.data.loader.SentenceList;
 import com.mx.kylgis.pos.data.loader.SerializerReadClass;
+import com.mx.kylgis.pos.data.loader.SerializerReadString;
 import com.mx.kylgis.pos.data.loader.StaticSentence;
 import com.mx.kylgis.pos.customers.CustomerInfo;
 import com.mx.kylgis.pos.forms.AppConfig;
@@ -54,7 +56,6 @@ import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.sales.DataLogicReceipts;
 import com.mx.kylgis.pos.sales.JTicketsBag;
 import com.mx.kylgis.pos.sales.restaurant.JTicketsBagRestaurant;
-import com.mx.kylgis.pos.sales.SharedTicketInfo;
 import com.mx.kylgis.pos.sales.TicketsEditor;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import java.awt.event.MouseAdapter;
@@ -67,6 +68,10 @@ import java.util.Date;
  * @author JG uniCenta
  */
 public class JTicketsBagRestaurantMap extends JTicketsBag {
+
+    private static final Logger LOGGER = Logger.getLogger(JTicketsBagRestaurantMap.class.getName());
+    private static final int MIN_AUTO_REFRESH_SECONDS = 5;
+    private static final int MAX_AUTO_REFRESH_DELAY_MS = 60000;
 
     private static class ServerCurrent {
 
@@ -101,6 +106,8 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
     private int newY;    
     private AppView m_app;
     private Boolean showLayout = false;
+    private Timer autoRefreshTimer;
+    private int autoRefreshBaseDelayMs = MIN_AUTO_REFRESH_SECONDS * 1000;
     
         
     /** Creates new form JTicketsBagRestaurant
@@ -250,22 +257,24 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
             m_jbtnSave.setVisible(false);            
         }        
         
-        if (m_App.getProperties().getProperty("till.autoRefreshTableMap").equals("true")) {
+        if ("true".equalsIgnoreCase(m_App.getProperties().getProperty("till.autoRefreshTableMap"))) {
             webLblautoRefresh.setText(java.util.ResourceBundle.getBundle("pos_messages")
-                .getString("label.autoRefreshTableMapTimerON"));        
-            
-            Timer autoRefreshTimer = new Timer(Integer.parseInt(m_App.getProperties()
-                .getProperty("till.autoRefreshTimer"))*1000, new tableMapRefresh());
-    
-            autoRefreshTimer.start();
+                .getString("label.autoRefreshTableMapTimerON"));
+
+            int refreshSeconds = MIN_AUTO_REFRESH_SECONDS;
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                autoRefreshTimer.stop();
-            } 
+                refreshSeconds = Math.max(MIN_AUTO_REFRESH_SECONDS, Integer.parseInt(
+                        m_App.getProperties().getProperty("till.autoRefreshTimer")));
+            } catch (NumberFormatException ex) {
+                LOGGER.log(Level.WARNING,
+                        "Invalid till.autoRefreshTimer; using {0} seconds", refreshSeconds);
+            }
+            autoRefreshBaseDelayMs = refreshSeconds * 1000;
+            autoRefreshTimer = new Timer(autoRefreshBaseDelayMs, new tableMapRefresh());
+            autoRefreshTimer.setCoalesce(true);
         } else {
             webLblautoRefresh.setText(java.util.ResourceBundle.getBundle("pos_messages")
-                .getString("label.autoRefreshTableMapTimerOFF"));        
+                .getString("label.autoRefreshTableMapTimerOFF"));
         }
 
 }
@@ -274,10 +283,27 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
        
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadTickets();
-            printState(); 
+            boolean refreshed = loadTickets();
+            if (refreshed) {
+                refreshed = printState();
+            }
+            updateAutoRefreshDelay(refreshed);
         }
-    }   
+    }
+
+    private void updateAutoRefreshDelay(boolean refreshed) {
+        if (autoRefreshTimer == null) {
+            return;
+        }
+        if (refreshed) {
+            autoRefreshTimer.setDelay(autoRefreshBaseDelayMs);
+        } else {
+            int current = Math.max(autoRefreshBaseDelayMs, autoRefreshTimer.getDelay());
+            int maxDelay = Math.max(MAX_AUTO_REFRESH_DELAY_MS, autoRefreshBaseDelayMs);
+            long doubled = (long) current * 2L;
+            autoRefreshTimer.setDelay((int) Math.min((long) maxDelay, doubled));
+        }
+    }
         
     /**
      *
@@ -296,9 +322,13 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         
         m_PlaceClipboard = null;
         customer = null;
-        loadTickets();        
-        printState(); 
-        
+        loadTickets();
+        printState();
+        if (autoRefreshTimer != null && !autoRefreshTimer.isRunning()) {
+            autoRefreshTimer.setDelay(autoRefreshBaseDelayMs);
+            autoRefreshTimer.start();
+        }
+
         m_panelticket.setActiveTicket(null, null); 
         m_restaurantmap.activate();
        
@@ -330,8 +360,11 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
                 m_PlaceCurrent = null;
 
             }
-            printState();     
-            m_panelticket.setActiveTicket(null, null); 
+            printState();
+            m_panelticket.setActiveTicket(null, null);
+            if (autoRefreshTimer != null) {
+                autoRefreshTimer.stop();
+            }
 
             return true;
         } else {
@@ -513,31 +546,39 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
     /**
      *
      */
-    public void loadTickets() {
-       
+    public boolean loadTickets() {
+
         Set<String> atickets = new HashSet<>();
-        
+
         try {
-            java.util.List<SharedTicketInfo> l = dlReceipts.getSharedTicketList();
-            l.stream().forEach((ticket) -> {
-                atickets.add(ticket.getId());
-            });
+            SentenceList idQuery = new StaticSentence(
+                    m_App.getSession(),
+                    "SELECT ID FROM sharedtickets",
+                    null,
+                    SerializerReadString.INSTANCE);
+            java.util.List<String> ids = idQuery.list();
+            atickets.addAll(ids);
         } catch (BasicException e) {
-            new MessageInf(e).show(this);
-        }            
-            
+            LOGGER.log(Level.WARNING, "Unable to refresh restaurant shared-ticket IDs", e);
+            return false;
+        }
+
         m_aplaces.stream().forEach((table) -> {
             table.setPeople(atickets.contains(table.getId()));
         });
+        return true;
     }
     
 /*
  *  Populate the floor plans and tables    
 */
-    private void printState() {
-        String sDB;
-        sDB = m_App.getProperties().getProperty("db.engine"); 
-        
+    private boolean printState() {
+        Map<String, RestaurantDBUtils.TableState> tableStates = restDB.getPlacesStateSnapshot();
+        if (tableStates == null) {
+            LOGGER.warning("Unable to refresh restaurant table state; keeping previous UI state");
+            return false;
+        }
+
         if (m_PlaceClipboard == null) {
             if (customer == null) {
                 m_jText.setText(null);
@@ -545,10 +586,11 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
                 m_aplaces.stream()
                         .map((place) -> {
                             place.getButton().setEnabled(true);
-                            Integer guests = restDB.getGuestsInTable(place.getId());
-                            place.setGuests(guests);
-                            Date occupied = restDB.getOccupied(place.getId());
-                            place.setOccupied(occupied);
+                            RestaurantDBUtils.TableState state = tableStates.get(place.getId());
+                            if (state != null) {
+                                place.setGuests(state.getGuests());
+                                place.setOccupied(state.getOccupied());
+                            }
                             return place;
                         })
 
@@ -567,7 +609,7 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
                                     int hours = seconds / 3600;
                                     int minutes = (seconds % 3600) / 60;
 
-Integer count = restDB.getGuestsInTable(place.getId());
+Integer count = place.getGuests();
         
                                     tableName="<style=font-size:9px;font-weight:bold;><font color ="
                                         + m_App.getProperties().getProperty("table.tablecolour")+ ">"
@@ -590,15 +632,17 @@ Integer count = restDB.getGuestsInTable(place.getId());
 
                         .map((place) -> {
                             if (Boolean.parseBoolean(m_App.getProperties().getProperty("table.showwaiterdetails"))){
+                                RestaurantDBUtils.TableState state = tableStates.get(place.getId());
+                                String waiter = state == null ? place.getWaiter() : state.getWaiter();
                                 if (m_App.getProperties().getProperty("table.waitercolour")== null){
-                                    waiterDetails = (restDB.getWaiterNameInTable(place.getName()) ==null)? ""
+                                    waiterDetails = (waiter == null || waiter.isEmpty()) ? ""
                                     :"<style=font-size:9px;font-weight:bold;><font color = red>"
-                                    + restDB.getWaiterNameInTableById(place.getId())+"</font></style><br>";
+                                    + waiter + "</font></style><br>";
                                 }else{
-                                    waiterDetails = (restDB.getWaiterNameInTable(place.getName()) ==null)? ""
+                                    waiterDetails = (waiter == null || waiter.isEmpty()) ? ""
                                     :"<style=font-size:9px;font-weight:bold;><font color ="
                                     + m_App.getProperties().getProperty("table.waitercolour")+ ">"
-                                    + restDB.getWaiterNameInTableById(place.getId())+"</font></style><br>";
+                                    + waiter + "</font></style><br>";
                                 }
                                 place.getButton().setIcon(ICO_OCU_SM);
                             } else {
@@ -610,19 +654,21 @@ Integer count = restDB.getGuestsInTable(place.getId());
                         .map((place) -> {
                             if (Boolean.parseBoolean(
                                     m_App.getProperties().getProperty("table.showcustomerdetails"))){
+                                RestaurantDBUtils.TableState state = tableStates.get(place.getId());
+                                String tableCustomer = state == null ? place.getCustomer() : state.getCustomer();
                                 place.getButton().setIcon((Boolean.parseBoolean(
                                         m_App.getProperties().getProperty("table.showwaiterdetails"))
-                                        && (restDB.getCustomerNameInTable(place.getName()) !=null))
+                                        && tableCustomer != null && !tableCustomer.isEmpty())
                                         ? ICO_WAITER:ICO_OCU_SM);
-                                if (m_App.getProperties().getProperty("table.customercolour")== null){                
-                                    customerDetails = (restDB.getCustomerNameInTable(place.getName()) ==null)? ""
+                                if (m_App.getProperties().getProperty("table.customercolour")== null){
+                                    customerDetails = (tableCustomer == null || tableCustomer.isEmpty()) ? ""
                                     :"<style=font-size:9px;font-weight:bold;><font color = blue>"
-                                    + restDB.getCustomerNameInTableById(place.getId())+"</font></style><br>";
+                                    + tableCustomer + "</font></style><br>";
                                 }else{
-                                    customerDetails = (restDB.getCustomerNameInTable(place.getName()) ==null)? ""
+                                    customerDetails = (tableCustomer == null || tableCustomer.isEmpty()) ? ""
                                             :"<style=font-size:9px;font-weight:bold;><font color ="
                                         + m_App.getProperties().getProperty("table.customercolour")+ ">"
-                                        + restDB.getCustomerNameInTableById(place.getId())+"</font></style><br>";
+                                        + tableCustomer + "</font></style><br>";
                                 }
                             } else {
                                 customerDetails = ""; 
@@ -683,15 +729,17 @@ Integer count = restDB.getGuestsInTable(place.getId());
 
             m_aplaces.stream()
                 .forEach((place) -> {
-                    Integer guests = restDB.getGuestsInTable(place.getId());
-                    place.setGuests(guests);
-                    Date occupied = restDB.getOccupied(place.getId());
-                    place.setOccupied(occupied);                
+                    RestaurantDBUtils.TableState state = tableStates.get(place.getId());
+                    if (state != null) {
+                        place.setGuests(state.getGuests());
+                        place.setOccupied(state.getOccupied());
+                    }
                     place.getButton().setEnabled(true);
-                });  
+                });
 
             m_jbtnReservations.setEnabled(false);
-        }       
+        }
+        return true;
     }
 
     private TicketInfo getTicketInfo(Place place) {

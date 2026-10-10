@@ -7,12 +7,13 @@ package com.mx.kylgis.pos.sales.restaurant;
 import com.mx.kylgis.pos.data.loader.Session;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -21,7 +22,6 @@ import java.sql.Timestamp;
 
 public class RestaurantDBUtils {
     private Session s;
-    private Connection con;  
     private Statement stmt;
     private PreparedStatement pstmt;
     private String SQL;
@@ -31,17 +31,62 @@ public class RestaurantDBUtils {
     protected DataLogicSystem dlSystem;
 
     /**
+     * Loads volatile restaurant table state in one query. The connection is
+     * requested from Session for every refresh so the common JDBC reconnection
+     * policy can replace sockets expired by wait_timeout.
+     *
+     * @return snapshot keyed by place ID, or null when the query fails
+     */
+    public Map<String, TableState> getPlacesStateSnapshot() {
+        Map<String, TableState> snapshot = new HashMap<>();
+        final String sql = "SELECT ID, CUSTOMER, WAITER, GUESTS, OCCUPIED FROM places";
+        try (Statement stateStmt = s.getConnection().createStatement();
+             ResultSet stateRs = stateStmt.executeQuery(sql)) {
+            while (stateRs.next()) {
+                snapshot.put(stateRs.getString("ID"), new TableState(
+                        stateRs.getString("CUSTOMER"),
+                        stateRs.getString("WAITER"),
+                        stateRs.getInt("GUESTS"),
+                        stateRs.getTimestamp("OCCUPIED")));
+            }
+        } catch (SQLException ex) {
+            return null;
+        }
+        return snapshot;
+    }
+
+    /** Immutable state used by the restaurant map refresh. */
+    public static final class TableState {
+        private final String customer;
+        private final String waiter;
+        private final int guests;
+        private final Timestamp occupied;
+
+        private TableState(String customer, String waiter, int guests, Timestamp occupied) {
+            this.customer = customer;
+            this.waiter = waiter;
+            this.guests = guests;
+            this.occupied = occupied;
+        }
+
+        public String getCustomer() { return customer; }
+        public String getWaiter() { return waiter; }
+        public int getGuests() { return guests; }
+        public Timestamp getOccupied() { return occupied; }
+    }
+
+    /** Package-private constructor used by isolated JDBC regression smokes. */
+    RestaurantDBUtils(Session session) {
+        s = session;
+    }
+
+    /**
      *
      * @param oApp
      */
     public RestaurantDBUtils(AppView oApp) {
         m_App=oApp;
-        
-        try{
-            s=m_App.getSession();
-            con=s.getConnection();                      
-        } catch (SQLException e){ 
-        }
+        s=m_App.getSession();
     }
 
     /**
@@ -81,7 +126,7 @@ public class RestaurantDBUtils {
     public void setCustomerNameInTable(String custName, String tableName){
         try{
             SQL = "UPDATE places SET CUSTOMER=? WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,custName); 
             pstmt.setString(2,tableName);    
             pstmt.executeUpdate();
@@ -97,7 +142,7 @@ public class RestaurantDBUtils {
     public void setCustomerNameInTableById(String custName, String tableID){
         try{
             SQL = "UPDATE places SET CUSTOMER=? WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,custName); 
             pstmt.setString(2,tableID);    
             pstmt.executeUpdate();
@@ -113,7 +158,7 @@ public class RestaurantDBUtils {
     public void setCustomerNameInTableByTicketId(String custName, String ticketID){
         try{
             SQL = "UPDATE places SET CUSTOMER=? WHERE TICKETID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,custName); 
             pstmt.setString(2,ticketID);    
             pstmt.executeUpdate();
@@ -129,7 +174,7 @@ public class RestaurantDBUtils {
     public String getCustomerNameInTable(String tableName){
         try{
             SQL = "SELECT customer FROM places WHERE NAME='"+ tableName + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
 
             if (rs.next()){
@@ -150,7 +195,7 @@ public class RestaurantDBUtils {
     public String getCustomerNameInTableById(String tableId){
         try{
             SQL = "SELECT customer FROM places WHERE ID='"+ tableId + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
             if (rs.next()){
                 String customer =rs.getString("CUSTOMER");
@@ -168,7 +213,7 @@ public class RestaurantDBUtils {
     public void clearCustomerNameInTable(String tableName){
         try{
             SQL = "UPDATE places SET CUSTOMER=null WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableName);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -182,7 +227,7 @@ public class RestaurantDBUtils {
     public void clearCustomerNameInTableById(String tableID){
         try{
             SQL = "UPDATE places SET CUSTOMER=null WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -197,7 +242,7 @@ public class RestaurantDBUtils {
     public void setWaiterNameInTable(String waiterName, String tableName){
         try{
             SQL = "UPDATE places SET WAITER=? WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,waiterName); 
             pstmt.setString(2,tableName);    
             pstmt.executeUpdate();
@@ -213,7 +258,7 @@ public class RestaurantDBUtils {
     public void setWaiterNameInTableById(String waiterName, String tableID){
         try{
             SQL = "UPDATE places SET WAITER=? WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,waiterName); 
             pstmt.setString(2,tableID);    
             pstmt.executeUpdate();
@@ -229,7 +274,7 @@ public class RestaurantDBUtils {
     public String getWaiterNameInTable(String tableName){
         try{
             SQL = "SELECT waiter FROM places WHERE NAME='"+ tableName + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
 
             if (rs.next()){
@@ -250,7 +295,7 @@ public class RestaurantDBUtils {
     public String getWaiterNameInTableById(String tableID){
         try{
             SQL = "SELECT waiter FROM places WHERE ID='"+ tableID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
 
             if (rs.next()){
@@ -270,7 +315,7 @@ public class RestaurantDBUtils {
     public void clearWaiterNameInTable(String tableName){
         try{
             SQL = "UPDATE places SET WAITER=null WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableName);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -284,7 +329,7 @@ public class RestaurantDBUtils {
     public void clearWaiterNameInTableById(String tableID){
         try{
             SQL = "UPDATE places SET WAITER=null WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
             
@@ -300,7 +345,7 @@ public class RestaurantDBUtils {
     public String getTicketIdInTable(String ID){
         try{
             SQL = "SELECT TICKETID FROM places WHERE ID='"+ ID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
         
             if (rs.next()){
@@ -322,7 +367,7 @@ public class RestaurantDBUtils {
         try{
 //            SQL = "UPDATE places SET TICKETID=?, GUESTS=SEATS WHERE NAME=?";
             SQL = "UPDATE places SET TICKETID=? WHERE NAME=?";            
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,TicketID); 
             pstmt.setString(2,tableName);    
             pstmt.executeUpdate();
@@ -338,7 +383,7 @@ public class RestaurantDBUtils {
     public void clearTicketIdInTable(String tableName){
         try{
             SQL = "UPDATE places SET TICKETID=null WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableName);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -355,7 +400,7 @@ public class RestaurantDBUtils {
     public void clearTicketIdInTableById(String tableID){
         try{
             SQL = "UPDATE places SET TICKETID=null WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
             
@@ -371,7 +416,7 @@ public class RestaurantDBUtils {
     public Integer getGuestsInTable(String tableID){
         try{
             SQL = "SELECT guests FROM places WHERE ID='"+ tableID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
     
             if (rs.next()){
@@ -392,7 +437,7 @@ public class RestaurantDBUtils {
     public void setGuestsInTable(Integer guests, String tableID){
         try{
             SQL = "UPDATE places SET GUESTS=? WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setInt(1,guests); 
             pstmt.setString(2,tableID);    
             pstmt.executeUpdate();
@@ -408,7 +453,7 @@ public class RestaurantDBUtils {
     public Integer updateGuestsInTable(String tableID){
         try{
             SQL = "SELECT guests FROM places WHERE ID='"+ tableID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
     
             if (rs.next()){
@@ -428,7 +473,7 @@ public class RestaurantDBUtils {
     public void clearGuestsInTable(String tableID){
         try{
             SQL = "UPDATE places SET guests=0 WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -441,7 +486,7 @@ public class RestaurantDBUtils {
     public void clearGuestsTable(String table){
         try{
             SQL = "UPDATE places SET guests=0 WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,table);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -455,7 +500,7 @@ public class RestaurantDBUtils {
     public void clearOccupied(String tableID){
         try{
             SQL = "UPDATE places SET occupied=null WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -469,7 +514,7 @@ public class RestaurantDBUtils {
     public void clearOccupiedTable(String table){
         try{
             SQL = "UPDATE places SET occupied=null WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,table);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -483,7 +528,7 @@ public class RestaurantDBUtils {
     public Timestamp getOccupied(String tableID){
         try{
             SQL = "SELECT occupied FROM places WHERE ID='"+ tableID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
 
             if (rs.next()){
@@ -503,7 +548,7 @@ public class RestaurantDBUtils {
     public void setOccupied(String ticketID){
         try{
             SQL = "UPDATE places SET occupied=NOW() WHERE TICKETID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,ticketID);                 
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -518,7 +563,7 @@ public class RestaurantDBUtils {
     public Integer countTicketIdInTable(String ticketID){
         try{
             SQL = "SELECT COUNT(*) AS RECORDCOUNT FROM places WHERE TICKETID='"+ ticketID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
     
             if (rs.next()){
@@ -539,7 +584,7 @@ public class RestaurantDBUtils {
     public String getTableDetails (String ticketID){
         try{
             SQL = "SELECT NAME FROM places WHERE TICKETID='"+ ticketID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
 
             if (rs.next()){
@@ -559,7 +604,7 @@ public class RestaurantDBUtils {
     public void setTableMovedFlag (String tableID){
         try{
             SQL = "UPDATE places SET TABLEMOVED='true' WHERE ID=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
         }catch(SQLException e){
@@ -574,7 +619,7 @@ public class RestaurantDBUtils {
     public String getTableMovedName (String ticketID){
         try{
             SQL = "SELECT NAME FROM places WHERE TICKETID='"+ ticketID + "' AND TABLEMOVED ='true'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
 
             if (rs.next()){
@@ -595,7 +640,7 @@ public class RestaurantDBUtils {
     public Boolean getTableMovedFlag (String ticketID){
         try{
             SQL = "SELECT TABLEMOVED FROM places WHERE TICKETID='"+ ticketID + "'";   
-            stmt = (Statement) con.createStatement();  
+            stmt = (Statement) s.getConnection().createStatement();
             rs = stmt.executeQuery(SQL);
             
             if (rs.next()){
@@ -614,7 +659,7 @@ public class RestaurantDBUtils {
     public void clearTableMovedFlag (String tableID){
         try{
             SQL = "UPDATE places SET TABLEMOVED='false' WHERE NAME=?";
-            pstmt=con.prepareStatement(SQL);
+            pstmt=s.getConnection().prepareStatement(SQL);
             pstmt.setString(1,tableID);     
             pstmt.executeUpdate();
         }catch(SQLException e){
