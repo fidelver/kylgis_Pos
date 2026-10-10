@@ -20,47 +20,125 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.payment;
 
+import com.mx.kylgis.pos.editor.JEditorCurrencyPositive;
+import com.mx.kylgis.pos.editor.JEditorKeys;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.util.RoundUtils;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 public class PaymentPanelBasic extends javax.swing.JPanel implements PaymentPanel {
 
     private double m_dTotal;
+    private double m_dAvailableTotal;
     private String m_sTransactionID;
     private JPaymentNotifier m_notifier;
-    
+    private JEditorCurrencyPositive m_jAmount;
+    private JEditorKeys m_jKeys;
+
     /**
      * Creates new form PaymentPanelSimple
      */
     public PaymentPanelBasic(JPaymentNotifier notifier) {
-        
+
         m_notifier = notifier;
         initComponents();
+        initPartialAmountControls();
     }
-    
+
+    private void initPartialAmountControls() {
+        m_jAmount = new JEditorCurrencyPositive();
+        m_jKeys = new JEditorKeys();
+        m_jAmount.setPreferredSize(new Dimension(150, 30));
+        m_jAmount.addEditorKeys(m_jKeys);
+        m_jAmount.addPropertyChangeListener("Edition", new RecalculateAmount());
+
+        JPanel amountRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        amountRow.add(new JLabel("Importe de esta tarjeta:"));
+        amountRow.add(m_jAmount);
+
+        removeAll();
+        setLayout(new BorderLayout(8, 4));
+        add(amountRow, BorderLayout.NORTH);
+        add(jLabel1, BorderLayout.CENTER);
+        add(m_jKeys, BorderLayout.EAST);
+    }
+
+    @Override
     public JComponent getComponent() {
         return this;
     }
-    
+
+    @Override
     public void activate(String sTransaction, double dTotal) {
-        
+
         m_sTransactionID = sTransaction;
+        m_dAvailableTotal = dTotal;
         m_dTotal = dTotal;
-        
+
         jLabel1.setText(
-                m_dTotal > 0.0
+                m_dAvailableTotal > 0.0
                 ? AppLocal.getIntString("message.paymentgatewayext")
                 : AppLocal.getIntString("message.paymentgatewayextrefund"));
-        
-        m_notifier.setStatus(true, true);            
+
+        if (m_dAvailableTotal > 0.0) {
+            m_jAmount.setEnabled(true);
+            m_jKeys.setEnabled(true);
+            m_jAmount.setDoubleValue(RoundUtils.round(m_dAvailableTotal));
+            m_jAmount.activate();
+            recalculateAmount();
+        } else {
+            // Mantener el flujo histórico de reembolso: no fraccionarlo aquí.
+            m_jAmount.reset();
+            m_jAmount.setEnabled(false);
+            m_jKeys.setEnabled(false);
+            m_notifier.setStatus(true, true);
+        }
     }
-    
+
+    private void recalculateAmount() {
+        if (m_dAvailableTotal <= 0.0) {
+            m_dTotal = m_dAvailableTotal;
+            m_notifier.setStatus(true, true);
+            return;
+        }
+
+        Double value = m_jAmount.getDoubleValue();
+        if (value == null) {
+            m_dTotal = 0.0;
+            m_notifier.setStatus(false, false);
+            return;
+        }
+
+        m_dTotal = RoundUtils.round(value);
+        int compare = RoundUtils.compare(m_dTotal, m_dAvailableTotal);
+        boolean valid = m_dTotal > 0.0 && compare <= 0;
+        m_notifier.setStatus(valid, valid && compare == 0);
+    }
+
+    private boolean isPositiveAmountValid() {
+        return m_dAvailableTotal > 0.0
+                && m_dTotal > 0.0
+                && RoundUtils.compare(m_dTotal, m_dAvailableTotal) <= 0;
+    }
+
+    @Override
     public PaymentInfoMagcard getPaymentInfoMagcard() {
 
-        if (m_dTotal > 0.0) {
+        if (m_dAvailableTotal > 0.0) {
+            recalculateAmount();
+            if (!isPositiveAmountValid()) {
+                throw new IllegalStateException("Importe de tarjeta inválido.");
+            }
             return new PaymentInfoMagcard(
                     "",
-                    "", 
+                    "",
                     "",
                     null,
                     null,
@@ -70,20 +148,27 @@ public class PaymentPanelBasic extends javax.swing.JPanel implements PaymentPane
                     m_sTransactionID,
                     m_dTotal);
         } else {
-            return new PaymentInfoMagcardRefund( 
+            return new PaymentInfoMagcardRefund(
                     "",
-                    "", 
+                    "",
                     "",
                     null,
                     null,
                     null,
-                    null, 
+                    null,
                     null,
                     m_sTransactionID,
                     m_dTotal);
         }
-    } 
-    
+    }
+
+    private class RecalculateAmount implements PropertyChangeListener {
+        @Override
+        public void propertyChange(PropertyChangeEvent evt) {
+            recalculateAmount();
+        }
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
