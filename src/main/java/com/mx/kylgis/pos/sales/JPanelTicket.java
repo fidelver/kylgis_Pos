@@ -464,8 +464,7 @@ System.out.println("PanelContainer : Focus Lost");
                             oTicketExt.toString());
                 }              
 
-                restDB.setTicketIdInTable(m_oTicket.getId(),oTicketExt.toString());
-                restDB.setOccupied(m_oTicket.getId());
+                restDB.assignTicketToTable(m_oTicket.getId(),oTicketExt.toString());
             }
         }
                            

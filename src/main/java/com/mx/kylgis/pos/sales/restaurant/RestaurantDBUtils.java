@@ -352,6 +352,23 @@ public class RestaurantDBUtils {
         });
     }
 
+    /**
+     * Assigns a ticket to a table while preserving the original occupied time
+     * when the same ticket is reopened. A new/different ticket always gets a
+     * fresh timestamp, which also repairs stale OCCUPIED values left on free
+     * tables by historical versions.
+     */
+    public void assignTicketToTable(String ticketID, String tableName) {
+        executeUpdate("UPDATE places SET "
+                + "OCCUPIED=CASE WHEN TICKETID IS NULL OR TICKETID<>? OR OCCUPIED IS NULL "
+                + "THEN CURRENT_TIMESTAMP ELSE OCCUPIED END, "
+                + "TICKETID=?, TABLEMOVED=FALSE WHERE NAME=?", statement -> {
+            statement.setString(1, ticketID);
+            statement.setString(2, ticketID);
+            statement.setString(3, tableName);
+        });
+    }
+
     public void clearTicketIdInTable(String tableName) {
         executeUpdate("UPDATE places SET TICKETID=null WHERE NAME=?",
                 statement -> statement.setString(1, tableName));
