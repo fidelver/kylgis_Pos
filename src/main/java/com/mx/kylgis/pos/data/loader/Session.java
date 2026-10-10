@@ -34,6 +34,9 @@ import java.sql.SQLFeatureNotSupportedException;
 public final class Session {
 
     private static final int CONNECTION_VALIDATION_TIMEOUT_SECONDS = 2;
+    private static final long DEFAULT_CONNECTION_VALIDATION_INTERVAL_MILLIS = 60000L;
+    private static final long CONNECTION_VALIDATION_INTERVAL_NANOS =
+            validationIntervalMillis() * 1000000L;
     
     private final String m_surl;
     private final String m_sappuser;
@@ -41,6 +44,7 @@ public final class Session {
     
     private Connection m_c;
     private boolean m_bInTransaction;
+    private long m_lastConnectionValidationNanos;
 
     /**
      *
@@ -59,6 +63,7 @@ public final class Session {
         
         m_c = null;
         m_bInTransaction = false;
+        m_lastConnectionValidationNanos = 0L;
         
         connect(); // no lazy connection
 
@@ -80,6 +85,7 @@ public final class Session {
         : DriverManager.getConnection(m_surl, m_sappuser, m_spassword);         
         m_c.setAutoCommit(true);
         m_bInTransaction = false;
+        markConnectionValidation();
     }     
 
     /**
@@ -99,6 +105,7 @@ public final class Session {
                 // me la como
             } finally {
                 m_c = null;
+                m_lastConnectionValidationNanos = 0L;
             }
         }
     }
@@ -139,7 +146,7 @@ public final class Session {
         if (m_bInTransaction) {
             m_bInTransaction = false; // lo primero salimos del estado
             m_c.commit();
-            m_c.setAutoCommit(true);          
+            m_c.setAutoCommit(true);
         } else {
             throw new SQLException("Transaction not started");
         }
@@ -153,7 +160,7 @@ public final class Session {
         if (m_bInTransaction) {
             m_bInTransaction = false; // lo primero salimos del estado
             m_c.rollback();
-            m_c.setAutoCommit(true);            
+            m_c.setAutoCommit(true);
         } else {
             throw new SQLException("Transaction not started");
         }
@@ -168,20 +175,27 @@ public final class Session {
     }
     
     private void ensureConnection() throws SQLException {
-        // Solo se invoca si isTransaction == false. isClosed() no detecta
-        // conexiones que el servidor cerro por wait_timeout, por lo que se
-        // valida el socket antes de reutilizarlo.
+        // isClosed() no detecta necesariamente un socket que el servidor cerro
+        // por wait_timeout. Validar con isValid() en CADA sentencia, sin embargo,
+        // agrega un ping JDBC al camino caliente. La validacion se limita a una
+        // frecuencia maxima configurable (60 s por defecto), independientemente
+        // de cuantas sentencias se ejecuten entre validaciones.
         boolean reconnect = m_c == null;
 
         if (!reconnect) {
             try {
                 reconnect = m_c.isClosed();
-                if (!reconnect) {
+                if (!reconnect && shouldValidateConnection()) {
                     try {
                         reconnect = !m_c.isValid(CONNECTION_VALIDATION_TIMEOUT_SECONDS);
+                        if (!reconnect) {
+                            markConnectionValidation();
+                        }
                     } catch (SQLFeatureNotSupportedException | AbstractMethodError e) {
                         // Drivers JDBC antiguos pueden no implementar isValid().
-                        // En ese caso conservamos el comportamiento historico.
+                        // En ese caso conservamos el comportamiento historico y
+                        // evitamos reintentar la comprobacion en cada sentencia.
+                        markConnectionValidation();
                         reconnect = false;
                     }
                 }
@@ -195,7 +209,31 @@ public final class Session {
         if (reconnect) {
             connect();
         }
-    }  
+    }
+
+    private boolean shouldValidateConnection() {
+        if (CONNECTION_VALIDATION_INTERVAL_NANOS <= 0L || m_lastConnectionValidationNanos == 0L) {
+            return true;
+        }
+        long elapsed = System.nanoTime() - m_lastConnectionValidationNanos;
+        return elapsed < 0L || elapsed >= CONNECTION_VALIDATION_INTERVAL_NANOS;
+    }
+
+    private void markConnectionValidation() {
+        m_lastConnectionValidationNanos = System.nanoTime();
+    }
+
+    private static long validationIntervalMillis() {
+        String configured = System.getProperty("kylgis.jdbc.validationIntervalMillis");
+        if (configured == null || configured.trim().isEmpty()) {
+            return DEFAULT_CONNECTION_VALIDATION_INTERVAL_MILLIS;
+        }
+        try {
+            return Math.max(0L, Long.parseLong(configured.trim()));
+        } catch (NumberFormatException ex) {
+            return DEFAULT_CONNECTION_VALIDATION_INTERVAL_MILLIS;
+        }
+    }
 
     /**
      *
