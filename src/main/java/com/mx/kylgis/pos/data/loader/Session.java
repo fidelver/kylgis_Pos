@@ -92,24 +92,30 @@ public final class Session {
      *
      */
     public void close() {
-        
-        if (m_c != null) {
+
+        Connection connection = m_c;
+        boolean rollbackPending = m_bInTransaction;
+        m_c = null;
+        m_bInTransaction = false;
+        m_lastConnectionValidationNanos = 0L;
+
+        if (connection != null) {
             try {
-                if (m_bInTransaction) {
-                    m_bInTransaction = false; // lo primero salimos del estado
-                    m_c.rollback();
-                    m_c.setAutoCommit(true);  
-                }            
-                m_c.close();
+                if (rollbackPending) {
+                    connection.rollback();
+                }
             } catch (SQLException e) {
-                // me la como
+                // Closing the physical connection below is the safest fallback.
             } finally {
-                m_c = null;
-                m_lastConnectionValidationNanos = 0L;
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    // Nothing else can safely be done during close().
+                }
             }
         }
     }
-    
+
     /**
      *
      * @return
@@ -143,12 +149,18 @@ public final class Session {
      * @throws SQLException
      */
     public void commit() throws SQLException {
-        if (m_bInTransaction) {
-            m_bInTransaction = false; // lo primero salimos del estado
+        if (!m_bInTransaction) {
+            throw new SQLException("Transaction not started");
+        }
+
+        try {
             m_c.commit();
             m_c.setAutoCommit(true);
-        } else {
-            throw new SQLException("Transaction not started");
+            m_bInTransaction = false;
+            markConnectionValidation();
+        } catch (SQLException ex) {
+            discardConnectionAfterTransactionFailure();
+            throw ex;
         }
     }
 
@@ -157,12 +169,18 @@ public final class Session {
      * @throws SQLException
      */
     public void rollback() throws SQLException {
-        if (m_bInTransaction) {
-            m_bInTransaction = false; // lo primero salimos del estado
+        if (!m_bInTransaction) {
+            throw new SQLException("Transaction not started");
+        }
+
+        try {
             m_c.rollback();
             m_c.setAutoCommit(true);
-        } else {
-            throw new SQLException("Transaction not started");
+            m_bInTransaction = false;
+            markConnectionValidation();
+        } catch (SQLException ex) {
+            discardConnectionAfterTransactionFailure();
+            throw ex;
         }
     }
 
@@ -172,6 +190,21 @@ public final class Session {
      */
     public boolean isTransaction() {
         return m_bInTransaction;
+    }
+
+    private void discardConnectionAfterTransactionFailure() {
+        Connection failedConnection = m_c;
+        m_c = null;
+        m_bInTransaction = false;
+        m_lastConnectionValidationNanos = 0L;
+
+        if (failedConnection != null) {
+            try {
+                failedConnection.close();
+            } catch (SQLException ignored) {
+                // The connection is already unusable and must not be reused.
+            }
+        }
     }
     
     private void ensureConnection() throws SQLException {
