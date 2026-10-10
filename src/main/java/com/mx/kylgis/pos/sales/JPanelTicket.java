@@ -465,25 +465,10 @@ System.out.println("PanelContainer : Focus Lost");
                 }              
 
                 restDB.setTicketIdInTable(m_oTicket.getId(),oTicketExt.toString());
-                restDB.setGuestsInTable(restDB.getGuestsInTable(m_oTicket.getId()), m_oTicket.getId());
                 restDB.setOccupied(m_oTicket.getId());
             }
         }
                            
-        if ((m_oTicket != null) && (((Boolean.parseBoolean(m_App.getProperties()
-                .getProperty("table.showwaiterdetails"))) 
-                || (Boolean.valueOf(m_App.getProperties().getProperty(
-                        "table.showcustomerdetails")))))) {
-        }        
-            
-        if ((m_oTicket != null) && (((Boolean.valueOf(m_App.getProperties()
-                .getProperty("table.showcustomerdetails"))) || 
-                (Boolean.parseBoolean(m_App.getProperties().getProperty("table.showwaiterdetails")))))) {
-            if (restDB.getTableMovedFlag(m_oTicket.getId())){
-                restDB.moveCustomer(oTicketExt.toString(),m_oTicket.getId());
-            }                                                
-        }
-
         executeEvent(m_oTicket, m_oTicketExt, "ticket.show");
        
         if (m_App.getAppUserView().getUser().hasPermission("sales.PrintRemote")) {

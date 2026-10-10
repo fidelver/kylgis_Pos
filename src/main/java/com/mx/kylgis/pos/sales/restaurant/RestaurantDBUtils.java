@@ -94,6 +94,147 @@ public class RestaurantDBUtils {
     }
 
     /**
+     * Transfers restaurant metadata after a ticket was successfully moved to
+     * an empty table. Nothing is cleared from the source until the destination
+     * update succeeds.
+     *
+     * @param sourceTableID source place ID
+     * @param targetTableID destination place ID
+     * @return true when both rows were updated atomically
+     */
+    public boolean moveTableState(String sourceTableID, String targetTableID) {
+        if (sourceTableID == null || targetTableID == null) {
+            return false;
+        }
+        if (sourceTableID.equals(targetTableID)) {
+            return true;
+        }
+
+        TransferState source = getTransferState(sourceTableID);
+        if (source == null) {
+            return false;
+        }
+        return transferTableState(sourceTableID, targetTableID, source);
+    }
+
+    /**
+     * Merges metadata after two restaurant tickets were merged. The target
+     * identity/customer/waiter/occupied time wins when already present, while
+     * guests are added. Source metadata is cleared only after the target update.
+     *
+     * @param sourceTableID source place ID
+     * @param targetTableID destination place ID
+     * @return true when both rows were updated atomically
+     */
+    public boolean mergeTableState(String sourceTableID, String targetTableID) {
+        if (sourceTableID == null || targetTableID == null) {
+            return false;
+        }
+        if (sourceTableID.equals(targetTableID)) {
+            return true;
+        }
+
+        TransferState source = getTransferState(sourceTableID);
+        TransferState target = getTransferState(targetTableID);
+        if (source == null || target == null) {
+            return false;
+        }
+
+        TransferState merged = new TransferState(
+                firstNonBlank(target.customer, source.customer),
+                firstNonBlank(target.waiter, source.waiter),
+                target.ticketID,
+                Math.max(0, target.guests) + Math.max(0, source.guests),
+                target.occupied != null ? target.occupied : source.occupied);
+        return transferTableState(sourceTableID, targetTableID, merged);
+    }
+
+    private boolean transferTableState(String sourceTableID, String targetTableID,
+            TransferState targetState) {
+        boolean ownTransaction = !s.isTransaction();
+        try {
+            if (ownTransaction) {
+                s.begin();
+            }
+
+            int targetCount;
+            try (PreparedStatement statement = s.getConnection().prepareStatement(
+                    "UPDATE places SET CUSTOMER=?, WAITER=?, TICKETID=?, TABLEMOVED=FALSE, "
+                    + "GUESTS=?, OCCUPIED=? WHERE ID=?")) {
+                statement.setString(1, targetState.customer);
+                statement.setString(2, targetState.waiter);
+                statement.setString(3, targetState.ticketID);
+                statement.setInt(4, targetState.guests);
+                statement.setTimestamp(5, targetState.occupied);
+                statement.setString(6, targetTableID);
+                targetCount = statement.executeUpdate();
+            }
+            if (targetCount != 1) {
+                throw new SQLException("Destination restaurant table not found: " + targetTableID);
+            }
+
+            int sourceCount;
+            try (PreparedStatement statement = s.getConnection().prepareStatement(
+                    "UPDATE places SET CUSTOMER=NULL, WAITER=NULL, TICKETID=NULL, "
+                    + "TABLEMOVED=FALSE, GUESTS=0, OCCUPIED=NULL WHERE ID=?")) {
+                statement.setString(1, sourceTableID);
+                sourceCount = statement.executeUpdate();
+            }
+            if (sourceCount != 1) {
+                throw new SQLException("Source restaurant table not found: " + sourceTableID);
+            }
+
+            if (ownTransaction) {
+                s.commit();
+            }
+            return true;
+        } catch (SQLException ex) {
+            if (ownTransaction && s.isTransaction()) {
+                try {
+                    s.rollback();
+                } catch (SQLException ignored) {
+                    // Preserve the original failure as the transfer result.
+                }
+            }
+            return false;
+        }
+    }
+
+    private TransferState getTransferState(String tableID) {
+        return queryOne(
+                "SELECT CUSTOMER, WAITER, TICKETID, GUESTS, OCCUPIED FROM places WHERE ID=?",
+                statement -> statement.setString(1, tableID),
+                resultSet -> new TransferState(
+                        resultSet.getString("CUSTOMER"),
+                        resultSet.getString("WAITER"),
+                        resultSet.getString("TICKETID"),
+                        resultSet.getInt("GUESTS"),
+                        resultSet.getTimestamp("OCCUPIED")),
+                null);
+    }
+
+    private static String firstNonBlank(String preferred, String fallback) {
+        return preferred == null || preferred.trim().isEmpty() ? fallback : preferred;
+    }
+
+    private static final class TransferState {
+        private final String customer;
+        private final String waiter;
+        private final String ticketID;
+        private final int guests;
+        private final Timestamp occupied;
+
+        private TransferState(String customer, String waiter, String ticketID,
+                int guests, Timestamp occupied) {
+            this.customer = customer;
+            this.waiter = waiter;
+            this.ticketID = ticketID;
+            this.guests = guests;
+            this.occupied = occupied;
+        }
+    }
+
+    /**
      * @param newTable destination table
      * @param ticketID ticket being moved
      */
@@ -267,7 +408,8 @@ public class RestaurantDBUtils {
     }
 
     public void setOccupied(String ticketID) {
-        executeUpdate("UPDATE places SET OCCUPIED=NOW() WHERE TICKETID=?",
+        executeUpdate("UPDATE places SET OCCUPIED=CURRENT_TIMESTAMP "
+                + "WHERE TICKETID=? AND OCCUPIED IS NULL",
                 statement -> statement.setString(1, ticketID));
     }
 

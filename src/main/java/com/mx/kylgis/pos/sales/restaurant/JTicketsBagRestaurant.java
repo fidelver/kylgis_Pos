@@ -315,13 +315,9 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
 
     private void m_MoveTableActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_MoveTableActionPerformed
 
-// JG 6 Nov 13 - clear Customer from orignal table - Thanks David Kurniawan
-        restDB.clearCustomerNameInTableById(m_restaurant.getTable());
-        restDB.clearWaiterNameInTableById(m_restaurant.getTable());
-        restDB.clearTicketIdInTableById(m_restaurant.getTable());        
-        restDB.clearGuestsInTable(m_restaurant.getTable());
-        restDB.clearOccupied(m_restaurant.getTable());       
-        restDB.setTableMovedFlag(m_restaurant.getTable());
+        // Keep the source metadata intact while the user chooses a destination.
+        // It is transferred/cleared only after the shared-ticket move succeeds,
+        // so cancelling a move cannot erase customer/waiter/guest information.
 
         m_restaurant.moveTicket();                 
              

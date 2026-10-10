@@ -60,6 +60,7 @@ import com.mx.kylgis.pos.sales.TicketsEditor;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 
@@ -752,6 +753,36 @@ Integer count = place.getGuests();
         }
     }
     
+    private void beginRestaurantMoveTransaction() throws BasicException {
+        try {
+            if (m_App.getSession().isTransaction()) {
+                throw new BasicException("A database transaction is already active during table move");
+            }
+            m_App.getSession().begin();
+        } catch (SQLException ex) {
+            throw new BasicException("Could not start restaurant table move transaction", ex);
+        }
+    }
+
+    private void commitRestaurantMoveTransaction() throws BasicException {
+        try {
+            m_App.getSession().commit();
+        } catch (SQLException ex) {
+            throw new BasicException("Could not commit restaurant table move transaction", ex);
+        }
+    }
+
+    private void rollbackRestaurantMoveTransaction() {
+        if (!m_App.getSession().isTransaction()) {
+            return;
+        }
+        try {
+            m_App.getSession().rollback();
+        } catch (SQLException ex) {
+            LOGGER.log(Level.WARNING, "Could not roll back restaurant table move transaction", ex);
+        }
+    }
+
     private void setActivePlace(Place place, TicketInfo ticket) {
         m_PlaceCurrent = place;
         m_panelticket.setActiveTicket(ticket, m_PlaceCurrent.getName());
@@ -850,89 +881,118 @@ Integer count = place.getGuests();
 
                         if (ticketclip != null) {
 
-                            if (m_PlaceClipboard == m_place) {                              // check if FROM same as TO
-                                Place placeclip = m_PlaceClipboard;                       
+                            Place sourcePlace = m_PlaceClipboard;
+                            if (sourcePlace == m_place) {                                   // FROM and TO are the same table
                                 m_PlaceClipboard = null;
                                 customer = null;
                                 printState();
-                                setActivePlace(placeclip, ticketclip);
-                            } 
+                                setActivePlace(sourcePlace, ticketclip);
+                            } else if (m_place.hasPeople()) {                               // TO table already occupied
+                                TicketInfo ticket = getTicketInfo(m_place);
 
-                            if (m_place.hasPeople()) {                                      // check if TO table already occupied
-                                TicketInfo ticket = getTicketInfo(m_place);                 // add TO ticket object
-
-                                if (ticket != null) {                                       // It does, so...
-
+                                if (ticket != null) {
                                     if (JOptionPane.showConfirmDialog(JTicketsBagRestaurantMap.this,
-                                            AppLocal.getIntString("message.mergetablequestion"), 
-                                            AppLocal.getIntString("message.mergetable"), 
-                                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {                                 
+                                            AppLocal.getIntString("message.mergetablequestion"),
+                                            AppLocal.getIntString("message.mergetable"),
+                                            JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                                        boolean mergeSucceeded = false;
+                                        boolean transactionStarted = false;
+                                        int mergedGuests = Math.max(0, m_place.getGuests())
+                                                + Math.max(0, sourcePlace.getGuests());
                                         try {
-                                            m_PlaceClipboard.setPeople(false);
-
+                                            beginRestaurantMoveTransaction();
+                                            transactionStarted = true;
                                             if (ticket.getCustomer() == null) {
                                                 ticket.setCustomer(ticketclip.getCustomer());
                                             }
                                             ticketclip.getLines().stream().forEach((line) -> {
                                                 ticket.addLine(line);
                                             });
-                                            dlReceipts.updateRSharedTicket(m_place.getId(), 
+                                            dlReceipts.updateRSharedTicket(m_place.getId(),
                                                     ticket, ticket.getPickupId());
-                                            dlReceipts.deleteSharedTicket(m_PlaceClipboard.getId());   
-                                            m_place.setGuests(m_PlaceClipboard.getGuests());    // Add Guests from Clipboard        
-                           
+                                            dlReceipts.deleteSharedTicket(sourcePlace.getId());
+                                            if (!restDB.mergeTableState(sourcePlace.getId(), m_place.getId())) {
+                                                throw new BasicException("Could not merge restaurant table metadata");
+                                            }
+                                            commitRestaurantMoveTransaction();
+                                            transactionStarted = false;
+                                            m_place.setGuests(mergedGuests);
+                                            sourcePlace.setPeople(false);
+                                            mergeSucceeded = true;
                                         } catch (BasicException e) {
+                                            if (transactionStarted) {
+                                                rollbackRestaurantMoveTransaction();
+                                            }
                                             new MessageInf(e).show(JTicketsBagRestaurantMap.this);
                                         }
-                                        m_PlaceClipboard = null;
-                                        customer = null;
 
-                                        restDB.clearCustomerNameInTable(restDB.getTableDetails(ticketclip.getId()));
-                                        restDB.clearWaiterNameInTable(restDB.getTableDetails(ticketclip.getId()));
-                                        restDB.clearTableMovedFlag(restDB.getTableDetails(ticketclip.getId()));
-                                        restDB.clearTicketIdInTable(restDB.getTableDetails(ticketclip.getId()));                 
-                                        restDB.clearOccupiedTable(restDB.getTableDetails(ticketclip.getId()));
-
-                                        printState();
-                                        setActivePlace(m_place, ticket);
-                                    } else { 
-                                        Place placeclip = m_PlaceClipboard;                 // don't want to merge so clear clipboard      
+                                        if (mergeSucceeded) {
+                                            m_PlaceClipboard = null;
+                                            customer = null;
+                                            printState();
+                                            setActivePlace(m_place, ticket);
+                                        } else {
+                                            sourcePlace.setPeople(true);
+                                            printState();
+                                        }
+                                    } else {
                                         m_PlaceClipboard = null;
                                         customer = null;
                                         printState();
-                                        setActivePlace(placeclip, ticketclip);                                   
+                                        setActivePlace(sourcePlace, ticketclip);
                                     }
-                                } else {                                                    
-                                    new MessageInf(MessageInf.SGN_WARNING, 
+                                } else {
+                                    new MessageInf(MessageInf.SGN_WARNING,
                                             AppLocal.getIntString("message.tableempty"))
                                             .show(JTicketsBagRestaurantMap.this);
-                                    m_place.setPeople(false);                            
-                                }                                
-                            } else {                                                        // The TO table is empty
-                                TicketInfo ticket = getTicketInfo(m_place);                 // fill ticket object with TO table
+                                    m_place.setPeople(false);
+                                }
+                            } else {                                                        // TO table is empty
+                                TicketInfo ticket = getTicketInfo(m_place);
 
                                 if (ticket == null) {
+                                    boolean moveSucceeded = false;
+                                    boolean transactionStarted = false;
                                     try {
-                                        dlReceipts.insertRSharedTicket(m_place.getId(), ticketclip, ticketclip.getPickupId());
-                                        m_place.setPeople(true);                        
-                                        m_place.setGuests(m_PlaceClipboard.getGuests());    // Add Guests from Clipboard
-                                        dlReceipts.deleteSharedTicket(m_PlaceClipboard.getId());                            
-                                        m_PlaceClipboard.setPeople(false);
+                                        beginRestaurantMoveTransaction();
+                                        transactionStarted = true;
+                                        dlReceipts.insertRSharedTicket(m_place.getId(), ticketclip,
+                                                ticketclip.getPickupId());
+                                        dlReceipts.deleteSharedTicket(sourcePlace.getId());
+                                        if (!restDB.moveTableState(sourcePlace.getId(), m_place.getId())) {
+                                            throw new BasicException("Could not transfer restaurant table metadata");
+                                        }
+                                        commitRestaurantMoveTransaction();
+                                        transactionStarted = false;
+                                        m_place.setPeople(true);
+                                        m_place.setGuests(sourcePlace.getGuests());
+                                        sourcePlace.setPeople(false);
+                                        moveSucceeded = true;
                                     } catch (BasicException e) {
+                                        if (transactionStarted) {
+                                            rollbackRestaurantMoveTransaction();
+                                        }
                                         new MessageInf(e).show(JTicketsBagRestaurantMap.this);
                                     }
-                                    printState();
-                                    setActivePlace(m_place, ticketclip);                            
-                                    m_PlaceClipboard = null;
-                                    customer = null;                        
+
+                                    if (moveSucceeded) {
+                                        printState();
+                                        setActivePlace(m_place, ticketclip);
+                                        m_PlaceClipboard = null;
+                                        customer = null;
+                                    } else {
+                                        sourcePlace.setPeople(true);
+                                        printState();
+                                    }
                                 } else {
-                                    new MessageInf(MessageInf.SGN_WARNING, 
+                                    new MessageInf(MessageInf.SGN_WARNING,
                                             AppLocal.getIntString("message.tablefull"))
                                             .show(JTicketsBagRestaurantMap.this);
-                                    m_PlaceClipboard.setPeople(true);
+                                    sourcePlace.setPeople(true);
                                     printState();
                                 }
                             }
+
                         } else { // table empty! Do we need it here?
                             new MessageInf(MessageInf.SGN_WARNING, 
                                     AppLocal.getIntString("message.tableempty")).show(JTicketsBagRestaurantMap.this);
