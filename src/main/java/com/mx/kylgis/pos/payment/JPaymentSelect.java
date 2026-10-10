@@ -30,6 +30,8 @@ import com.mx.kylgis.pos.forms.DataLogicSystem;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     protected JPaymentSelect(java.awt.Frame parent, boolean modal, ComponentOrientation o) {
         super(parent, modal);
         initComponents();    
+        installSafeCloseGuard();
         this.applyComponentOrientation(o);
         getRootPane().setDefaultButton(m_jButtonOK); 
    
@@ -85,6 +88,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     protected JPaymentSelect(java.awt.Dialog parent, boolean modal, ComponentOrientation o) {
         super(parent, modal);
         initComponents();    
+        installSafeCloseGuard();
         
         m_jButtonPrint.setVisible(true);
         this.applyComponentOrientation(o);
@@ -472,6 +476,62 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
                 , m_sTransactionID);
     }
     
+    private void installSafeCloseGuard() {
+        setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                requestCancel();
+            }
+        });
+    }
+
+    private boolean isApprovedCardPayment(PaymentInfo payment) {
+        return payment instanceof PaymentInfoMagcard
+                && ((PaymentInfoMagcard) payment).isPaymentOK();
+    }
+
+    private boolean hasApprovedCardPayment() {
+        if (m_aPaymentInfo == null) {
+            return false;
+        }
+        for (PaymentInfo payment : m_aPaymentInfo.getPayments()) {
+            if (isApprovedCardPayment(payment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isLastPaymentApprovedCard() {
+        return m_aPaymentInfo != null
+                && !m_aPaymentInfo.isEmpty()
+                && isApprovedCardPayment(m_aPaymentInfo.getPayments().getLast());
+    }
+
+    private void showApprovedPaymentGuard(String action) {
+        JOptionPane.showMessageDialog(this,
+                "Hay un pago con tarjeta ya aprobado.\n"
+                + "No se puede " + action + " porque se perdería la referencia del cobro.\n"
+                + "Complete el ticket o realice una anulación/reembolso verificado.",
+                "Pago aprobado pendiente", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void requestCancel() {
+        if (paymentInProgress) {
+            JOptionPane.showMessageDialog(this,
+                    "Hay un pago en proceso. Espere a que termine antes de cerrar el cobro.",
+                    "Pago en proceso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (hasApprovedCardPayment()) {
+            showApprovedPaymentGuard("cancelar o cerrar la ventana");
+            return;
+        }
+        accepted = false;
+        dispose();
+    }
+
     protected static Window getWindow(Component parent) {
         if (parent == null) {
             return new JFrame();
@@ -694,9 +754,16 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
     private void m_jButtonRemoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonRemoveActionPerformed
 
+        if (m_aPaymentInfo.isEmpty()) {
+            return;
+        }
+        if (isLastPaymentApprovedCard()) {
+            showApprovedPaymentGuard("quitar el último pago");
+            return;
+        }
         m_aPaymentInfo.removeLast();
-        printState();        
-        
+        printState();
+
     }//GEN-LAST:event_m_jButtonRemoveActionPerformed
 
     private void m_jButtonAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonAddActionPerformed
@@ -778,8 +845,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
     private void m_jButtonCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonCancelActionPerformed
 
-        dispose();
-        
+        requestCancel();
+
     }//GEN-LAST:event_m_jButtonCancelActionPerformed
 
     private void m_jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonPrintActionPerformed
