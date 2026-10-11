@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  */
 public class DriverWrapper implements Driver {
     
-    private Driver driver;
+    private final Driver driver;
     
     /**
      *
@@ -66,6 +66,6 @@ public class DriverWrapper implements Driver {
 
     @Override
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return driver.getParentLogger();
     }
 }

@@ -8,9 +8,9 @@
   <packaging>jar</packaging>  
   <properties> 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
-    <maven.compiler.source>1.8</maven.compiler.source>  
-    <maven.compiler.target>1.8</maven.compiler.target>  
-    <kotlin.version>1.1.4</kotlin.version>  
+    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.parameters>true</maven.compiler.parameters>
+    <project.build.outputTimestamp>2026-10-11T00:00:00Z</project.build.outputTimestamp>
     <!-- Specify this via command line i.e -Dbitrock.exec=/path/to/bitrock/builder-->  
     <bitrock.exec/>  
     <!-- windows, osx, linux -->  
@@ -18,6 +18,16 @@
     <!-- Licence location -->
     <bitrock.licence/>
   </properties>  
+  <repositories>
+    <!-- Quarantined compatibility repository for legacy UI binaries that are
+         not available from Maven Central under their historical coordinates. -->
+    <repository>
+      <id>kylgis-legacy-ui</id>
+      <url>file://${project.basedir}/vendor/maven</url>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+  </repositories>
   <dependencies> 
     <dependency> 
       <groupId>org.springframework</groupId>  
@@ -152,17 +162,28 @@
     <dependency> 
       <groupId>org.netbeans.external</groupId>  
       <artifactId>AbsoluteLayout</artifactId>  
-      <version>RELEASE82</version> 
+      <version>RELEASE290</version>
     </dependency>  
     <dependency> 
-      <groupId>com.javapos</groupId>  
-      <artifactId>jpos</artifactId>  
-      <version>1.13</version> 
+      <groupId>org.javapos</groupId>
+      <artifactId>javapos</artifactId>
+      <version>1.15.8</version>
     </dependency>  
     <dependency> 
-      <groupId>mysql</groupId>  
-      <artifactId>mysql-connector-java</artifactId>  
-      <version>5.1.39</version> 
+      <groupId>org.mariadb.jdbc</groupId>
+      <artifactId>mariadb-java-client</artifactId>
+      <version>3.5.10</version>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <version>26.7.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>  
     <dependency> 
       <groupId>org.apache.derby</groupId>  
@@ -184,7 +205,7 @@
     <dependency> 
       <groupId>net.sf.jasperreports</groupId>  
       <artifactId>jasperreports</artifactId>  
-      <version>6.4.0</version>
+      <version>6.21.5</version>
       <exclusions>
         <exclusion>
           <groupId>com.lowagie</groupId>
@@ -195,7 +216,7 @@
     <dependency> 
       <groupId>net.sf.jasperreports</groupId>  
       <artifactId>jasperreports-fonts</artifactId>  
-      <version>6.0.0</version> 
+      <version>6.21.5</version>
     </dependency>  
     <dependency> 
       <groupId>org.eclipse.jdt.core.compiler</groupId>  
@@ -208,22 +229,35 @@
       <artifactId>joda-time</artifactId>  
       <version>2.9.7</version> 
     </dependency>  
-<!-- https://mvnrepository.com/artifact/de.sciss/weblaf -->
+<!-- WebLaF remains on the legacy-compatible API for the Java 21 transition.
+         Its UI modernization is a separate regression-sensitive phase. -->
     <dependency>
         <groupId>de.sciss</groupId>
         <artifactId>weblaf</artifactId>
         <version>1.2.9</version>
+    </dependency>
+    <dependency>
+      <groupId>de.sciss</groupId>
+      <artifactId>weblaf-core</artifactId>
+      <version>2.1.3</version>
+    </dependency>
+    <dependency>
+      <groupId>de.sciss</groupId>
+      <artifactId>weblaf-ui</artifactId>
+      <version>2.1.3</version>
+      <type>jar</type>
+    </dependency>
+    <!-- Override the legacy transitive serializer with a maintained release. -->
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <version>1.4.21</version>
     </dependency>
 
     <dependency> 
       <groupId>javax.persistence</groupId>  
       <artifactId>persistence-api</artifactId>  
       <version>1.0.2</version> 
-    </dependency>  
-    <dependency> 
-      <groupId>com.dalsemi.onewire</groupId>  
-      <artifactId>OneWireAPI</artifactId>  
-      <version>0.1</version> 
     </dependency>  
     <dependency> 
       <groupId>org.jdatepicker</groupId>  
@@ -235,13 +269,9 @@
       <groupId>com.sleepycat</groupId>  
       <artifactId>je</artifactId>  
       <version>5.0.73</version> 
-    </dependency>  
-    <!-- Kotlin -->  
-    <dependency> 
-      <groupId>org.jetbrains.kotlin</groupId>  
-      <artifactId>kotlin-stdlib</artifactId>  
-      <version>${kotlin.version}</version> 
     </dependency>
+
+    <!-- Keep the proven Substance/Trident UI pair during the Java 21 core migration. -->
     <dependency>
       <groupId>org.pushingpixels</groupId>
       <artifactId>trident</artifactId>
@@ -256,43 +286,16 @@
     <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>9.4.1208</version>
+        <version>42.7.14</version>
     </dependency>
-    <dependency>
-      <groupId>de.sciss</groupId>
-      <artifactId>weblaf-ui</artifactId>
-      <version>2.1.3</version>
-      <type>jar</type>
-    </dependency>
+
   </dependencies>  
   <build> 
-    <plugins> 
-      <!-- Kotlin -->  
-      <plugin> 
-        <artifactId>kotlin-maven-plugin</artifactId>  
-        <groupId>org.jetbrains.kotlin</groupId>  
-        <version>${kotlin.version}</version>  
-        <executions> 
-          <execution> 
-            <id>compile</id>  
-            <phase>process-sources</phase>  
-            <goals> 
-              <goal>compile</goal> 
-            </goals> 
-          </execution>  
-          <execution> 
-            <id>test-compile</id>  
-            <phase>process-test-sources</phase>  
-            <goals> 
-              <goal>test-compile</goal> 
-            </goals> 
-          </execution> 
-        </executions> 
-      </plugin>  
+    <plugins>
       <plugin> 
         <groupId>org.apache.maven.plugins</groupId>  
         <artifactId>maven-dependency-plugin</artifactId>  
-        <version>2.10</version>  
+        <version>3.8.1</version>
         <executions> 
           <execution> 
             <id>copy-dependencies</id>  
@@ -312,7 +315,7 @@
       <plugin> 
         <groupId>org.apache.maven.plugins</groupId>  
         <artifactId>maven-jar-plugin</artifactId>  
-        <version>2.6</version>  
+        <version>3.4.2</version>
         <configuration> 
           <archive> 
             <manifest> 
@@ -325,7 +328,7 @@
       </plugin>  
       <plugin> 
         <artifactId>maven-resources-plugin</artifactId>  
-        <version>2.7</version>  
+        <version>3.3.1</version>
         <executions> 
           <execution> 
             <id>copy-resources</id>  
@@ -398,7 +401,7 @@
       <plugin> 
         <groupId>org.codehaus.mojo</groupId>  
         <artifactId>exec-maven-plugin</artifactId>  
-        <version>1.4.0</version>  
+        <version>3.5.0</version>
         <executions> 
           <execution> 
             <goals> 
@@ -420,11 +423,13 @@
       <plugin> 
         <groupId>org.apache.maven.plugins</groupId>  
         <artifactId>maven-compiler-plugin</artifactId>  
-        <version>2.3.2</version>  
-        <configuration> 
-          <showDeprecation>true</showDeprecation>  
-          <debug>true</debug> 
-        </configuration> 
+        <version>3.14.1</version>
+        <configuration>
+          <release>${maven.compiler.release}</release>
+          <parameters>${maven.compiler.parameters}</parameters>
+          <showDeprecation>true</showDeprecation>
+          <debug>true</debug>
+        </configuration>
       </plugin> 
     </plugins>
     <finalName>kylgispos</finalName> 

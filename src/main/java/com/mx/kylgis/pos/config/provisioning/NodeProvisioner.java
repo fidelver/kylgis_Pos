@@ -70,6 +70,7 @@ public final class NodeProvisioner {
 
         if (masterReference == null) {
             Properties effective = merge(defaults, local);
+            DatabaseSettings.applyLegacyCompatibility(effective);
             return new ProvisioningResult(false, localFile, null,
                     Collections.<File>emptyList(), null, local, new Properties(),
                     Collections.<Properties>emptyList(), effective, effective);

@@ -26,18 +26,12 @@ import com.mx.kylgis.pos.data.loader.Session;
 import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
-import com.mx.kylgis.pos.forms.DriverWrapper;
+import com.mx.kylgis.pos.forms.JdbcDriverLoader;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.DirectoryEvent;
-import java.awt.Color;
 import java.awt.Component;
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -62,8 +56,10 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jtxtDbDriver.getDocument().addDocumentListener(dirty);
         jbtnDbDriverLib.addActionListener(new DirectoryEvent(jtxtDbDriverLib));
         jcboDBDriver.addActionListener(dirty);
-        jcboDBDriver.addItem("MySQL");
-        jcboDBDriver.setSelectedIndex(0);
+        jcboDBDriver.addItem(DatabaseSettings.ENGINE_MARIADB);
+        jcboDBDriver.addItem(DatabaseSettings.ENGINE_MYSQL);
+        jcboDBDriver.addItem(DatabaseSettings.ENGINE_POSTGRESQL);
+        jcboDBDriver.setSelectedItem(DatabaseSettings.ENGINE_MARIADB);
         multiDB.addActionListener(dirty);
         
 // primary DB        
@@ -122,7 +118,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
 
 // primary DB              
         jtxtDbName.setText(config.getProperty("db.name"));
-        jtxtDbURL.setText("jdbc:mysql://localhost:3306/");
+        jtxtDbURL.setText("jdbc:mariadb://localhost:3306/");
         jtxtDbURL.setText(config.getProperty("db.URL"));    
         jtxtDbSchema.setText(config.getProperty("db.schema"));        
         jtxtDbOptions.setText(config.getProperty("db.options"));
@@ -186,9 +182,74 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         config.setProperty("db1.user", jtxtDbUser1.getText());
         cypher = new AltEncrypter("cypherkey" + jtxtDbUser1.getText());       
         config.setProperty("db1.password", "crypt:" + 
-                cypher.encrypt(new String(jtxtDbPassword1.getPassword())));        
+                cypher.encrypt(new String(jtxtDbPassword1.getPassword())));
+
+        String engine = comboValue(jcboDBDriver.getSelectedItem());
+        saveModernDatabaseProperties(config, "database", engine,
+                jtxtDbName.getText(), jtxtDbURL.getText(), jtxtDbSchema.getText(),
+                jtxtDbOptions.getText(), jtxtDbUser.getText(),
+                config.getProperty("db.password"), jtxtDbDriver.getText(),
+                jtxtDbDriverLib.getText());
+        saveModernDatabaseProperties(config, "database.secondary", engine,
+                jtxtDbName1.getText(), jtxtDbURL1.getText(), jtxtDbSchema1.getText(),
+                jtxtDbOptions1.getText(), jtxtDbUser1.getText(),
+                config.getProperty("db1.password"), jtxtDbDriver.getText(),
+                jtxtDbDriverLib.getText());
 
         dirty.setDirty(false);
+    }
+
+    private void saveModernDatabaseProperties(AppConfig config, String prefix,
+            String engine, String label, String jdbcUrl, String schema,
+            String options, String user, String password, String driver,
+            String driverLibrary) {
+        config.setProperty(prefix + ".engine", valueOrEmpty(engine));
+        config.setProperty(prefix + ".label", valueOrEmpty(label));
+        config.setProperty(prefix + ".name", valueOrEmpty(schema));
+        config.setProperty(prefix + ".options", valueOrEmpty(options));
+        config.setProperty(prefix + ".user", valueOrEmpty(user));
+        config.setProperty(prefix + ".password", valueOrEmpty(password));
+        config.setProperty(prefix + ".driver", valueOrEmpty(driver));
+        config.setProperty(prefix + ".driverlib", valueOrEmpty(driverLibrary));
+
+        String[] endpoint = parseJdbcEndpoint(jdbcUrl, engine);
+        if (endpoint != null) {
+            config.setProperty(prefix + ".server", endpoint[0]);
+            config.setProperty(prefix + ".port", endpoint[1]);
+        }
+    }
+
+    private String[] parseJdbcEndpoint(String jdbcUrl, String engine) {
+        if (jdbcUrl == null) {
+            return null;
+        }
+        String value = jdbcUrl.trim();
+        if (!value.startsWith("jdbc:")) {
+            return null;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(value.substring(5));
+            String host = uri.getHost();
+            if (host == null) {
+                return null;
+            }
+            int port = uri.getPort();
+            if (port < 0) {
+                port = Integer.parseInt(DatabaseSettings.defaultPort(engine));
+            }
+            return new String[]{host, Integer.toString(port)};
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private File driverLibraryFile(String driverLibrary) {
+        String value = driverLibrary == null ? "" : driverLibrary.trim();
+        return value.isEmpty() ? null : new File(value);
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private String comboValue(Object value) {
@@ -212,8 +273,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             String user = jtxtDbUser.getText();
             String password = new String(jtxtDbPassword.getPassword());
 
-            ClassLoader cloader = new URLClassLoader(new URL[]{new File(driverlib).toURI().toURL()});
-            DriverManager.registerDriver(new DriverWrapper((Driver) Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
 
             Session session1 =  new Session(url, user, password);
             Connection connection1 = session1.getConnection();
@@ -226,8 +286,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             jCBSchema.setEnabled(true);
             jCBSchema.setSelectedIndex(0);
             
-        } catch (MalformedURLException | ClassNotFoundException | SQLException 
-                | InstantiationException | IllegalAccessException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(JPanelConfigDatabase.class.getName()).log(Level.SEVERE, null, ex);
         }        
     }
@@ -248,8 +307,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             String user = jtxtDbUser1.getText();
             String password = new String(jtxtDbPassword1.getPassword());
 
-            ClassLoader cloader = new URLClassLoader(new URL[]{new File(driverlib).toURI().toURL()});
-            DriverManager.registerDriver(new DriverWrapper((Driver) Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
 
             Session session1 =  new Session(url, user, password);
             Connection connection1 = session1.getConnection();
@@ -262,8 +320,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             jCBSchema1.setEnabled(true);
             jCBSchema1.setSelectedIndex(0);            
 
-        } catch (MalformedURLException | ClassNotFoundException | SQLException 
-                | InstantiationException | IllegalAccessException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(JPanelConfigDatabase.class.getName()).log(Level.SEVERE, null, ex);
         }        
     }    
@@ -908,22 +965,15 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
 
     private void jcboDBDriverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboDBDriverActionPerformed
 
-        String dirname = System.getProperty("dirname.path");
-        dirname = dirname == null ? "./" : dirname;
-       
-        if ("PostgreSQL".equals(jcboDBDriver.getSelectedItem())) {
-            jtxtDbDriverLib.setText(new File(new File(dirname), "lib/postgresql-9.4-1208.jdbc4.jar").getAbsolutePath());
-            jtxtDbDriver.setText("org.postgresql.Driver");
-            jtxtDbURL.setText("jdbc:postgresql://localhost:5432/");            
-            jtxtDbSchema.setText("kylgispos");
-            jtxtDbOptions.setText("");
-        } else {
-            jtxtDbDriverLib.setText(new File(new File(dirname), "lib/mysql-connector-java-5.1.39.jar").getAbsolutePath());
-            jtxtDbDriver.setText("com.mysql.jdbc.Driver");            
-            jtxtDbURL.setText("jdbc:mysql://localhost:3306/");
-            jtxtDbSchema.setText("kylgispos");                                    
-            jtxtDbOptions.setText("?zeroDateTimeBehavior=convertToNull");
-        }    
+        String engine = comboValue(jcboDBDriver.getSelectedItem());
+        jtxtDbDriverLib.setText("");
+        jtxtDbDriver.setText(DatabaseSettings.defaultDriver(engine));
+        jtxtDbURL.setText(DatabaseSettings.jdbcPrefix(engine)
+                + "localhost:" + DatabaseSettings.defaultPort(engine) + "/");
+        jtxtDbURL1.setText(DatabaseSettings.jdbcPrefix(engine)
+                + "localhost:" + DatabaseSettings.defaultPort(engine) + "/");
+        jtxtDbSchema.setText("kylgispos");
+        jtxtDbOptions.setText("");
     }//GEN-LAST:event_jcboDBDriverActionPerformed
 
     private void jbtnConnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnConnectActionPerformed
@@ -934,8 +984,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             String user = jtxtDbUser.getText();
             String password = new String(jtxtDbPassword.getPassword());
 
-            ClassLoader cloader = new URLClassLoader(new URL[]{new File(driverlib).toURI().toURL()});
-            DriverManager.registerDriver(new DriverWrapper((Driver) Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
 
             Session session =  new Session(url, user, password);
             Connection connection = session.getConnection();
@@ -957,35 +1006,21 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
                 JMessageDialog.showMessage(this, 
                         new MessageInf(MessageInf.SGN_WARNING, "Connection Error"));
             }
-            
-            ResultSet rs = connection.getMetaData().getCatalogs();            
-            String SQL="SELECT LEFT(VERSION(),3)  ";                                   
-            Statement stmt = (Statement) connection.createStatement();
-                rs = stmt.executeQuery(SQL);
-                rs.next();
-            jLblDBServerversion.setVisible(true);        
-            jLblDBServerversion.setText(" MySQL Server : " + rs.getString(1));
-            
-            if (!rs.getString(1).equals("5.7")) {
-                jLblDBServerversion.setBackground(Color.RED);
-                JOptionPane.showMessageDialog(this, 
-                AppLocal.getIntString("message.databasefail"), 
-                "Connection Test", JOptionPane.WARNING_MESSAGE);
-            }
+            String databaseProduct = connection.getMetaData().getDatabaseProductName();
+            String databaseVersion = connection.getMetaData().getDatabaseProductVersion();
+            jLblDBServerversion.setVisible(true);
+            jLblDBServerversion.setText(databaseProduct + " : " + databaseVersion);
 
-        } catch (InstantiationException | IllegalAccessException | MalformedURLException | ClassNotFoundException e) {
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                            AppLocal.getIntString("message.databasedrivererror"), e));
         } catch (SQLException e) {
-            jLblAlert.setVisible(true);   
-            jLblDBServerversion.setText("");                
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                            AppLocal.getIntString("message.databaseconnectionerror"), e));            
+            jLblAlert.setVisible(true);
+            jLblDBServerversion.setText("");
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.databaseconnectionerror"), e));
         } catch (Exception e) {
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, "Unknown exception", e));
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.databasedrivererror"), e));
         }
     }//GEN-LAST:event_jbtnConnectActionPerformed
 
@@ -997,8 +1032,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             String user = jtxtDbUser1.getText();
             String password = new String(jtxtDbPassword1.getPassword());
 
-            ClassLoader cloader = new URLClassLoader(new URL[]{new File(driverlib).toURI().toURL()});
-            DriverManager.registerDriver(new DriverWrapper((Driver) Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
 
             Session session =  new Session(url, user, password);
             Connection connection = session.getConnection();
@@ -1018,27 +1052,20 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
                 JMessageDialog.showMessage(this, 
                         new MessageInf(MessageInf.SGN_WARNING, "Connection Error"));
             }
-            
-            ResultSet rs = connection.getMetaData().getCatalogs();            
-            String SQL="SELECT LEFT(VERSION(),3)  ";                                   
-            Statement stmt = (Statement) connection.createStatement();
-                rs = stmt.executeQuery(SQL);
-                rs.next();
-            jLblDBServerversion1.setText(" MySQL Server : " + rs.getString(1));
+            String databaseProduct = connection.getMetaData().getDatabaseProductName();
+            String databaseVersion = connection.getMetaData().getDatabaseProductVersion();
+            jLblDBServerversion1.setText(databaseProduct + " : " + databaseVersion);
 
-        } catch (InstantiationException | IllegalAccessException | MalformedURLException | ClassNotFoundException e) {
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                            AppLocal.getIntString("message.databasedrivererror"), e));
         } catch (SQLException e) {
-            jLblAlert.setVisible(true);   
-            jLblDBServerversion1.setText("");                
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                            AppLocal.getIntString("message.databaseconnectionerror"), e));            
+            jLblAlert.setVisible(true);
+            jLblDBServerversion1.setText("");
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.databaseconnectionerror"), e));
         } catch (Exception e) {
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, "Unknown exception", e));
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.databasedrivererror"), e));
         }
     }//GEN-LAST:event_jbtnConnect1ActionPerformed
 
@@ -1086,17 +1113,14 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         if (jCBSchema.getItemCount() >= 1 ) {
             jCBSchema.removeAllItems();
         } 
-
-        String dirname = System.getProperty("dirname.path");
-        dirname = dirname == null ? "./" : dirname;
-        
-        jtxtDbDriverLib.setText(new File(new File(dirname), "lib/mysql-connector-java-5.1.39.jar").getAbsolutePath());
-        jtxtDbDriver.setText("com.mysql.jdbc.Driver");            
+        jcboDBDriver.setSelectedItem(DatabaseSettings.ENGINE_MARIADB);
+        jtxtDbDriverLib.setText("");
+        jtxtDbDriver.setText(DatabaseSettings.MARIADB_DRIVER);
 
         jtxtDbName.setText("Main DB");
-        jtxtDbURL.setText("jdbc:mysql://localhost:3306/");
+        jtxtDbURL.setText("jdbc:mariadb://localhost:3306/");
         jtxtDbSchema.setText("kylgispos");
-        jtxtDbOptions.setText("?zeroDateTimeBehavior=convertToNull");
+        jtxtDbOptions.setText("");
         jtxtDbUser.setText(null);        
         jtxtDbPassword.setText(null);  
         jLblDBServerversion.setText(null);
@@ -1110,9 +1134,9 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         } 
         
         jtxtDbName1.setText("Other DB");
-        jtxtDbURL1.setText("jdbc:mysql://localhost:3306/");
+        jtxtDbURL1.setText("jdbc:mariadb://localhost:3306/");
         jtxtDbSchema1.setText("kylgispos1");
-        jtxtDbOptions1.setText("?zeroDateTimeBehavior=convertToNull");
+        jtxtDbOptions1.setText("");
         jtxtDbUser1.setText(null);        
         jtxtDbPassword1.setText(null);
         jLblDBServerversion1.setText(null);
@@ -1153,8 +1177,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
             String user = jtxtDbUser.getText();
             String password = new String(jtxtDbPassword.getPassword());
 
-            ClassLoader cloader = new URLClassLoader(new URL[]{new File(driverlib).toURI().toURL()});
-            DriverManager.registerDriver(new DriverWrapper((Driver) Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
 
             Session session =  new Session(url, user, password);
             Connection connection = session.getConnection();
@@ -1181,21 +1204,16 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
                         new MessageInf(MessageInf.SGN_WARNING, "Connection Error"));
             }
 
-        } catch (MalformedURLException ex) {
-            Logger.getLogger(JPanelConfigDatabase.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                            AppLocal.getIntString("message.databasedrivererror"), e));
         } catch (SQLException e) {
-            jLblAlert.setVisible(true);   
-            jLblDBServerversion.setText("");                
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                            AppLocal.getIntString("message.databaseconnectionerror"), e));            
+            jLblAlert.setVisible(true);
+            jLblDBServerversion.setText("");
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.databaseconnectionerror"), e));
         } catch (Exception e) {
-            JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, "Unknown exception", e));
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.databasedrivererror"), e));
         }
     }//GEN-LAST:event_jbtnCreateDBActionPerformed
 

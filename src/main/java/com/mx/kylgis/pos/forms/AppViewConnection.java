@@ -10,135 +10,82 @@
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
-//
-//    KylGis POS is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.basic.BasicException;
-import com.mx.kylgis.pos.data.loader.Session;
 import com.mx.kylgis.pos.config.DatabaseSettings;
+import com.mx.kylgis.pos.data.loader.Session;
 import com.mx.kylgis.pos.util.AltEncrypter;
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Driver;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
 /**
- *
- * @author adrianromero
+ * Creates the application JDBC session from the effective node configuration.
  */
-public class AppViewConnection {
-    
-    /** Creates a new instance of AppViewConnection */
+public final class AppViewConnection {
+
     private AppViewConnection() {
     }
-    
-    /**
-     *
-     * @param props
-     * @return
-     * @throws BasicException
-     */
+
     public static Session createSession(AppProperties props) throws BasicException {
-
         try {
-            String dbURL=null;
-            String sDBUser=null;
-            String sDBPassword=null;
-            DatabaseSettings primary = DatabaseSettings.primary(props);
-            DatabaseSettings secondary = DatabaseSettings.secondary(props);
-            String sUserPath = System.getProperty("user.home"); 
-            String filePath = sUserPath + "\\open.db";            
-            
-            if (isJavaWebStart()) {
-                Class.forName(primary.getDriver(), true, Thread.currentThread().getContextClassLoader());
-            } else {
-                ClassLoader cloader = new URLClassLoader(new URL[] {
-                    primary.getDriverLibraryFile().toURI().toURL()});
-                DriverManager.registerDriver(new DriverWrapper((Driver) 
-                        Class.forName(primary.getDriver(), 
-                                true, cloader).newInstance()));
-            }
+            DatabaseSettings selected = selectDatabase(props);
+            JdbcDriverLoader.ensureLoaded(
+                    selected.getDriver(), selected.getDriverLibraryFile());
 
-            if("true".equals(props.getProperty("db.multi"))) {
-                if (!Files.exists(Paths.get(filePath))) {
-                    ImageIcon icon = new ImageIcon("/com/mx/kylgis/pos/images/kylgis_pos.png");
-                    Object[] dbs = {
-                    "0 - " + primary.getLabel(),
-                    "1 - " + secondary.getLabel()};
-        
-                    Object s = (Object)JOptionPane.showInputDialog(
-                        null, AppLocal.getIntString("message.databasechoose"),
-                        "Selection", JOptionPane.OK_OPTION,
-                        icon, dbs, primary.getLabel());
-            
-                    if (s.toString().startsWith("1")) {
-                        sDBUser = secondary.getUser();
-                        sDBPassword = secondary.getPassword();
-                        if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
-                            AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
-                            sDBPassword = cypher.decrypt(sDBPassword.substring(6));
-                        }
-                        dbURL = secondary.getJdbcUrl();
-                    } else {
-                        sDBUser = primary.getUser();
-                        sDBPassword = primary.getPassword();
-                        if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
-                            AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
-                            sDBPassword = cypher.decrypt(sDBPassword.substring(6));
-                        }
-                        dbURL = primary.getJdbcUrl();                        
-                    }
-                } else {
-                    sDBUser = primary.getUser();
-                    sDBPassword = primary.getPassword();
-                    if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
-                        AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
-                        sDBPassword = cypher.decrypt(sDBPassword.substring(6));
-                    }
-                    dbURL = primary.getJdbcUrl();                    
-                }    
-
-            } else {
-                sDBUser = primary.getUser();
-                sDBPassword = primary.getPassword();
-                if (sDBUser != null && sDBPassword != null && sDBPassword.startsWith("crypt:")) {
-                    AltEncrypter cypher = new AltEncrypter("cypherkey" + sDBUser);
-                    sDBPassword = cypher.decrypt(sDBPassword.substring(6));
-                }
-
-                dbURL = primary.getJdbcUrl();                
-            }
-
-            return new Session(dbURL, sDBUser,sDBPassword);
-                
-        } catch (InstantiationException | IllegalAccessException | MalformedURLException | ClassNotFoundException e) {
-            throw new BasicException(AppLocal.getIntString("message.databasedrivererror"), e);
-        } catch (SQLException eSQL) {
-            throw new BasicException(AppLocal.getIntString("message.databaseconnectionerror"), eSQL);
+            String user = selected.getUser();
+            String password = decryptPassword(user, selected.getPassword());
+            return new Session(selected.getJdbcUrl(), user, password);
+        } catch (SQLException ex) {
+            throw new BasicException(AppLocal.getIntString(
+                    "message.databaseconnectionerror"), ex);
+        } catch (Exception ex) {
+            throw new BasicException(AppLocal.getIntString(
+                    "message.databasedrivererror"), ex);
         }
     }
 
-    private static boolean isJavaWebStart() {
-
-        try {
-            Class.forName("javax.jnlp.ServiceManager");
-            return true;
-        } catch (ClassNotFoundException ue) {
-            return false;
+    private static DatabaseSettings selectDatabase(AppProperties props) {
+        DatabaseSettings primary = DatabaseSettings.primary(props);
+        if (!"true".equalsIgnoreCase(props.getProperty("db.multi"))) {
+            return primary;
         }
+
+        Path forcePrimary = Paths.get(System.getProperty("user.home"), "open.db");
+        if (Files.exists(forcePrimary)) {
+            return primary;
+        }
+
+        DatabaseSettings secondary = DatabaseSettings.secondary(props);
+        ImageIcon icon = new ImageIcon(AppViewConnection.class.getResource(
+                "/com/mx/kylgis/pos/images/kylgis_pos.png"));
+        Object[] databases = {
+            "0 - " + primary.getLabel(),
+            "1 - " + secondary.getLabel()
+        };
+
+        Object selection = JOptionPane.showInputDialog(
+                null,
+                AppLocal.getIntString("message.databasechoose"),
+                AppLocal.getIntString("message.databasechoose"),
+                JOptionPane.QUESTION_MESSAGE,
+                icon,
+                databases,
+                databases[0]);
+
+        return selection != null && selection.toString().startsWith("1")
+                ? secondary : primary;
+    }
+
+    private static String decryptPassword(String user, String password) {
+        if (user != null && password != null && password.startsWith("crypt:")) {
+            AltEncrypter cypher = new AltEncrypter("cypherkey" + user);
+            return cypher.decrypt(password.substring(6));
+        }
+        return password;
     }
 }

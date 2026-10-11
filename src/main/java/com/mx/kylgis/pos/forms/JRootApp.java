@@ -61,12 +61,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import javax.swing.*;     
 import org.joda.time.DateTime;
-import com.dalsemi.onewire.OneWireAccessProvider;
-import com.dalsemi.onewire.adapter.DSPortAdapter;
-import com.dalsemi.onewire.OneWireException;
-import com.dalsemi.onewire.container.OneWireContainer;
-import com.dalsemi.onewire.utils.*;
-import com.dalsemi.onewire.application.monitor.*;
+import com.mx.kylgis.pos.util.OptionalIButtonMonitor;
 import com.mx.kylgis.pos.util.uOWWatch;
 import com.mx.kylgis.pos.util.FtpUpload;
 import org.joda.time.Instant;
@@ -81,7 +76,7 @@ import java.nio.file.StandardOpenOption;
  * @author adrianromero
  */
 // public class JRootApp extends JPanel implements AppView {
-public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListener  {
+public class JRootApp extends JPanel implements AppView {
 
     private AppProperties m_props;
     private Session session;     
@@ -217,125 +212,88 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         m_jPanelTitle.setPreferredSize(new java.awt.Dimension(449, 44));
     }
 
-    private DSPortAdapter m_oneWireAdapter;
-    private DeviceMonitor m_oneWireMonitor;
-        
-    private void initIButtonMonitor() {
+    private OptionalIButtonMonitor m_iButtonMonitor;
 
-        assert m_oneWireMonitor == null;
-        try
-        {
-            m_oneWireAdapter = OneWireAccessProvider.getDefaultAdapter();
-            m_oneWireAdapter.setSearchAllDevices();
-            m_oneWireAdapter.targetFamily(0x01);
-            m_oneWireAdapter.setSpeed(DSPortAdapter.SPEED_REGULAR);
-            m_oneWireMonitor = new DeviceMonitor(m_oneWireAdapter);
-// Normal state
-            m_oneWireMonitor.setMaxStateCount(5);            
-// Use for testing
-//            m_oneWireMonitor.setMaxStateCount(100);                        
-            m_oneWireMonitor.addDeviceMonitorEventListener(this);
-            new Thread(m_oneWireMonitor).start();
-    }
-        catch (OneWireException e) {
-            JMessageDialog.showMessage(this, 
-                new MessageInf(MessageInf.SGN_WARNING, 
-                AppLocal.getIntString("message.ibuttonnotfound"), e));
+    private void initIButtonMonitor() {
+        if (m_iButtonMonitor != null) {
+            return;
         }
-    }
-    private void shutdownIButtonMonitor() {
-        if(m_oneWireMonitor != null) {
-            m_oneWireMonitor.killMonitor();
-            try {
-                m_oneWireAdapter.freePort();
-            }
-            catch (OneWireException e) {
-//                System.out.println(e);
-            }
-        }
-    }
-    public void releaseResources() {
-        shutdownIButtonMonitor();
-    }
-    
-    final static int UNIQUE_KEY_FAMILY = 0x01;
-    
-    private boolean isDeviceRelevant(OneWireContainer container) {
-        String iButtonId = container.getAddressAsString();
         try {
-            if(container.getAdapter().getAdapterAddress().equals(iButtonId))
-                return false;
-        } catch(OneWireException e) {
+            m_iButtonMonitor = OptionalIButtonMonitor.start(
+                    m_props.getProperty("machine.iButton.library"),
+                    new OptionalIButtonMonitor.Listener() {
+                @Override
+                public void deviceArrived(String address) {
+                    uOWWatch.setIButtonId(address);
+                    handleIButtonArrival(address);
+                }
+
+                @Override
+                public void deviceDeparted(String address) {
+                    uOWWatch.clearIButtonId(address);
+                    handleIButtonDeparture(address);
+                }
+
+                @Override
+                public void monitorError(Throwable error) {
+                    Logger.getLogger(JRootApp.class.getName()).log(
+                            Level.WARNING, "iButton monitor error", error);
+                }
+            });
+        } catch (Exception e) {
+            JMessageDialog.showMessage(this,
+                    new MessageInf(MessageInf.SGN_WARNING,
+                            AppLocal.getIntString("message.ibuttonnotfound"), e));
         }
-        
-        int familyNumber = Address.toByteArray(iButtonId)[0];
-        return (familyNumber == UNIQUE_KEY_FAMILY);
     }
-    
-    /** Called when an iButton is inserted.
-     * @param devt */
-    @Override
-    public void deviceArrival(DeviceMonitorEvent devt) {
-        assert m_dlSystem != null;
-        
-        for (int i = 0; i < devt.getDeviceCount(); i++) {
-            OneWireContainer container = devt.getContainerAt(i);            
-            if(!isDeviceRelevant(container))
-                continue;
-            
-            String iButtonId = devt.getAddressAsStringAt(i);
-            
+
+    private void handleIButtonArrival(final String iButtonId) {
+        SwingUtilities.invokeLater(() -> {
+            assert m_dlSystem != null;
             AppUser user = null;
             try {
                 user = m_dlSystem.findPeopleByCard(iButtonId);
             } catch (BasicException e) {
-                if (user == null) {
-                    JOptionPane.showMessageDialog(this, 
-                        AppLocal.getIntString("message.ibuttonnotassign"), 
-                        AppLocal.getIntString("title.editor"), 
-                        JOptionPane.INFORMATION_MESSAGE);
-                }                 
+                Logger.getLogger(JRootApp.class.getName()).log(
+                        Level.WARNING, "Unable to resolve iButton user", e);
             }
-            
+
             if (user == null) {
-                JOptionPane.showMessageDialog(this, 
-                    AppLocal.getIntString("message.ibuttonnotassign"), 
-                    AppLocal.getIntString("title.editor"), 
-                    JOptionPane.INFORMATION_MESSAGE);
-        
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.ibuttonnotassign"),
+                        AppLocal.getIntString("title.editor"),
+                        JOptionPane.INFORMATION_MESSAGE);
             } else {
                 setVisible(false);
                 openAppView(user);
                 setVisible(true);
             }
-        }
+        });
     }
-    /** Called when an iButton is removed.
-     * @param devt */
-    @Override
-    public void deviceDeparture(DeviceMonitorEvent devt) {
 
-        for(int i = 0; i < devt.getDeviceCount(); i++) {
-            OneWireContainer container = devt.getContainerAt(i);
-            if(!isDeviceRelevant(container))
-                continue;
-            
-            String iButtonId = devt.getAddressAsStringAt(i);
-            
-            if(m_principalapp != null) {
+    private void handleIButtonDeparture(final String iButtonId) {
+        SwingUtilities.invokeLater(() -> {
+            if (m_principalapp != null) {
                 AppUser currentUser = m_principalapp.getUser();
-                if(currentUser != null && currentUser.getCard().equals(iButtonId))
+                if (currentUser != null && Objects.equals(currentUser.getCard(), iButtonId)) {
                     closeAppView();
+                }
             }
+        });
+    }
+
+    private void shutdownIButtonMonitor() {
+        if (m_iButtonMonitor != null) {
+            m_iButtonMonitor.close();
+            m_iButtonMonitor = null;
         }
+        uOWWatch.clearIButtonId(null);
     }
-    
-    @Override
-    public void networkException(DeviceMonitorException dexc)
-    {
-//        System.out.println("ERROR: " + dexc.toString());
+
+    public void releaseResources() {
+        shutdownIButtonMonitor();
     }
-    
+
     /**
      *
      * @param props
@@ -565,7 +523,6 @@ public class JRootApp extends JPanel implements AppView, DeviceMonitorEventListe
         String ibutton = m_props.getProperty("machine.iButton");        
         if(ibutton.equals("true")) {
             initIButtonMonitor();
-            uOWWatch.iButtonOn();
         }    
         return true;
     }
