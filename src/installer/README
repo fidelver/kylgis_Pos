@@ -9,8 +9,8 @@ configuration, hardware services and optional capabilities are assigned by role.
 
 Requirements
 ------------
-- Java 8 compatible with the operating system and CPU architecture.
-- A supported MySQL/MariaDB-compatible database reachable by the configured node.
+- Java 21 LTS or newer, compatible with the operating system and CPU architecture.
+- A supported MariaDB/MySQL/PostgreSQL database reachable by the configured node.
 - JavaFX is not required by the POS core. It is required only by the optional
   Kitchen capability.
 
@@ -20,6 +20,14 @@ KylGis can use printers, scales, scanners and customer displays locally when
 the required driver/native library exists for the platform. Nodes without a
 compatible native driver (for example ARM nodes using legacy RXTX peripherals)
 can delegate those devices to KylGis hardware-service nodes.
+
+Database upgrades
+-----------------
+Historical KylGis schemas may contain InnoDB tables using ROW_FORMAT=COMPACT.
+Before upgrading a MariaDB server, run MariaDbRowFormatTool in check mode against
+an explicit KylGis configuration. Applying ROW_FORMAT=DYNAMIC is intentionally
+blocked unless both --apply and --backup-confirmed are supplied during an
+authorized maintenance window.
 
 Configuration
 -------------
