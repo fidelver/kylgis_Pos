@@ -60,7 +60,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  *
@@ -115,8 +117,128 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
     private Timer autoRefreshTimer;
     private int autoRefreshBaseDelayMs = MIN_AUTO_REFRESH_SECONDS * 1000;
     private Map<String, RestaurantDBUtils.TableState> lastAutoRefreshSnapshot;
+    private final String sharedTicketLockOwner;
     
         
+    private static String createSharedTicketLockOwner(AppView app) {
+        String nodeId = app.getProperties().getProperty("node.id");
+        String hostname = app.getProperties().getProperty("machine.hostname");
+        String instanceId = app.getProperties().getProperty("machine.instanceid");
+        StringBuilder identity = new StringBuilder();
+        appendIdentityPart(identity, nodeId);
+        appendIdentityPart(identity, hostname);
+        appendIdentityPart(identity, instanceId);
+        if (identity.length() == 0) {
+            identity.append("local");
+        }
+        String uuid = UUID.nameUUIDFromBytes(identity.toString().getBytes(StandardCharsets.UTF_8))
+                .toString().replace("-", "");
+        return "K" + uuid.substring(0, 19);
+    }
+
+    private static void appendIdentityPart(StringBuilder identity, String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return;
+        }
+        if (identity.length() > 0) {
+            identity.append('|');
+        }
+        identity.append(value.trim());
+    }
+
+    private boolean ownsSharedTicketLock(String tableId) throws BasicException {
+        return sharedTicketLockOwner.equals(dlReceipts.getLockState(tableId, null));
+    }
+
+    private void showForeignTableLock() {
+        JOptionPane.showMessageDialog(this,
+                AppLocal.getIntString("message.restaurant.locked.otherterminal"),
+                AppLocal.getIntString("title.editor"),
+                JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void recoverMissingActiveTable() {
+        recoverActiveTableConflict("message.restaurant.table.removedremote");
+    }
+
+    private void recoverLostActiveTableLock() {
+        recoverActiveTableConflict("message.restaurant.lock.lost");
+    }
+
+    private void recoverActiveTableConflict(String messageKey) {
+        Map<String, RestaurantDBUtils.TableState> tableStates = restDB.getPlacesStateSnapshot();
+        recoverActiveTableConflict(messageKey, tableStates);
+    }
+
+    private void recoverActiveTableConflict(String messageKey,
+            Map<String, RestaurantDBUtils.TableState> tableStates) {
+        if (m_PlaceCurrent != null) {
+            m_PlaceCurrent.setPeople(false);
+        }
+        m_PlaceCurrent = null;
+        m_PlaceClipboard = null;
+        customer = null;
+        m_panelticket.setActiveTicket(null, null);
+        if (tableStates != null) {
+            applyTicketPresence(tableStates);
+            printState(tableStates);
+            lastAutoRefreshSnapshot = new HashMap<>(tableStates);
+        }
+        showView("map");
+        JOptionPane.showMessageDialog(this,
+                AppLocal.getIntString(messageKey),
+                AppLocal.getIntString("title.editor"),
+                JOptionPane.WARNING_MESSAGE);
+    }
+
+    private boolean ensureActiveTableOwned() {
+        if (m_PlaceCurrent == null) {
+            return false;
+        }
+        try {
+            if (dlReceipts.getSharedTicket(m_PlaceCurrent.getId()) == null) {
+                recoverMissingActiveTable();
+                return false;
+            }
+            if (!ownsSharedTicketLock(m_PlaceCurrent.getId())) {
+                recoverLostActiveTableLock();
+                return false;
+            }
+            return true;
+        } catch (BasicException ex) {
+            new MessageInf(ex).show(this);
+            return false;
+        }
+    }
+
+    private boolean acquireSharedTicketLock(Place place, boolean allowOverride) {
+        try {
+            if (dlReceipts.tryLockSharedTicket(place.getId(), sharedTicketLockOwner)) {
+                return true;
+            }
+            if (dlReceipts.getSharedTicket(place.getId()) == null) {
+                place.setPeople(false);
+                return false;
+            }
+            showForeignTableLock();
+            if (allowOverride
+                    && m_App.getAppUserView().getUser().hasPermission("sales.Override")) {
+                int result = JOptionPane.showConfirmDialog(this,
+                        AppLocal.getIntString("message.restaurant.lock.override"),
+                        AppLocal.getIntString("title.editor"),
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE);
+                if (result == JOptionPane.YES_OPTION) {
+                    dlReceipts.lockSharedTicket(place.getId(), sharedTicketLockOwner);
+                    return true;
+                }
+            }
+        } catch (BasicException ex) {
+            new MessageInf(ex).show(this);
+        }
+        return false;
+    }
+
     /** Creates new form JTicketsBagRestaurant
      * @param app
      * @param panelticket */
@@ -126,6 +248,7 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         super(app, panelticket);
       
         restDB = new  RestaurantDBUtils(app);        
+        sharedTicketLockOwner = createSharedTicketLockOwner(app);
         transBtns = AppConfig.getInstance().getBoolean("table.transbtn");
         
         dlReceipts = (DataLogicReceipts) app.getBean("com.mx.kylgis.pos.sales.DataLogicReceipts");
@@ -347,35 +470,32 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
      */
     @Override
     public boolean deactivate() {
-        
+
         if (viewTables()) {
             m_PlaceClipboard = null;
             customer = null;
 
             if (m_PlaceCurrent != null) {
-                            
                 try {
-                    dlReceipts.updateSharedTicket(m_PlaceCurrent.getId(), 
-                        m_panelticket.getActiveTicket(),
-                        m_panelticket.getActiveTicket().getPickupId());
-                    dlReceipts.unlockSharedTicket(m_PlaceCurrent.getId(),null);
+                    TicketInfo activeTicket = m_panelticket.getActiveTicket();
+                    if (activeTicket != null && ownsSharedTicketLock(m_PlaceCurrent.getId())) {
+                        dlReceipts.updateSharedTicketIfOwned(m_PlaceCurrent.getId(),
+                                activeTicket, activeTicket.getPickupId(), sharedTicketLockOwner);
+                        dlReceipts.unlockSharedTicketIfOwned(m_PlaceCurrent.getId(), sharedTicketLockOwner);
+                    }
                 } catch (BasicException e) {
                     new MessageInf(e).show(this);
-                }                                  
- 
+                }
                 m_PlaceCurrent = null;
-
             }
             printState();
             m_panelticket.setActiveTicket(null, null);
             if (autoRefreshTimer != null) {
                 autoRefreshTimer.stop();
             }
-
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -404,28 +524,43 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         return m_panelticket.getActiveTicket();
     }
 
+    public boolean validateActiveTableOwnership() {
+        return ensureActiveTableOwned();
+    }
+
     /**
      *
      */
     public void moveTicket() {
-        if (m_PlaceCurrent != null) {
-             try {
-                dlReceipts.updateRSharedTicket(m_PlaceCurrent.getId(), 
-                    m_panelticket.getActiveTicket(),m_panelticket.getActiveTicket().getPickupId());
-            } catch (BasicException e) {
-                new MessageInf(e).show(this);
-            }      
-            
-            m_PlaceClipboard = m_PlaceCurrent;                                  // put FROM table to TO table
-            
-            customer = null;
-//            m_PlaceCurrent = null;                                            // Hang on we'll clear later after we're done
+        if (m_PlaceCurrent == null) {
+            return;
         }
-        
+        if (!ensureActiveTableOwned()) {
+            return;
+        }
+
+        TicketInfo activeTicket = m_panelticket.getActiveTicket();
+        if (activeTicket == null) {
+            recoverMissingActiveTable();
+            return;
+        }
+        try {
+            if (!dlReceipts.updateRSharedTicketIfOwned(m_PlaceCurrent.getId(),
+                    activeTicket, activeTicket.getPickupId(), sharedTicketLockOwner)) {
+                recoverLostActiveTableLock();
+                return;
+            }
+        } catch (BasicException e) {
+            new MessageInf(e).show(this);
+            return;
+        }
+
+        m_PlaceClipboard = m_PlaceCurrent;
+        customer = null;
         printState();
         m_panelticket.setActiveTicket(null, null);
     }
-    
+
     /**
      *
      * @param c
@@ -455,37 +590,30 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
      *
      */
     public void newTicket() {
-
         if (m_PlaceCurrent != null) {
-
+            if (!ensureActiveTableOwned()) {
+                return;
+            }
+            TicketInfo activeTicket = m_panelticket.getActiveTicket();
             try {
-                String m_lockState = null;
-                m_lockState = dlReceipts.getLockState(m_PlaceCurrent.getId(), m_lockState);
-                dlReceipts.getSharedTicket(m_PlaceCurrent.getId());
-
-                if ("override".equals(m_lockState)
-                        || "locked".equals(m_lockState)) {
-                    dlReceipts.updateSharedTicket(m_PlaceCurrent.getId(),
-                        m_panelticket.getActiveTicket(),
-                        m_panelticket.getActiveTicket().getPickupId());                    
-                    dlReceipts.unlockSharedTicket(m_PlaceCurrent.getId(), null);
-                    m_PlaceCurrent = null;                        
-    
-                } else {
-                    JOptionPane.showMessageDialog(null
-                        , AppLocal.getIntString("message.sharedticketlockoverriden")
-                        , AppLocal.getIntString("title.editor")
-                        , JOptionPane.INFORMATION_MESSAGE);                        
+                if (activeTicket == null
+                        || !dlReceipts.updateSharedTicketIfOwned(m_PlaceCurrent.getId(),
+                                activeTicket, activeTicket.getPickupId(), sharedTicketLockOwner)) {
+                    recoverLostActiveTableLock();
+                    return;
                 }
+                dlReceipts.unlockSharedTicketIfOwned(m_PlaceCurrent.getId(), sharedTicketLockOwner);
+                m_PlaceCurrent = null;
             } catch (BasicException ex) {
-                Logger.getLogger(JTicketsBagRestaurantMap.class.getName()).log(Level.SEVERE, null,ex);
+                new MessageInf(ex).show(this);
+                return;
             }
         }
-        
-        printState();     
-        m_panelticket.setActiveTicket(null, null);     
+
+        printState();
+        m_panelticket.setActiveTicket(null, null);
     }
-    
+
     /**
      *
      * @return
@@ -515,29 +643,49 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
      */
     @Override
     public void deleteTicket() {
-        
-        if (m_PlaceCurrent != null) {
-            String id = m_PlaceCurrent.getId();
-            try {
-                dlReceipts.deleteSharedTicket(id);
-                dlSystem.execTicketRemoved(
-                new Object[] {
-                    m_App.getAppUserView().getUser().getName(),
-                    "Void",   
-                    "Ticket Deleted",
-                    0.0
-                });
+        if (m_PlaceCurrent == null) {
+            return;
+        }
+        if (!ensureActiveTableOwned()) {
+            return;
+        }
 
-            } catch (BasicException e) {
-                new MessageInf(e).show(this);
-            }       
-            
-            m_PlaceCurrent.setPeople(false);
-            m_PlaceCurrent = null;
-        }   
+        String id = m_PlaceCurrent.getId();
+        boolean transactionStarted = false;
+        try {
+            beginRestaurantMoveTransaction();
+            transactionStarted = true;
+            if (!dlReceipts.deleteSharedTicketIfOwned(id, sharedTicketLockOwner)) {
+                throw new BasicException("Restaurant table lock was lost before delete");
+            }
+            if (!restDB.clearTableState(id)) {
+                throw new BasicException("Could not clear restaurant table metadata");
+            }
+            commitRestaurantMoveTransaction();
+            transactionStarted = false;
 
-        printState();     
-        m_panelticket.setActiveTicket(null, null); 
+            dlSystem.execTicketRemoved(new Object[] {
+                m_App.getAppUserView().getUser().getName(),
+                "Void",
+                "Ticket Deleted",
+                0.0
+            });
+        } catch (BasicException e) {
+            if (transactionStarted) {
+                rollbackRestaurantMoveTransaction();
+            }
+            if (!ensureActiveTableOwned()) {
+                return;
+            }
+            new MessageInf(e).show(this);
+            refreshRestaurantState();
+            return;
+        }
+
+        m_PlaceCurrent.setPeople(false);
+        m_PlaceCurrent = null;
+        printState();
+        m_panelticket.setActiveTicket(null, null);
     }
 
     /**
@@ -571,6 +719,19 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
 
         boolean changed = lastAutoRefreshSnapshot == null
                 || !lastAutoRefreshSnapshot.equals(tableStates);
+
+        if (m_PlaceCurrent != null) {
+            RestaurantDBUtils.TableState activeState = tableStates.get(m_PlaceCurrent.getId());
+            if (activeState == null || !activeState.hasTicket()) {
+                recoverActiveTableConflict("message.restaurant.table.removedremote", tableStates);
+                return RefreshOutcome.CHANGED;
+            }
+            if (!sharedTicketLockOwner.equals(activeState.getLockOwner())) {
+                recoverActiveTableConflict("message.restaurant.lock.lost", tableStates);
+                return RefreshOutcome.CHANGED;
+            }
+        }
+
         applyTicketPresence(tableStates);
         if (!printState(tableStates)) {
             return RefreshOutcome.FAILED;
@@ -811,13 +972,7 @@ Integer count = place.getGuests();
         m_PlaceCurrent = place;
         m_panelticket.setActiveTicket(ticket, m_PlaceCurrent.getName());
         m_restaurantmap.updateGuestCount();
-        
-        try {
-            dlReceipts.lockSharedTicket(m_PlaceCurrent.getId(),"locked");
-        } catch (BasicException ex) {
-            Logger.getLogger(JTicketsBagRestaurantMap.class.getName()).log(Level.SEVERE, null, ex);
-        }        
-    } 
+    }
 
     private void showView(String view) {
         CardLayout cl = (CardLayout)(getLayout());
@@ -827,208 +982,241 @@ Integer count = place.getGuests();
     private class MyActionListener implements ActionListener {
 
         private final Place m_place;
-        public MyActionListener(Place place) {
+
+        MyActionListener(Place place) {
             m_place = place;
         }
+
         @Override
-        public void actionPerformed(ActionEvent evt) {    
-            m_App.getAppUserView().getUser();    
-        
+        public void actionPerformed(ActionEvent evt) {
+            m_App.getAppUserView().getUser();
+
             if (!actionEnabled) {
                 m_place.setDiffX(0);
-            } else {
-                if (m_PlaceClipboard == null) {  
-                    TicketInfo ticket = getTicketInfo(m_place);
-                        if (ticket == null) {                                   // It's an empty table            
-                            ticket = new TicketInfo();
-                            ticket.setUser(m_App.getAppUserView().getUser().getUserInfo());
-                            try {
-                                dlReceipts.insertSharedTicket(m_place.getId(), ticket, ticket.getPickupId());               
-                            } catch (BasicException e) {
-                                new MessageInf(e).show(JTicketsBagRestaurantMap.this);
-                            }
-                            m_place.setPeople(true);
-                            m_place.setGuests(restDB.updateGuestsInTable(m_place.getId()));
-                            setActivePlace(m_place, ticket);
-                        } else {                                                // Table not empty            
-                            String m_lockState = null;
-                            try {
-                                m_lockState = dlReceipts.getLockState(m_place.getId(), m_lockState); //check lockstate
+                return;
+            }
 
-                                if ("locked".equals(m_lockState)) {             // It's locked
-                                    JOptionPane.showMessageDialog(null, 
-                                        AppLocal.getIntString("message.sharedticketlock")); 
-
-                                    if (m_App.getAppUserView().getUser().hasPermission("sales.Override")) {       // Override it             
-                                        int res = JOptionPane.showConfirmDialog(null
-                                            , AppLocal.getIntString("message.sharedticketlockoverride")
-                                            , AppLocal.getIntString("title.editor")
-                                            , JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-
-                                        if (res == JOptionPane.YES_OPTION) {                
-                                            m_place.setPeople(true);                                             
-                                            m_PlaceClipboard = null;
-                                            setActivePlace(m_place, ticket);
-                                            dlReceipts.lockSharedTicket(m_PlaceCurrent.getId(),"locked");                                        
-                                        }                        
-                                    }
-                                } else {   // It's not locked
-                                    String m_user = m_App.getAppUserView().getUser().getId(); 
-                                    String ticketuser = dlReceipts.getServer(m_place.getId(),m_user);                                        
-
-                                    if (m_App.getAppUserView().getUser().hasPermission("sales.Override") //Check User permission
-                                            || m_user.equals(ticketuser)) {
-                                        m_place.setPeople(true);                                             
-                                        
-                                        m_PlaceClipboard = null;
-                                        m_lockState = "locked";
-                                        setActivePlace(m_place, ticket);
-                                    } else {
-                                        JOptionPane.showMessageDialog(null
-                                            , AppLocal.getIntString("message.sharedticket")
-                                            , AppLocal.getIntString("title.editor")
-                                            , JOptionPane.OK_OPTION);
-                                    }
-                                }
-                            } catch (BasicException ex) {
-                                Logger.getLogger(JTicketsBagRestaurantMap.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-//                            printState();                // show table map. Why here?
-                        }    
-                    }
-// This block handles Merge
-// at this stage m_PlaceClipboard is FROM table
-// at this point m_place is TO table
-
-                    if (m_PlaceClipboard != null) {                                         // Anything in the Clipboard?
-                        TicketInfo ticketclip = getTicketInfo(m_PlaceClipboard);            // add ticket object from clipboard
-
-                        if (ticketclip != null) {
-
-                            Place sourcePlace = m_PlaceClipboard;
-                            if (sourcePlace == m_place) {                                   // FROM and TO are the same table
-                                m_PlaceClipboard = null;
-                                customer = null;
-                                printState();
-                                setActivePlace(sourcePlace, ticketclip);
-                            } else if (m_place.hasPeople()) {                               // TO table already occupied
-                                TicketInfo ticket = getTicketInfo(m_place);
-
-                                if (ticket != null) {
-                                    if (JOptionPane.showConfirmDialog(JTicketsBagRestaurantMap.this,
-                                            AppLocal.getIntString("message.mergetablequestion"),
-                                            AppLocal.getIntString("message.mergetable"),
-                                            JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                                        boolean mergeSucceeded = false;
-                                        boolean transactionStarted = false;
-                                        int mergedGuests = Math.max(0, m_place.getGuests())
-                                                + Math.max(0, sourcePlace.getGuests());
-                                        try {
-                                            beginRestaurantMoveTransaction();
-                                            transactionStarted = true;
-                                            if (ticket.getCustomer() == null) {
-                                                ticket.setCustomer(ticketclip.getCustomer());
-                                            }
-                                            ticketclip.getLines().stream().forEach((line) -> {
-                                                ticket.addLine(line);
-                                            });
-                                            dlReceipts.updateRSharedTicket(m_place.getId(),
-                                                    ticket, ticket.getPickupId());
-                                            dlReceipts.deleteSharedTicket(sourcePlace.getId());
-                                            if (!restDB.mergeTableState(sourcePlace.getId(), m_place.getId())) {
-                                                throw new BasicException("Could not merge restaurant table metadata");
-                                            }
-                                            commitRestaurantMoveTransaction();
-                                            transactionStarted = false;
-                                            m_place.setGuests(mergedGuests);
-                                            sourcePlace.setPeople(false);
-                                            mergeSucceeded = true;
-                                        } catch (BasicException e) {
-                                            if (transactionStarted) {
-                                                rollbackRestaurantMoveTransaction();
-                                            }
-                                            new MessageInf(e).show(JTicketsBagRestaurantMap.this);
-                                        }
-
-                                        if (mergeSucceeded) {
-                                            m_PlaceClipboard = null;
-                                            customer = null;
-                                            printState();
-                                            setActivePlace(m_place, ticket);
-                                        } else {
-                                            sourcePlace.setPeople(true);
-                                            printState();
-                                        }
-                                    } else {
-                                        m_PlaceClipboard = null;
-                                        customer = null;
-                                        printState();
-                                        setActivePlace(sourcePlace, ticketclip);
-                                    }
-                                } else {
-                                    new MessageInf(MessageInf.SGN_WARNING,
-                                            AppLocal.getIntString("message.tableempty"))
-                                            .show(JTicketsBagRestaurantMap.this);
-                                    m_place.setPeople(false);
-                                }
-                            } else {                                                        // TO table is empty
-                                TicketInfo ticket = getTicketInfo(m_place);
-
-                                if (ticket == null) {
-                                    boolean moveSucceeded = false;
-                                    boolean transactionStarted = false;
-                                    try {
-                                        beginRestaurantMoveTransaction();
-                                        transactionStarted = true;
-                                        dlReceipts.insertRSharedTicket(m_place.getId(), ticketclip,
-                                                ticketclip.getPickupId());
-                                        dlReceipts.deleteSharedTicket(sourcePlace.getId());
-                                        if (!restDB.moveTableState(sourcePlace.getId(), m_place.getId())) {
-                                            throw new BasicException("Could not transfer restaurant table metadata");
-                                        }
-                                        commitRestaurantMoveTransaction();
-                                        transactionStarted = false;
-                                        m_place.setPeople(true);
-                                        m_place.setGuests(sourcePlace.getGuests());
-                                        sourcePlace.setPeople(false);
-                                        moveSucceeded = true;
-                                    } catch (BasicException e) {
-                                        if (transactionStarted) {
-                                            rollbackRestaurantMoveTransaction();
-                                        }
-                                        new MessageInf(e).show(JTicketsBagRestaurantMap.this);
-                                    }
-
-                                    if (moveSucceeded) {
-                                        printState();
-                                        setActivePlace(m_place, ticketclip);
-                                        m_PlaceClipboard = null;
-                                        customer = null;
-                                    } else {
-                                        sourcePlace.setPeople(true);
-                                        printState();
-                                    }
-                                } else {
-                                    new MessageInf(MessageInf.SGN_WARNING,
-                                            AppLocal.getIntString("message.tablefull"))
-                                            .show(JTicketsBagRestaurantMap.this);
-                                    sourcePlace.setPeople(true);
-                                    printState();
-                                }
-                            }
-
-                        } else { // table empty! Do we need it here?
-                            new MessageInf(MessageInf.SGN_WARNING, 
-                                    AppLocal.getIntString("message.tableempty")).show(JTicketsBagRestaurantMap.this);
-                            m_PlaceClipboard.setPeople(false);
-                            m_PlaceClipboard = null;
-                            customer = null;
-                            printState();
+            if (m_PlaceClipboard == null) {
+                TicketInfo ticket = getTicketInfo(m_place);
+                if (ticket == null) {
+                    ticket = new TicketInfo();
+                    ticket.setUser(m_App.getAppUserView().getUser().getUserInfo());
+                    try {
+                        dlReceipts.insertSharedTicket(m_place.getId(), ticket, ticket.getPickupId());
+                        if (!dlReceipts.tryLockSharedTicket(m_place.getId(), sharedTicketLockOwner)) {
+                            showForeignTableLock();
+                            refreshRestaurantState();
+                            return;
                         }
-                    } // end of Merge
-            } // end of !actionEnabled 
-        } // end of actionPerformed
-    } // end of Action Listener
+                    } catch (BasicException e) {
+                        new MessageInf(e).show(JTicketsBagRestaurantMap.this);
+                        refreshRestaurantState();
+                        return;
+                    }
+                    m_place.setPeople(true);
+                    m_place.setGuests(restDB.updateGuestsInTable(m_place.getId()));
+                    setActivePlace(m_place, ticket);
+                    return;
+                }
+
+                try {
+                    String currentUser = m_App.getAppUserView().getUser().getId();
+                    String ticketUser = dlReceipts.getServer(m_place.getId(), currentUser);
+                    if (!m_App.getAppUserView().getUser().hasPermission("sales.Override")
+                            && !currentUser.equals(ticketUser)) {
+                        JOptionPane.showMessageDialog(JTicketsBagRestaurantMap.this,
+                                AppLocal.getIntString("message.sharedticket"),
+                                AppLocal.getIntString("title.editor"),
+                                JOptionPane.OK_OPTION);
+                        return;
+                    }
+                } catch (BasicException ex) {
+                    new MessageInf(ex).show(JTicketsBagRestaurantMap.this);
+                    return;
+                }
+
+                if (!acquireSharedTicketLock(m_place, true)) {
+                    refreshRestaurantState();
+                    return;
+                }
+                m_place.setPeople(true);
+                m_PlaceClipboard = null;
+                setActivePlace(m_place, ticket);
+                return;
+            }
+
+            // Move / merge. The source remains locked by this POS while the
+            // operator chooses a destination.
+            Place sourcePlace = m_PlaceClipboard;
+            TicketInfo ticketclip = getTicketInfo(sourcePlace);
+            if (ticketclip == null) {
+                recoverMissingActiveTable();
+                return;
+            }
+            try {
+                if (!ownsSharedTicketLock(sourcePlace.getId())) {
+                    recoverLostActiveTableLock();
+                    return;
+                }
+            } catch (BasicException ex) {
+                new MessageInf(ex).show(JTicketsBagRestaurantMap.this);
+                return;
+            }
+
+            if (sourcePlace == m_place) {
+                m_PlaceClipboard = null;
+                customer = null;
+                printState();
+                setActivePlace(sourcePlace, ticketclip);
+                return;
+            }
+
+            // Never trust only the cached hasPeople flag. Another host may have
+            // changed the destination since the last map refresh.
+            TicketInfo destinationTicket = getTicketInfo(m_place);
+            if (destinationTicket != null) {
+                try {
+                    String currentUser = m_App.getAppUserView().getUser().getId();
+                    String destinationUser = dlReceipts.getServer(m_place.getId(), currentUser);
+                    if (!m_App.getAppUserView().getUser().hasPermission("sales.Override")
+                            && !currentUser.equals(destinationUser)) {
+                        JOptionPane.showMessageDialog(JTicketsBagRestaurantMap.this,
+                                AppLocal.getIntString("message.sharedticket"),
+                                AppLocal.getIntString("title.editor"),
+                                JOptionPane.OK_OPTION);
+                        return;
+                    }
+                } catch (BasicException ex) {
+                    new MessageInf(ex).show(JTicketsBagRestaurantMap.this);
+                    return;
+                }
+                if (!acquireSharedTicketLock(m_place, false)) {
+                    // Keep move mode active so another destination can be chosen.
+                    refreshRestaurantState();
+                    return;
+                }
+
+                boolean destinationLockHeld = true;
+                if (JOptionPane.showConfirmDialog(JTicketsBagRestaurantMap.this,
+                        AppLocal.getIntString("message.mergetablequestion"),
+                        AppLocal.getIntString("message.mergetable"),
+                        JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
+                    try {
+                        dlReceipts.unlockSharedTicketIfOwned(m_place.getId(), sharedTicketLockOwner);
+                    } catch (BasicException ex) {
+                        new MessageInf(ex).show(JTicketsBagRestaurantMap.this);
+                    }
+                    m_PlaceClipboard = null;
+                    customer = null;
+                    printState();
+                    setActivePlace(sourcePlace, ticketclip);
+                    return;
+                }
+
+                boolean transactionStarted = false;
+                boolean mergeSucceeded = false;
+                int mergedGuests = Math.max(0, m_place.getGuests())
+                        + Math.max(0, sourcePlace.getGuests());
+                try {
+                    beginRestaurantMoveTransaction();
+                    transactionStarted = true;
+                    if (!ownsSharedTicketLock(sourcePlace.getId())
+                            || !ownsSharedTicketLock(m_place.getId())) {
+                        throw new BasicException("Restaurant table lock changed during merge");
+                    }
+                    if (destinationTicket.getCustomer() == null) {
+                        destinationTicket.setCustomer(ticketclip.getCustomer());
+                    }
+                    for (com.mx.kylgis.pos.ticket.TicketLineInfo line : ticketclip.getLines()) {
+                        destinationTicket.addLine(line);
+                    }
+                    if (!dlReceipts.updateRSharedTicketIfOwned(m_place.getId(),
+                            destinationTicket, destinationTicket.getPickupId(), sharedTicketLockOwner)) {
+                        throw new BasicException("Destination restaurant table lock was lost");
+                    }
+                    if (!dlReceipts.deleteSharedTicketIfOwned(sourcePlace.getId(), sharedTicketLockOwner)) {
+                        throw new BasicException("Source restaurant table lock was lost");
+                    }
+                    if (!restDB.mergeTableState(sourcePlace.getId(), m_place.getId())) {
+                        throw new BasicException("Could not merge restaurant table metadata");
+                    }
+                    commitRestaurantMoveTransaction();
+                    transactionStarted = false;
+                    destinationLockHeld = false; // keep lock: destination becomes active
+                    m_place.setGuests(mergedGuests);
+                    sourcePlace.setPeople(false);
+                    mergeSucceeded = true;
+                } catch (BasicException e) {
+                    if (transactionStarted) {
+                        rollbackRestaurantMoveTransaction();
+                    }
+                    new MessageInf(e).show(JTicketsBagRestaurantMap.this);
+                } finally {
+                    if (!mergeSucceeded && destinationLockHeld) {
+                        try {
+                            dlReceipts.unlockSharedTicketIfOwned(m_place.getId(), sharedTicketLockOwner);
+                        } catch (BasicException ex) {
+                            LOGGER.log(Level.WARNING, "Unable to release destination table lock", ex);
+                        }
+                    }
+                }
+
+                if (mergeSucceeded) {
+                    m_PlaceClipboard = null;
+                    customer = null;
+                    printState();
+                    setActivePlace(m_place, destinationTicket);
+                } else {
+                    sourcePlace.setPeople(true);
+                    refreshRestaurantState();
+                }
+                return;
+            }
+
+            // Destination is empty. Insert and acquire its lock inside the same
+            // DB transaction before deleting the source.
+            boolean transactionStarted = false;
+            boolean moveSucceeded = false;
+            try {
+                beginRestaurantMoveTransaction();
+                transactionStarted = true;
+                if (!ownsSharedTicketLock(sourcePlace.getId())) {
+                    throw new BasicException("Source restaurant table lock was lost");
+                }
+                dlReceipts.insertRSharedTicket(m_place.getId(), ticketclip, ticketclip.getPickupId());
+                if (!dlReceipts.tryLockSharedTicket(m_place.getId(), sharedTicketLockOwner)) {
+                    throw new BasicException("Destination restaurant table could not be locked");
+                }
+                if (!dlReceipts.deleteSharedTicketIfOwned(sourcePlace.getId(), sharedTicketLockOwner)) {
+                    throw new BasicException("Source restaurant table lock was lost");
+                }
+                if (!restDB.moveTableState(sourcePlace.getId(), m_place.getId())) {
+                    throw new BasicException("Could not transfer restaurant table metadata");
+                }
+                commitRestaurantMoveTransaction();
+                transactionStarted = false;
+                m_place.setPeople(true);
+                m_place.setGuests(sourcePlace.getGuests());
+                sourcePlace.setPeople(false);
+                moveSucceeded = true;
+            } catch (BasicException e) {
+                if (transactionStarted) {
+                    rollbackRestaurantMoveTransaction();
+                }
+                new MessageInf(e).show(JTicketsBagRestaurantMap.this);
+            }
+
+            if (moveSucceeded) {
+                printState();
+                setActivePlace(m_place, ticketclip);
+                m_PlaceClipboard = null;
+                customer = null;
+            } else {
+                sourcePlace.setPeople(true);
+                refreshRestaurantState();
+            }
+        }
+    }
 
     /**
      *

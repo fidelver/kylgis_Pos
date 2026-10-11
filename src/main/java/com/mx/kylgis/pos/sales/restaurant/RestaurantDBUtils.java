@@ -47,8 +47,8 @@ public class RestaurantDBUtils {
     public Map<String, TableState> getPlacesStateSnapshot() {
         Map<String, TableState> snapshot = new HashMap<>();
         final String sql = "SELECT P.ID, P.CUSTOMER, P.WAITER, P.GUESTS, P.OCCUPIED, "
-                + "EXISTS (SELECT 1 FROM sharedtickets S WHERE S.ID = P.ID) AS HAS_TICKET "
-                + "FROM places P";
+                + "S.ID AS SHARED_ID, S.LOCKED AS LOCK_OWNER "
+                + "FROM places P LEFT JOIN sharedtickets S ON S.ID = P.ID";
         try (Statement stateStmt = s.getConnection().createStatement();
              ResultSet stateRs = stateStmt.executeQuery(sql)) {
             while (stateRs.next()) {
@@ -57,7 +57,8 @@ public class RestaurantDBUtils {
                         stateRs.getString("WAITER"),
                         stateRs.getInt("GUESTS"),
                         stateRs.getTimestamp("OCCUPIED"),
-                        stateRs.getBoolean("HAS_TICKET")));
+                        stateRs.getString("SHARED_ID") != null,
+                        stateRs.getString("LOCK_OWNER")));
             }
         } catch (SQLException ex) {
             return null;
@@ -72,14 +73,16 @@ public class RestaurantDBUtils {
         private final int guests;
         private final Timestamp occupied;
         private final boolean hasTicket;
+        private final String lockOwner;
 
         private TableState(String customer, String waiter, int guests, Timestamp occupied,
-                boolean hasTicket) {
+                boolean hasTicket, String lockOwner) {
             this.customer = customer;
             this.waiter = waiter;
             this.guests = guests;
             this.occupied = occupied;
             this.hasTicket = hasTicket;
+            this.lockOwner = lockOwner;
         }
 
         public String getCustomer() { return customer; }
@@ -87,6 +90,7 @@ public class RestaurantDBUtils {
         public int getGuests() { return guests; }
         public Timestamp getOccupied() { return occupied; }
         public boolean hasTicket() { return hasTicket; }
+        public String getLockOwner() { return lockOwner; }
 
         @Override
         public boolean equals(Object obj) {
@@ -101,12 +105,13 @@ public class RestaurantDBUtils {
                     && hasTicket == other.hasTicket
                     && Objects.equals(customer, other.customer)
                     && Objects.equals(waiter, other.waiter)
-                    && Objects.equals(occupied, other.occupied);
+                    && Objects.equals(occupied, other.occupied)
+                    && Objects.equals(lockOwner, other.lockOwner);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(customer, waiter, guests, occupied, hasTicket);
+            return Objects.hash(customer, waiter, guests, occupied, hasTicket, lockOwner);
         }
     }
 
@@ -440,6 +445,18 @@ public class RestaurantDBUtils {
     public void clearOccupied(String tableID) {
         executeUpdate("UPDATE places SET OCCUPIED=null WHERE ID=?",
                 statement -> statement.setString(1, tableID));
+    }
+
+    /** Clears all volatile restaurant metadata for one table atomically. */
+    public boolean clearTableState(String tableID) {
+        final String sql = "UPDATE places SET CUSTOMER=NULL, WAITER=NULL, TICKETID=NULL, "
+                + "TABLEMOVED=FALSE, GUESTS=0, OCCUPIED=NULL WHERE ID=?";
+        try (PreparedStatement statement = s.getConnection().prepareStatement(sql)) {
+            statement.setString(1, tableID);
+            return statement.executeUpdate() == 1;
+        } catch (SQLException ex) {
+            return false;
+        }
     }
 
     public void clearOccupiedTable(String table) {

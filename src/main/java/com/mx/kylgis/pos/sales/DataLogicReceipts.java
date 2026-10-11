@@ -278,7 +278,69 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
                 + "WHERE ID = ?"
                 , new SerializerWriteBasicExt(datas, new int[] {1, 0})).exec(values);
     }    
-    
+
+    /** Atomically acquires a shared-ticket lock for one POS instance. */
+    public final boolean tryLockSharedTicket(final String id, final String owner) throws BasicException {
+        Object[] values = new Object[] {id, owner};
+        Datas[] datas = new Datas[] {Datas.STRING, Datas.STRING};
+        int updated = new PreparedSentence(s,
+                "UPDATE sharedtickets SET LOCKED = ? "
+                + "WHERE ID = ? AND (LOCKED IS NULL OR LOCKED = '' OR LOCKED = ?)",
+                new SerializerWriteBasicExt(datas, new int[] {1, 0, 1})).exec(values);
+        return updated == 1;
+    }
+
+    /** Clears a shared-ticket lock only if the requester still owns it. */
+    public final boolean unlockSharedTicketIfOwned(final String id, final String owner) throws BasicException {
+        Object[] values = new Object[] {id, owner};
+        Datas[] datas = new Datas[] {Datas.STRING, Datas.STRING};
+        int updated = new PreparedSentence(s,
+                "UPDATE sharedtickets SET LOCKED = NULL WHERE ID = ? AND LOCKED = ?",
+                new SerializerWriteBasicExt(datas, new int[] {0, 1})).exec(values);
+        return updated == 1;
+    }
+
+    /** Deletes a shared ticket only if the requester still owns its lock. */
+    public final boolean deleteSharedTicketIfOwned(final String id, final String owner) throws BasicException {
+        Object[] values = new Object[] {id, owner};
+        Datas[] datas = new Datas[] {Datas.STRING, Datas.STRING};
+        int updated = new PreparedSentence(s,
+                "DELETE FROM sharedtickets WHERE ID = ? AND LOCKED = ?",
+                new SerializerWriteBasicExt(datas, new int[] {0, 1})).exec(values);
+        return updated == 1;
+    }
+
+    /** Updates a restaurant shared ticket only while the requester owns the lock. */
+    public final boolean updateRSharedTicketIfOwned(final String id, final TicketInfo ticket,
+            int pickupid, final String owner) throws BasicException {
+        Object[] values = new Object[] {id, ticket.getName(), ticket, pickupid, owner};
+        Datas[] datas = new Datas[] {
+            Datas.STRING, Datas.STRING, Datas.SERIALIZABLE, Datas.INT, Datas.STRING
+        };
+        int updated = new PreparedSentence(s,
+                "UPDATE sharedtickets SET NAME = ?, CONTENT = ?, PICKUPID = ? "
+                + "WHERE ID = ? AND LOCKED = ?",
+                new SerializerWriteBasicExt(datas, new int[] {1, 2, 3, 0, 4})).exec(values);
+        return updated == 1;
+    }
+
+    /** Updates a shared ticket only while the requester owns the lock. */
+    public final boolean updateSharedTicketIfOwned(final String id, final TicketInfo ticket,
+            int pickupid, final String owner) throws BasicException {
+        Object[] values = new Object[] {
+            id, ticket.getName(), ticket, ticket.getUser().getId(), pickupid, owner
+        };
+        Datas[] datas = new Datas[] {
+            Datas.STRING, Datas.STRING, Datas.SERIALIZABLE,
+            Datas.STRING, Datas.INT, Datas.STRING
+        };
+        int updated = new PreparedSentence(s,
+                "UPDATE sharedtickets SET NAME = ?, CONTENT = ?, APPUSER = ?, PICKUPID = ? "
+                + "WHERE ID = ? AND LOCKED = ?",
+                new SerializerWriteBasicExt(datas, new int[] {1, 2, 3, 4, 0, 5})).exec(values);
+        return updated == 1;
+    }
+
     /**
      * For Restaurant View
      * @param id
@@ -370,7 +432,7 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
             , new SerializerReadBasic(new Datas[] {
                 Datas.STRING
             })).find(id);
-                return (String) state[0];
+        return state == null ? null : (String) state[0];
     }
 
     public final String getServer(final String id, String user) throws BasicException {
@@ -380,6 +442,6 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
             , new SerializerReadBasic(new Datas[] {
                 Datas.STRING
             })).find(id);
-                return (String) server[0];
+        return server == null ? null : (String) server[0];
     }    
 }

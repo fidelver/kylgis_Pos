@@ -339,12 +339,6 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
                     , JOptionPane.YES_NO_OPTION
                     , JOptionPane.QUESTION_MESSAGE);
                 if (res == JOptionPane.YES_OPTION) {
-                    restDB.clearCustomerNameInTableById(m_restaurant.getTable());
-                    restDB.clearWaiterNameInTableById(m_restaurant.getTable());
-                    restDB.clearTicketIdInTableById(m_restaurant.getTable());
-                    restDB.clearGuestsInTable(m_restaurant.getTable());
-                    restDB.clearOccupied(m_restaurant.getTable());                     
-                        
                     m_restaurant.deleteTicket();
                 }
             } else {
@@ -359,12 +353,6 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
                     , JOptionPane.YES_NO_OPTION
                     , JOptionPane.QUESTION_MESSAGE);
                 if (res == JOptionPane.YES_OPTION) {
-                    restDB.clearCustomerNameInTableById(m_restaurant.getTable());
-                    restDB.clearWaiterNameInTableById(m_restaurant.getTable());
-                    restDB.clearTicketIdInTableById(m_restaurant.getTable());
-                    restDB.clearGuestsInTable(m_restaurant.getTable());
-                    restDB.clearOccupied(m_restaurant.getTable());                     
-                        
                     m_restaurant.deleteTicket();
                 }            
         }        
@@ -378,8 +366,14 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
     
     private void j_btnGuestsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_j_btnGuestsActionPerformed
 
-        Integer iValue = JGuestsPop.showEditNumber(this, 
-                AppLocal.getIntString("title.guestspop.enterguests"));         
+        if (!m_restaurant.validateActiveTableOwnership()) {
+            return;
+        }
+        Integer iValue = JGuestsPop.showEditNumber(this,
+                AppLocal.getIntString("title.guestspop.enterguests"));
+        if (iValue == null) {
+            return;
+        }
         restDB.setGuestsInTable(iValue, m_restaurant.getTable());
         j_btnGuests.setText(iValue.toString());
 
