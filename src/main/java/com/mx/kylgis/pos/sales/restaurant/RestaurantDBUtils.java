@@ -13,6 +13,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Database helpers used by the restaurant table workflow.
@@ -45,7 +46,9 @@ public class RestaurantDBUtils {
      */
     public Map<String, TableState> getPlacesStateSnapshot() {
         Map<String, TableState> snapshot = new HashMap<>();
-        final String sql = "SELECT ID, CUSTOMER, WAITER, GUESTS, OCCUPIED FROM places";
+        final String sql = "SELECT P.ID, P.CUSTOMER, P.WAITER, P.GUESTS, P.OCCUPIED, "
+                + "EXISTS (SELECT 1 FROM sharedtickets S WHERE S.ID = P.ID) AS HAS_TICKET "
+                + "FROM places P";
         try (Statement stateStmt = s.getConnection().createStatement();
              ResultSet stateRs = stateStmt.executeQuery(sql)) {
             while (stateRs.next()) {
@@ -53,7 +56,8 @@ public class RestaurantDBUtils {
                         stateRs.getString("CUSTOMER"),
                         stateRs.getString("WAITER"),
                         stateRs.getInt("GUESTS"),
-                        stateRs.getTimestamp("OCCUPIED")));
+                        stateRs.getTimestamp("OCCUPIED"),
+                        stateRs.getBoolean("HAS_TICKET")));
             }
         } catch (SQLException ex) {
             return null;
@@ -67,18 +71,43 @@ public class RestaurantDBUtils {
         private final String waiter;
         private final int guests;
         private final Timestamp occupied;
+        private final boolean hasTicket;
 
-        private TableState(String customer, String waiter, int guests, Timestamp occupied) {
+        private TableState(String customer, String waiter, int guests, Timestamp occupied,
+                boolean hasTicket) {
             this.customer = customer;
             this.waiter = waiter;
             this.guests = guests;
             this.occupied = occupied;
+            this.hasTicket = hasTicket;
         }
 
         public String getCustomer() { return customer; }
         public String getWaiter() { return waiter; }
         public int getGuests() { return guests; }
         public Timestamp getOccupied() { return occupied; }
+        public boolean hasTicket() { return hasTicket; }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof TableState)) {
+                return false;
+            }
+            TableState other = (TableState) obj;
+            return guests == other.guests
+                    && hasTicket == other.hasTicket
+                    && Objects.equals(customer, other.customer)
+                    && Objects.equals(waiter, other.waiter)
+                    && Objects.equals(occupied, other.occupied);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(customer, waiter, guests, occupied, hasTicket);
+        }
     }
 
     /** Package-private constructor used by isolated JDBC regression smokes. */

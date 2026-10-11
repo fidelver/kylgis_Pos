@@ -27,9 +27,8 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Icon;
@@ -45,7 +44,6 @@ import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.data.gui.NullIcon;
 import com.mx.kylgis.pos.data.loader.SentenceList;
 import com.mx.kylgis.pos.data.loader.SerializerReadClass;
-import com.mx.kylgis.pos.data.loader.SerializerReadString;
 import com.mx.kylgis.pos.data.loader.StaticSentence;
 import com.mx.kylgis.pos.customers.CustomerInfo;
 import com.mx.kylgis.pos.forms.AppConfig;
@@ -72,7 +70,14 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
 
     private static final Logger LOGGER = Logger.getLogger(JTicketsBagRestaurantMap.class.getName());
     private static final int MIN_AUTO_REFRESH_SECONDS = 5;
-    private static final int MAX_AUTO_REFRESH_DELAY_MS = 60000;
+    private static final int MAX_IDLE_AUTO_REFRESH_DELAY_MS = 15000;
+    private static final int MAX_ERROR_AUTO_REFRESH_DELAY_MS = 60000;
+
+    private enum RefreshOutcome {
+        CHANGED,
+        UNCHANGED,
+        FAILED
+    }
 
     private static class ServerCurrent {
 
@@ -109,6 +114,7 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
     private Boolean showLayout = false;
     private Timer autoRefreshTimer;
     private int autoRefreshBaseDelayMs = MIN_AUTO_REFRESH_SECONDS * 1000;
+    private Map<String, RestaurantDBUtils.TableState> lastAutoRefreshSnapshot;
     
         
     /** Creates new form JTicketsBagRestaurant
@@ -259,8 +265,8 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         }        
         
         if ("true".equalsIgnoreCase(m_App.getProperties().getProperty("till.autoRefreshTableMap"))) {
-            webLblautoRefresh.setText(java.util.ResourceBundle.getBundle("pos_messages")
-                .getString("label.autoRefreshTableMapTimerON"));
+            webLblautoRefresh.setText(
+                    AppLocal.getIntString("label.autoRefreshTableMapTimerON"));
 
             int refreshSeconds = MIN_AUTO_REFRESH_SECONDS;
             try {
@@ -274,38 +280,38 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
             autoRefreshTimer = new Timer(autoRefreshBaseDelayMs, new tableMapRefresh());
             autoRefreshTimer.setCoalesce(true);
         } else {
-            webLblautoRefresh.setText(java.util.ResourceBundle.getBundle("pos_messages")
-                .getString("label.autoRefreshTableMapTimerOFF"));
+            webLblautoRefresh.setText(
+                    AppLocal.getIntString("label.autoRefreshTableMapTimerOFF"));
         }
 
 }
 
     class tableMapRefresh implements ActionListener {
-       
+
         @Override
         public void actionPerformed(ActionEvent e) {
-            boolean refreshed = loadTickets();
-            if (refreshed) {
-                refreshed = printState();
-            }
-            updateAutoRefreshDelay(refreshed);
+            updateAutoRefreshDelay(refreshRestaurantState());
         }
     }
 
-    private void updateAutoRefreshDelay(boolean refreshed) {
+    private void updateAutoRefreshDelay(RefreshOutcome outcome) {
         if (autoRefreshTimer == null) {
             return;
         }
-        if (refreshed) {
+
+        if (outcome == RefreshOutcome.CHANGED) {
             autoRefreshTimer.setDelay(autoRefreshBaseDelayMs);
-        } else {
-            int current = Math.max(autoRefreshBaseDelayMs, autoRefreshTimer.getDelay());
-            int maxDelay = Math.max(MAX_AUTO_REFRESH_DELAY_MS, autoRefreshBaseDelayMs);
-            long doubled = (long) current * 2L;
-            autoRefreshTimer.setDelay((int) Math.min((long) maxDelay, doubled));
+            return;
         }
+
+        int current = Math.max(autoRefreshBaseDelayMs, autoRefreshTimer.getDelay());
+        int maxDelay = outcome == RefreshOutcome.FAILED
+                ? Math.max(MAX_ERROR_AUTO_REFRESH_DELAY_MS, autoRefreshBaseDelayMs)
+                : Math.max(MAX_IDLE_AUTO_REFRESH_DELAY_MS, autoRefreshBaseDelayMs);
+        long doubled = (long) current * 2L;
+        autoRefreshTimer.setDelay((int) Math.min((long) maxDelay, doubled));
     }
-        
+
     /**
      *
      */
@@ -323,8 +329,7 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         
         m_PlaceClipboard = null;
         customer = null;
-        loadTickets();
-        printState();
+        refreshRestaurantState();
         if (autoRefreshTimer != null && !autoRefreshTimer.isRunning()) {
             autoRefreshTimer.setDelay(autoRefreshBaseDelayMs);
             autoRefreshTimer.start();
@@ -548,38 +553,57 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
      *
      */
     public boolean loadTickets() {
-
-        Set<String> atickets = new HashSet<>();
-
-        try {
-            SentenceList idQuery = new StaticSentence(
-                    m_App.getSession(),
-                    "SELECT ID FROM sharedtickets",
-                    null,
-                    SerializerReadString.INSTANCE);
-            java.util.List<String> ids = idQuery.list();
-            atickets.addAll(ids);
-        } catch (BasicException e) {
-            LOGGER.log(Level.WARNING, "Unable to refresh restaurant shared-ticket IDs", e);
+        Map<String, RestaurantDBUtils.TableState> tableStates = restDB.getPlacesStateSnapshot();
+        if (tableStates == null) {
+            LOGGER.warning("Unable to refresh restaurant table state; keeping previous UI state");
             return false;
         }
-
-        m_aplaces.stream().forEach((table) -> {
-            table.setPeople(atickets.contains(table.getId()));
-        });
+        applyTicketPresence(tableStates);
         return true;
     }
-    
+
+    private RefreshOutcome refreshRestaurantState() {
+        Map<String, RestaurantDBUtils.TableState> tableStates = restDB.getPlacesStateSnapshot();
+        if (tableStates == null) {
+            LOGGER.warning("Unable to refresh restaurant table state; keeping previous UI state");
+            return RefreshOutcome.FAILED;
+        }
+
+        boolean changed = lastAutoRefreshSnapshot == null
+                || !lastAutoRefreshSnapshot.equals(tableStates);
+        applyTicketPresence(tableStates);
+        if (!printState(tableStates)) {
+            return RefreshOutcome.FAILED;
+        }
+        lastAutoRefreshSnapshot = new HashMap<>(tableStates);
+        return changed ? RefreshOutcome.CHANGED : RefreshOutcome.UNCHANGED;
+    }
+
+    private void applyTicketPresence(Map<String, RestaurantDBUtils.TableState> tableStates) {
+        for (Place table : m_aplaces) {
+            RestaurantDBUtils.TableState state = tableStates.get(table.getId());
+            table.setPeople(state != null && state.hasTicket());
+        }
+    }
+
 /*
- *  Populate the floor plans and tables    
-*/
+ *  Populate the floor plans and tables
+ */
     private boolean printState() {
         Map<String, RestaurantDBUtils.TableState> tableStates = restDB.getPlacesStateSnapshot();
         if (tableStates == null) {
             LOGGER.warning("Unable to refresh restaurant table state; keeping previous UI state");
             return false;
         }
+        applyTicketPresence(tableStates);
+        boolean rendered = printState(tableStates);
+        if (rendered) {
+            lastAutoRefreshSnapshot = new HashMap<>(tableStates);
+        }
+        return rendered;
+    }
 
+    private boolean printState(Map<String, RestaurantDBUtils.TableState> tableStates) {
         if (m_PlaceClipboard == null) {
             if (customer == null) {
                 m_jText.setText(null);
@@ -1138,8 +1162,7 @@ Integer count = place.getGuests();
 
     private void m_jbtnRefreshActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jbtnRefreshActionPerformed
 
-        loadTickets();     
-        printState();   
+        refreshRestaurantState();
     }//GEN-LAST:event_m_jbtnRefreshActionPerformed
 
     private void m_jbtnReservationsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jbtnReservationsActionPerformed
