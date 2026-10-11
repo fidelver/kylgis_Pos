@@ -118,6 +118,7 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
     private int autoRefreshBaseDelayMs = MIN_AUTO_REFRESH_SECONDS * 1000;
     private Map<String, RestaurantDBUtils.TableState> lastAutoRefreshSnapshot;
     private final String sharedTicketLockOwner;
+    private boolean staleLocksRecovered;
     
         
     private static String createSharedTicketLockOwner(AppView app) {
@@ -144,6 +145,25 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
             identity.append('|');
         }
         identity.append(value.trim());
+    }
+
+    private void recoverOwnStaleLocksOnce() {
+        if (staleLocksRecovered) {
+            return;
+        }
+        staleLocksRecovered = true;
+        try {
+            int released = dlReceipts.releaseSharedTicketLocksOwnedBy(sharedTicketLockOwner);
+            if (released > 0) {
+                LOGGER.log(Level.INFO,
+                        "Recovered {0} stale restaurant table lock(s) for this POS instance",
+                        released);
+            }
+        } catch (BasicException ex) {
+            staleLocksRecovered = false;
+            LOGGER.log(Level.WARNING,
+                    "Could not recover stale restaurant table locks for this POS instance", ex);
+        }
     }
 
     private boolean ownsSharedTicketLock(String tableId) throws BasicException {
@@ -452,6 +472,7 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         
         m_PlaceClipboard = null;
         customer = null;
+        recoverOwnStaleLocksOnce();
         refreshRestaurantState();
         if (autoRefreshTimer != null && !autoRefreshTimer.isRunning()) {
             autoRefreshTimer.setDelay(autoRefreshBaseDelayMs);

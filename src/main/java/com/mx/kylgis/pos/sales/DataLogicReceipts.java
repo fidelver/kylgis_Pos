@@ -306,6 +306,13 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
         return updated == 1;
     }
 
+    /** Clears every shared-ticket lock owned by one POS instance. */
+    public final int releaseSharedTicketLocksOwnedBy(final String owner) throws BasicException {
+        return new PreparedSentence(s,
+                "UPDATE sharedtickets SET LOCKED = NULL WHERE LOCKED = ?",
+                SerializerWriteString.INSTANCE).exec(owner);
+    }
+
     /** Clears a shared-ticket lock only if the requester still owns it. */
     public final boolean unlockSharedTicketIfOwned(final String id, final String owner) throws BasicException {
         Object[] values = new Object[] {id, owner};
