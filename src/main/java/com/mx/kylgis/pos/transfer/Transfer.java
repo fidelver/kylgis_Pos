@@ -25,17 +25,14 @@ package com.mx.kylgis.pos.transfer;
 import com.mx.kylgis.pos.data.loader.BatchSentence;
 import com.mx.kylgis.pos.data.loader.BatchSentenceResource;
 import com.mx.kylgis.pos.config.PanelConfig;
+import com.mx.kylgis.pos.config.DatabaseSettings;
 import com.mx.kylgis.pos.forms.*;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.DirectoryEvent;
 
 import java.awt.HeadlessException;
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -151,6 +148,7 @@ public final class Transfer extends JPanel implements JPanelView {
 
         cbSource.addActionListener(dirty);
         
+        cbSource.addItem(DatabaseSettings.ENGINE_MARIADB);
         cbSource.addItem("MySQL");
         cbSource.addItem("PostgreSQL");
         cbSource.addItem("Derby");        
@@ -206,15 +204,8 @@ public final class Transfer extends JPanel implements JPanelView {
         connectionProps.put("password", db_password2);
         
         try {
-            Class.forName(jtxtDbDriver.getText());
-
-            ClassLoader cloader = new URLClassLoader(
-                    new URL[]{
-                        new File(jtxtDbDriverLib.getText()).toURI().toURL()
-                    });
-            DriverManager.registerDriver(
-                    new DriverWrapper((Driver) Class.forName(jtxtDbDriver.getText(), 
-                            true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(jtxtDbDriver.getText(),
+                    driverLibraryFile(jtxtDbDriverLib.getText()));
             con_source = (Connection) DriverManager.getConnection(
                     db_url2, db_user2, db_password2);
 
@@ -226,11 +217,7 @@ public final class Transfer extends JPanel implements JPanelView {
             
             return (true);
             
-        } catch (ClassNotFoundException 
-                | MalformedURLException 
-                | InstantiationException 
-                | IllegalAccessException 
-                | SQLException e) {
+        } catch (Exception e) {
             
             JMessageDialog.showMessage(this, 
                     new MessageInf(MessageInf.SGN_DANGER, 
@@ -2129,13 +2116,7 @@ public final class Transfer extends JPanel implements JPanelView {
             String user = txtDbUser.getText();
             String password = new String(txtDbPass.getPassword());
 
-            ClassLoader cloader = new URLClassLoader(new URL[] {
-                new File(driverlib).toURI().toURL()
-            });
-            
-            DriverManager.registerDriver(
-                new DriverWrapper((Driver) 
-                Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
 
             Session session1 = new Session(url, user, password);                
 
@@ -2156,31 +2137,61 @@ public final class Transfer extends JPanel implements JPanelView {
             
             jCBSchema.setEnabled(true);
             jCBSchema.setSelectedIndex(0);
-        } catch (MalformedURLException | ClassNotFoundException | SQLException 
-                | InstantiationException | IllegalAccessException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Transfer.class.getName()).log(Level.SEVERE, null, ex);
         } 
     }
 
+    private File driverLibraryFile(String driverLibrary) {
+        String value = driverLibrary == null ? "" : driverLibrary.trim();
+        return value.isEmpty() ? null : new File(value);
+    }
+
+    private void applySourceDefaults() {
+        Object selected = cbSource.getSelectedItem();
+        String engine = selected == null ? DatabaseSettings.ENGINE_MARIADB : selected.toString();
+        jtxtDbDriverLib.setText("");
+
+        if ("Derby".equals(engine)) {
+            jtxtDbDriver.setText("org.apache.derby.jdbc.EmbeddedDriver");
+            jtxtDbType.setText("jdbc:derby:");
+            jtxtDbServerPort.setText(new File(System.getProperty("user.home")).getAbsolutePath());
+            jtxtDbParams.setText("");
+        } else if (DatabaseSettings.ENGINE_POSTGRESQL.equals(engine)) {
+            jtxtDbDriver.setText(DatabaseSettings.POSTGRESQL_DRIVER);
+            jtxtDbType.setText(DatabaseSettings.jdbcPrefix(engine));
+            jtxtDbServerPort.setText("localhost:" + DatabaseSettings.defaultPort(engine) + "/");
+            jtxtDbParams.setText("");
+        } else if (DatabaseSettings.ENGINE_MYSQL.equals(engine)) {
+            jtxtDbDriver.setText(DatabaseSettings.MYSQL_DRIVER);
+            jtxtDbType.setText(DatabaseSettings.jdbcPrefix(engine));
+            jtxtDbServerPort.setText("localhost:" + DatabaseSettings.defaultPort(engine) + "/");
+            jtxtDbParams.setText("?zeroDateTimeBehavior=CONVERT_TO_NULL");
+        } else {
+            jtxtDbDriver.setText(DatabaseSettings.MARIADB_DRIVER);
+            jtxtDbType.setText(DatabaseSettings.jdbcPrefix(DatabaseSettings.ENGINE_MARIADB));
+            jtxtDbServerPort.setText("localhost:"
+                    + DatabaseSettings.defaultPort(DatabaseSettings.ENGINE_MARIADB) + "/");
+            jtxtDbParams.setText("");
+        }
+    }
+
     public void reset() {
 // Main Panel
-        jtxtDbDriver.setText("com.mysql.jdbc.Driver");
-        jtxtDbType.setText("jdbc:mysql://");
-        jtxtDbServerPort.setText("localhost:3306/");
+        applySourceDefaults();
         txtDbUser.setText(null);
         txtDbPass.setText(null);
         jbtnConnect.setEnabled(true);
-    
+
 // TransferPanel
         jCBSchema.removeAllItems();
         jtxtDbName.setText(null);
-        jtxtDbParams.setText("?zeroDateTimeBehavior=convertToNull");
         jlblVersion.setText(null);
         jlblDBSize.setText(null);
 
         jTransferPanel.setVisible(false);
     }
-    
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -2782,13 +2793,7 @@ public final class Transfer extends JPanel implements JPanelView {
                 String user = txtDbUser.getText();
                 String password = new String(txtDbPass.getPassword());
 
-                ClassLoader cloader = new URLClassLoader(new URL[] {
-                    new File(driverlib).toURI().toURL()
-                });
-            
-                DriverManager.registerDriver(
-                    new DriverWrapper((Driver) 
-                        Class.forName(driver, true, cloader).newInstance()));
+                JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
                 
                 Session session_source = new Session(url, user, password);
                 Connection connection = session_source.getConnection();
@@ -2820,14 +2825,6 @@ public final class Transfer extends JPanel implements JPanelView {
                     JMessageDialog.showMessage(this, 
                         new MessageInf(MessageInf.SGN_WARNING, "Connection Error"));
                 }
-            } catch (InstantiationException 
-                | IllegalAccessException 
-                | MalformedURLException 
-                | ClassNotFoundException e) {
-                JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, 
-                    AppLocal.getIntString("message.databasedrivererror"), e));
-        
             } catch (SQLException e) {
                 JMessageDialog.showMessage(this, 
                     new MessageInf(MessageInf.SGN_WARNING, 
@@ -2835,7 +2832,8 @@ public final class Transfer extends JPanel implements JPanelView {
         
             } catch (Exception e) {
                 JMessageDialog.showMessage(this, 
-                    new MessageInf(MessageInf.SGN_WARNING, "Unknown exception", e));
+                    new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.databasedrivererror"), e));
             }
         } else {
             JOptionPane.showMessageDialog(this
@@ -2849,40 +2847,11 @@ public final class Transfer extends JPanel implements JPanelView {
     }//GEN-LAST:event_jbtnConnectjButtonTestConnectionActionPerformed
 
     private void cbSourceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbSourceActionPerformed
-
         reset();
-        
-        String dirname = System.getProperty("dirname.path");
-        dirname = dirname == null ? "./" : dirname;
-                  
-        if ("Derby".equals(cbSource.getSelectedItem())) {
-            jtxtDbDriverLib.setText(new File(new File(dirname)
-                    , "lib/derby-10.10.2.0.jar").getAbsolutePath());
-            jtxtDbDriver.setText("org.apache.derby.jdbc.EmbeddedDriver");
-            jtxtDbType.setText("jdbc:derby:");
-            jtxtDbServerPort.setText("" + new File(new File(System.getProperty("user.home"))
-                , ""));
-            jtxtDbParams.setText("");            
-        } else if ("PostgreSQL".equals(cbSource.getSelectedItem())) {
-            jtxtDbDriverLib.setText(new File(new File(dirname)
-                , "lib/postgresql-9.4-1208.jdbc4.jar").getAbsolutePath());
-            jtxtDbDriver.setText("org.postgresql.Driver");
-            jtxtDbType.setText("jdbc:postgresql://");
-            jtxtDbServerPort.setText("localhost:5432/");
-            jtxtDbParams.setText("");                        
-        } else {
-            jtxtDbDriverLib.setText(new File(new File(dirname)
-                , "lib/mysql-connector-java-5.1.39.jar").getAbsolutePath());
-            jtxtDbDriver.setText("com.mysql.jdbc.Driver");
-            jtxtDbType.setText("jdbc:mysql://");
-            jtxtDbServerPort.setText("localhost:3306/");
-            jtxtDbParams.setText("?zeroDateTimeBehavior=convertToNull");              
-        }
-
         txtDbUser.setText("");
         txtDbPass.setText("");
         jlblVersion.setText("");
-        jlblDBSize.setText("");        
+        jlblDBSize.setText("");
     }//GEN-LAST:event_cbSourceActionPerformed
 
     private void jbtnSetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnSetActionPerformed
@@ -2912,13 +2881,7 @@ public final class Transfer extends JPanel implements JPanelView {
         password = new String(txtDbPass.getPassword());
 
         try {
-            ClassLoader cloader = new URLClassLoader(new URL[] {
-                new File(driverlib).toURI().toURL()
-            });
-            
-            DriverManager.registerDriver(
-                new DriverWrapper((Driver) 
-                Class.forName(driver, true, cloader).newInstance()));
+            JdbcDriverLoader.ensureLoaded(driver, driverLibraryFile(driverlib));
                 
             Session session_source1 = new Session(url, user, password);
             Connection connection = session_source1.getConnection();
@@ -2939,6 +2902,7 @@ public final class Transfer extends JPanel implements JPanelView {
                     
             if (null != jtxtDbType.getText() && jtxtDbName.getText() != null) {
                 switch (jtxtDbType.getText()) {
+                    case "jdbc:mariadb://":
                     case "jdbc:mysql://":
                         SQL="SELECT sum(round(((data_length + index_length) " +
                             "/ 1024 / 1024), 2)), LEFT(VERSION(),3)  " + 
@@ -2970,17 +2934,14 @@ public final class Transfer extends JPanel implements JPanelView {
                 }
             }
             
-        } catch (InstantiationException | IllegalAccessException | MalformedURLException | ClassNotFoundException e) {
-            JMessageDialog.showMessage(this, 
-                new MessageInf(MessageInf.SGN_WARNING, 
-                AppLocal.getIntString("message.databasedrivererror"), e));
         } catch (SQLException e) {
             JMessageDialog.showMessage(this, 
                 new MessageInf(MessageInf.SGN_WARNING, 
                 AppLocal.getIntString("message.databaseconnectionerror"), e));            
         } catch (Exception e) {
             JMessageDialog.showMessage(this, 
-                new MessageInf(MessageInf.SGN_WARNING, "Unknown exception", e));
+                new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.databasedrivererror"), e));
         }
     }//GEN-LAST:event_jbtnSetActionPerformed
 

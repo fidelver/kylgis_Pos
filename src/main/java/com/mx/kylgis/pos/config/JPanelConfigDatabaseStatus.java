@@ -4,18 +4,14 @@ package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.loader.Session;
 import com.mx.kylgis.pos.forms.AppConfig;
-import com.mx.kylgis.pos.forms.DriverWrapper;
+import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.forms.JdbcDriverLoader;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
-import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.BorderFactory;
@@ -43,14 +39,14 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
 
         indicator.setFont(new Font("SansSerif", Font.BOLD, 72));
         indicator.setForeground(Color.GRAY);
-        indicator.setToolTipText("Comprobando conexión con la base de datos");
+        indicator.setToolTipText(AppLocal.getIntString("tooltip.database.status.checking"));
         add(indicator, BorderLayout.CENTER);
     }
 
     @Override
     public void loadProperties(final AppConfig config) {
         indicator.setForeground(Color.GRAY);
-        indicator.setToolTipText("Comprobando conexión con la base de datos");
+        indicator.setToolTipText(AppLocal.getIntString("tooltip.database.status.checking"));
 
         if (worker != null && !worker.isDone()) {
             worker.cancel(true);
@@ -75,8 +71,8 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
                 }
                 indicator.setForeground(connected ? new Color(0, 140, 0) : Color.RED);
                 indicator.setToolTipText(connected
-                        ? "Conexión con la base de datos establecida"
-                        : "Base de datos no disponible");
+                        ? AppLocal.getIntString("tooltip.database.status.connected")
+                        : AppLocal.getIntString("tooltip.database.status.unavailable"));
             }
         };
         worker.execute();
@@ -86,7 +82,8 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
         Session session = null;
         try {
             DatabaseSettings settings = DatabaseSettings.primary(config);
-            loadDriver(settings);
+            JdbcDriverLoader.ensureLoaded(
+                    settings.getDriver(), settings.getDriverLibraryFile());
 
             String user = settings.getUser();
             String password = settings.getPassword();
@@ -95,7 +92,7 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
                 password = cypher.decrypt(password.substring(6));
             }
 
-            session = new Session(withStatusTimeouts(settings.getJdbcUrl()), user, password);
+            session = new Session(withStatusTimeouts(settings), user, password);
             Connection connection = session.getConnection();
             return connection != null && connection.isValid(3);
         } catch (Exception ex) {
@@ -108,28 +105,16 @@ public final class JPanelConfigDatabaseStatus extends JPanel implements PanelCon
         }
     }
 
-    private void loadDriver(DatabaseSettings settings) throws Exception {
-        try {
-            Class.forName(settings.getDriver(), true,
-                    Thread.currentThread().getContextClassLoader());
-            return;
-        } catch (ClassNotFoundException ex) {
-            File library = settings.getDriverLibraryFile();
-            if (library == null || !library.isFile()) {
-                throw ex;
-            }
-            ClassLoader loader = new URLClassLoader(new URL[]{library.toURI().toURL()});
-            DriverManager.registerDriver(new DriverWrapper((Driver)
-                    Class.forName(settings.getDriver(), true, loader).newInstance()));
-        }
-    }
-
-    private String withStatusTimeouts(String jdbcUrl) {
+    private String withStatusTimeouts(DatabaseSettings settings) {
+        String jdbcUrl = settings.getJdbcUrl();
         if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
             return jdbcUrl;
         }
         String separator = jdbcUrl.contains("?") ? "&" : "?";
-        return jdbcUrl + separator + "connectTimeout=3000&socketTimeout=3000";
+        String timeout = DatabaseSettings.ENGINE_POSTGRESQL.equals(settings.getEngine())
+                ? "3" : "3000";
+        return jdbcUrl + separator + "connectTimeout=" + timeout
+                + "&socketTimeout=" + timeout;
     }
 
     @Override
