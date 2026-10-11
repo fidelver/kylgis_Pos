@@ -21,6 +21,8 @@
 #    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$DIR/kylgis-java.sh" || exit $?
+
 OS=$(uname -s 2>/dev/null || echo unknown)
 ARCH=$(uname -m 2>/dev/null || echo unknown)
 NATIVE=
@@ -30,8 +32,24 @@ case "$OS/$ARCH" in
     Darwin/i?86|Darwin/x86_64|Darwin/amd64) NATIVE="$DIR/lib/Mac_OS_X" ;;
 esac
 
+if [ "${KYLGIS_LAUNCHER_CHECK_ONLY:-0}" = "1" ]; then
+    echo "KYLGIS_RUNTIME_CHECK_OK"
+    echo "java=$KYLGIS_JAVA"
+    echo "java.version=$KYLGIS_JAVA_VERSION"
+    echo "java.source=$KYLGIS_JAVA_SOURCE"
+    echo "os=$OS"
+    echo "arch=$ARCH"
+    echo "native=${NATIVE:-none}"
+    exit 0
+fi
+
 if [ -n "$NATIVE" ] && [ -d "$NATIVE" ]; then
-    exec java "-Djava.library.path=$NATIVE" "-Ddirname.path=$DIR/" -jar "$DIR/kylgispos.jar" "$@"
+    exec "$KYLGIS_JAVA" -Xms512m -Xmx1024m \
+        "-splash:$DIR/kylgispos_splash_dark.png" \
+        "-Djava.library.path=$NATIVE" "-Ddirname.path=$DIR/" \
+        -jar "$DIR/kylgispos.jar" "$@"
 else
-    exec java "-Ddirname.path=$DIR/" -jar "$DIR/kylgispos.jar" "$@"
+    exec "$KYLGIS_JAVA" -Xms512m -Xmx1024m \
+        "-splash:$DIR/kylgispos_splash_dark.png" \
+        "-Ddirname.path=$DIR/" -jar "$DIR/kylgispos.jar" "$@"
 fi

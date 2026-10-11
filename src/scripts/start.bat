@@ -22,12 +22,24 @@ REM    You should have received a copy of the GNU General Public License
 REM    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
 set "DIR=%~dp0"
+call "%DIR%kylgis-java.bat"
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+if /I "%KYLGIS_LAUNCHER_CHECK_ONLY%"=="1" (
+    echo KYLGIS_RUNTIME_CHECK_OK
+    echo java=%KYLGIS_JAVA%
+    echo java.version=%KYLGIS_JAVA_VERSION%
+    echo java.source=%KYLGIS_JAVA_SOURCE%
+    echo arch=%PROCESSOR_ARCHITECTURE%
+    exit /b 0
+)
+
 if /I "%PROCESSOR_ARCHITECTURE%"=="x86" goto native
 if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto native
 goto nonative
 :native
-java "-Djava.library.path=%DIR%lib\Windows\i368-mingw32" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
+"%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Djava.library.path=%DIR%lib\Windows\i368-mingw32" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
 goto end
 :nonative
-java "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
+"%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
 :end

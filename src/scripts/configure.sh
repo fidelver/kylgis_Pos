@@ -21,4 +21,16 @@
 #    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec java "-Ddirname.path=$DIR/" -cp "$DIR/kylgispos.jar" com.mx.kylgis.pos.config.JFrmConfig "$@"
+. "$DIR/kylgis-java.sh" || exit $?
+
+if [ "${KYLGIS_LAUNCHER_CHECK_ONLY:-0}" = "1" ]; then
+    echo "KYLGIS_CONFIG_RUNTIME_CHECK_OK"
+    echo "java=$KYLGIS_JAVA"
+    echo "java.version=$KYLGIS_JAVA_VERSION"
+    echo "java.source=$KYLGIS_JAVA_SOURCE"
+    exit 0
+fi
+
+exec "$KYLGIS_JAVA" "-Ddirname.path=$DIR/" \
+    "-splash:$DIR/kylgispos_splash_dark.png" \
+    -cp "$DIR/kylgispos.jar" com.mx.kylgis.pos.config.JFrmConfig "$@"

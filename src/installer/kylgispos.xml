@@ -69,6 +69,9 @@
                             <origin>../../target/configure.bat</origin>
                         </distributionFile>
                         <distributionFile>
+                            <origin>../../target/kylgis-java.bat</origin>
+                        </distributionFile>
+                        <distributionFile>
                             <origin>../../target/kylgispos.jar</origin>
                         </distributionFile>
                         <distributionFile>
@@ -91,6 +94,9 @@
                         </distributionFile>
                         <distributionFile>
                             <origin>../../target/configure.sh</origin>
+                        </distributionFile>
+                        <distributionFile>
+                            <origin>../../target/kylgis-java.sh</origin>
                         </distributionFile>
                         <distributionFile>
                             <origin>../../target/start.sh</origin>
@@ -236,33 +242,32 @@
     <preInstallationActionList>
         <autodetectJava>
             <abortOnError>0</abortOnError>
-            <customErrorMessage>Java JRE not found on your machine. Install the correct Java JRE runtime and then continue with install.</customErrorMessage>
-            <explanation>Checking for Java JRE</explanation>
+            <customErrorMessage>Java 21 or newer was not found. Install a compatible Java 21 LTS runtime and then continue with installation.</customErrorMessage>
+            <explanation>Checking for Java 21+ runtime</explanation>
             <progressText>Searching....</progressText>
             <promptUser>1</promptUser>
             <selectionOrder>newest</selectionOrder>
             <onErrorActionList>
                 <showInfo>
                     <explanation>When done...
-Please use the JRE 1.8 version located in your Windows\ folder</explanation>
-                    <text>Couldn't find Java JRE runtime on your machine!
+Install Java 21 LTS or newer for your operating system and CPU architecture</explanation>
+                    <text>Couldn't find a compatible Java 21+ runtime on your machine!
 Opening the Java website for you
 
-Install the correct Java JRE runtime for your machine
+Install Java 21 LTS or newer for your operating system and CPU architecture
 
 Then continue with KylGis POS installation.</text>
                 </showInfo>
                 <launchBrowser>
-                    <url>http://www.java.com</url>
+                    <url>https://adoptium.net/temurin/releases/?version=21</url>
                 </launchBrowser>
             </onErrorActionList>
             <validVersionList>
                 <validVersion>
                     <bitness></bitness>
-                    <maxVersion>1.8</maxVersion>
-                    <minVersion>1.8</minVersion>
+                    <minVersion>21</minVersion>
                     <requireJDK>0</requireJDK>
-                    <vendor>sun</vendor>
+                    <vendor></vendor>
                 </validVersion>
             </validVersionList>
         </autodetectJava>
