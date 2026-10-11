@@ -3,13 +3,19 @@
 package com.mx.kylgis.pos.hardware;
 
 import com.mx.kylgis.pos.forms.AppProperties;
-import com.mx.kylgis.pos.display.service.DisplayServiceConfig;
-import com.mx.kylgis.pos.printer.service.PrintServiceConfig;
 import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
 import com.mx.kylgis.pos.scanpal2.service.ScannerServiceConfig;
 import java.util.Locale;
 
-/** Preflight for legacy native hardware that still depends on RXTX. */
+/**
+ * Preflight for hardware that still depends on legacy RXTX native binaries.
+ *
+ * Serial printers and customer displays no longer belong to this gate: their
+ * serial transport uses jSerialComm and can load a native implementation for
+ * the current supported platform/architecture from the dependency JAR itself.
+ * Scale and ScanPal implementations remain on RXTX until their dedicated
+ * drivers are migrated and therefore still require this compatibility check.
+ */
 public final class NativeHardwareSupport {
 
     private NativeHardwareSupport() { }
@@ -19,42 +25,17 @@ public final class NativeHardwareSupport {
                 System.getProperty("os.arch", ""));
     }
 
+    /**
+     * Kept as a stable service API. Serial printing is portable now, so no
+     * RXTX architecture gate is required for print services.
+     */
     public static void validatePrintService(AppProperties properties,
             String serviceId, String allowedPrinters) {
-        if (isRxtxSupportedCurrentPlatform()) return;
-        for (int i = 1; i <= 6; i++) {
-            String index = Integer.toString(i);
-            if (!PrintServiceConfig.isPrinterAllowed(allowedPrinters, index)) continue;
-            String value = printerProperty(properties, index);
-            if (usesRxtxConnection(value)) {
-                throw unsupported("printer." + index, value,
-                        System.getProperty("os.name", ""),
-                        System.getProperty("os.arch", ""),
-                        "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
-            }
-        }
+        // Intentionally no-op: local serial printing uses jSerialComm.
     }
 
     static void validatePos(AppProperties properties, String osName, String arch) {
         if (properties == null || isRxtxSupported(osName, arch)) return;
-
-        String display = properties.getProperty("machine.display");
-        if (DisplayServiceConfig.getServiceId(properties) == null
-                && HardwareOwnership.canOpen(properties, "display") && usesRxtxConnection(display)) {
-            throw unsupported("display", display, osName, arch,
-                    "Configure device.display.service para usar un servicio de visor remoto");
-        }
-
-        for (int i = 1; i <= 6; i++) {
-            String index = Integer.toString(i);
-            if (PrintServiceConfig.getServiceId(properties, index) != null) continue;
-            if (!HardwareOwnership.canOpen(properties, "printer." + index)) continue;
-            String value = printerProperty(properties, index);
-            if (usesRxtxConnection(value)) {
-                throw unsupported("printer." + index, value, osName, arch,
-                        "Configure device.printer." + index + ".service para usar un servicio de impresión remoto");
-            }
-        }
 
         String scale = properties.getProperty("machine.scale");
         if (ScaleServiceConfig.getServiceId(properties) == null
@@ -71,15 +52,12 @@ public final class NativeHardwareSupport {
         }
     }
 
-
+    /**
+     * Kept as a stable service API. Serial customer displays use the same
+     * portable writer as serial ESC/POS printers and no longer require RXTX.
+     */
     public static void validateDisplayService(AppProperties properties, String serviceId) {
-        if (isRxtxSupportedCurrentPlatform()) return;
-        String display = properties == null ? null : properties.getProperty("machine.display");
-        if (usesRxtxConnection(display)) {
-            throw unsupported("display", display,
-                    System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
-                    "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
-        }
+        // Intentionally no-op: local serial displays use jSerialComm.
     }
 
     public static void validateScaleService(AppProperties properties, String serviceId) {
@@ -122,20 +100,6 @@ public final class NativeHardwareSupport {
         return false;
     }
 
-    static boolean usesRxtxConnection(String configured) {
-        if (configured == null) return false;
-        String value = configured.trim().toLowerCase(Locale.ENGLISH);
-        if (value.isEmpty() || value.startsWith("not defined")) return false;
-        int colon = value.indexOf(':');
-        String type = colon < 0 ? value : value.substring(0, colon).trim();
-        if ("serial".equals(type) || "rxtx".equals(type)) return true;
-        if (colon < 0) return false;
-        String parameters = value.substring(colon + 1);
-        int comma = parameters.indexOf(',');
-        String connection = (comma < 0 ? parameters : parameters.substring(0, comma)).trim();
-        return "serial".equals(connection) || "rxtx".equals(connection);
-    }
-
     private static boolean usesSerialScale(String configured) {
         if (configured == null) return false;
         String value = configured.trim().toLowerCase(Locale.ENGLISH);
@@ -147,11 +111,6 @@ public final class NativeHardwareSupport {
         if (configured == null) return false;
         String value = configured.trim().toLowerCase(Locale.ENGLISH);
         return value.startsWith("scanpal2:");
-    }
-
-    private static String printerProperty(AppProperties properties, String index) {
-        return "1".equals(index) ? properties.getProperty("machine.printer")
-                : properties.getProperty("machine.printer." + index);
     }
 
     private static IllegalStateException unsupported(String deviceId,
