@@ -1002,12 +1002,8 @@ Integer count = place.getGuests();
                     ticket = new TicketInfo();
                     ticket.setUser(m_App.getAppUserView().getUser().getUserInfo());
                     try {
-                        dlReceipts.insertSharedTicket(m_place.getId(), ticket, ticket.getPickupId());
-                        if (!dlReceipts.tryLockSharedTicket(m_place.getId(), sharedTicketLockOwner)) {
-                            showForeignTableLock();
-                            refreshRestaurantState();
-                            return;
-                        }
+                        dlReceipts.insertSharedTicketLocked(m_place.getId(), ticket,
+                                ticket.getPickupId(), sharedTicketLockOwner);
                     } catch (BasicException e) {
                         new MessageInf(e).show(JTicketsBagRestaurantMap.this);
                         refreshRestaurantState();

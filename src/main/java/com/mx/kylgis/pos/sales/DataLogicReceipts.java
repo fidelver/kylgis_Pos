@@ -163,6 +163,22 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
             , new SerializerWriteBasicExt(datas, new int[] {0, 1, 2, 3, 4})).exec(values);                
     }
     
+    /** Inserts a restaurant ticket already owned by one POS instance. */
+    public final void insertSharedTicketLocked(final String id, final TicketInfo ticket,
+            int pickupid, final String owner) throws BasicException {
+        Object[] values = new Object[] {
+            id, ticket.getName(), ticket, ticket.getUser().getId(), pickupid, owner
+        };
+        Datas[] datas = new Datas[] {
+            Datas.STRING, Datas.STRING, Datas.SERIALIZABLE,
+            Datas.STRING, Datas.INT, Datas.STRING
+        };
+        new PreparedSentence(s,
+                "INSERT INTO sharedtickets (ID, NAME, CONTENT, APPUSER, PICKUPID, LOCKED) "
+                + "VALUES (?, ?, ?, ?, ?, ?)",
+                new SerializerWriteBasicExt(datas, new int[] {0, 1, 2, 3, 4, 5})).exec(values);
+    }
+
     /**
      *
      * @param id
