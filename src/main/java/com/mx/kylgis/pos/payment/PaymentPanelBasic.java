@@ -55,12 +55,14 @@ public class PaymentPanelBasic extends javax.swing.JPanel implements PaymentPane
     private void initPartialAmountControls() {
         m_jAmount = new JEditorCurrencyPositive();
         m_jKeys = new JEditorKeys();
+        setPreferredSize(new Dimension(620, 255));
         m_jAmount.setPreferredSize(new Dimension(150, 30));
+        m_jKeys.setPreferredSize(new Dimension(290, 225));
         m_jAmount.addEditorKeys(m_jKeys);
         m_jAmount.addPropertyChangeListener("Edition", new RecalculateAmount());
 
         JPanel amountRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        amountRow.add(new JLabel("Importe de esta tarjeta:"));
+        amountRow.add(new JLabel(AppLocal.getIntString("label.payment.cardamount")));
         amountRow.add(m_jAmount);
 
         removeAll();
@@ -134,7 +136,8 @@ public class PaymentPanelBasic extends javax.swing.JPanel implements PaymentPane
         if (m_dAvailableTotal > 0.0) {
             recalculateAmount();
             if (!isPositiveAmountValid()) {
-                throw new IllegalStateException("Importe de tarjeta inválido.");
+                throw new IllegalStateException(
+                        AppLocal.getIntString("message.payment.cardamountinvalid"));
             }
             return new PaymentInfoMagcard(
                     "",

@@ -93,9 +93,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         m_jButtonPrint.setVisible(true);
         this.applyComponentOrientation(o);
         if (printselected) {
-            jlblPrinterStatus.setText("Printer ON");            
+            jlblPrinterStatus.setText(AppLocal.getIntString("label.printerstatusOn"));
         } else {
-            jlblPrinterStatus.setText("Printer OFF");
+            jlblPrinterStatus.setText(AppLocal.getIntString("label.printerstatusOff"));
         }         
     }
 
@@ -107,9 +107,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
         printselected = false;
         if (printselected) {
-            jlblPrinterStatus.setText("Printer ON");            
+            jlblPrinterStatus.setText(AppLocal.getIntString("label.printerstatusOn"));
         } else {
-            jlblPrinterStatus.setText("Printer OFF");
+            jlblPrinterStatus.setText(AppLocal.getIntString("label.printerstatusOff"));
         }        
 
     }
@@ -130,7 +130,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
         m_jButtonPrint.setSelected(printselected);
         m_jButtonPrint.setEnabled(!printingDisabled);
-        jlblPrinterStatus.setText(printselected ? "Printer ON" : "Printer OFF");
+        jlblPrinterStatus.setText(printselected ? AppLocal.getIntString("label.printerstatusOn") : AppLocal.getIntString("label.printerstatusOff"));
     }
 
     public List<PaymentInfo> getSelectedPayments() {
@@ -509,23 +509,23 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
                 && isApprovedCardPayment(m_aPaymentInfo.getPayments().getLast());
     }
 
-    private void showApprovedPaymentGuard(String action) {
+    private void showApprovedPaymentGuard(String messageKey) {
         JOptionPane.showMessageDialog(this,
-                "Hay un pago con tarjeta ya aprobado.\n"
-                + "No se puede " + action + " porque se perdería la referencia del cobro.\n"
-                + "Complete el ticket o realice una anulación/reembolso verificado.",
-                "Pago aprobado pendiente", JOptionPane.WARNING_MESSAGE);
+                AppLocal.getIntString(messageKey),
+                AppLocal.getIntString("message.payment.approvedpending.title"),
+                JOptionPane.WARNING_MESSAGE);
     }
 
     private void requestCancel() {
         if (paymentInProgress) {
             JOptionPane.showMessageDialog(this,
-                    "Hay un pago en proceso. Espere a que termine antes de cerrar el cobro.",
-                    "Pago en proceso", JOptionPane.WARNING_MESSAGE);
+                    AppLocal.getIntString("message.payment.inprogress.close"),
+                    AppLocal.getIntString("message.payment.inprogress.title"),
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (hasApprovedCardPayment()) {
-            showApprovedPaymentGuard("cancelar o cerrar la ventana");
+            showApprovedPaymentGuard("message.payment.approvedpending.cancel");
             return;
         }
         accepted = false;
@@ -609,7 +609,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         jPanel6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 5, 0));
 
         m_jButtonRemove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btnminus.png"))); // NOI18N
-        m_jButtonRemove.setToolTipText("Delete Part Payment");
+        m_jButtonRemove.setToolTipText(AppLocal.getIntString("tooltip.payment.remove"));
         m_jButtonRemove.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jButtonRemove.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -618,7 +618,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         });
 
         m_jButtonAdd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/btnplus.png"))); // NOI18N
-        m_jButtonAdd.setToolTipText("Add Part Payment");
+        m_jButtonAdd.setToolTipText(AppLocal.getIntString("tooltip.payment.add"));
         m_jButtonAdd.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jButtonAdd.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -726,7 +726,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
         m_jButtonPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/printer24_off.png"))); // NOI18N
         m_jButtonPrint.setSelected(true);
-        m_jButtonPrint.setToolTipText("Print Receipt");
+        m_jButtonPrint.setToolTipText(AppLocal.getIntString("tooltip.payment.print"));
         m_jButtonPrint.setFocusPainted(false);
         m_jButtonPrint.setFocusable(false);
         m_jButtonPrint.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -758,7 +758,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             return;
         }
         if (isLastPaymentApprovedCard()) {
-            showApprovedPaymentGuard("quitar el último pago");
+            showApprovedPaymentGuard("message.payment.approvedpending.remove");
             return;
         }
         m_aPaymentInfo.removeLast();
@@ -832,10 +832,11 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
                     m_jButtonCancel.setEnabled(true);
                     Throwable cause = ex.getCause();
                     JOptionPane.showMessageDialog(JPaymentSelect.this,
-                            "No se pudo procesar el pago."
+                            AppLocal.getIntString("message.payment.processingerror")
                             + (cause != null && cause.getMessage() != null
                                     ? "\n" + cause.getMessage() : ""),
-                            "Error de pago", JOptionPane.ERROR_MESSAGE);
+                            AppLocal.getIntString("message.payment.processingerror.title"),
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
@@ -851,9 +852,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
     private void m_jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonPrintActionPerformed
         if (!m_jButtonPrint.isSelected()) {
-            jlblPrinterStatus.setText("Printer OFF");            
+            jlblPrinterStatus.setText(AppLocal.getIntString("label.printerstatusOff"));
         } else {
-            jlblPrinterStatus.setText("Printer ON");
+            jlblPrinterStatus.setText(AppLocal.getIntString("label.printerstatusOn"));
         }
     }//GEN-LAST:event_m_jButtonPrintActionPerformed
 
