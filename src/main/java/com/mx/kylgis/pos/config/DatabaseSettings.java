@@ -92,10 +92,11 @@ public final class DatabaseSettings {
         String host = firstNonBlank(server, "localhost");
         String port = firstNonBlank(p.getProperty(modernPrefix + ".port"),
                 defaultPort(engine));
-        String name = firstNonBlank(databaseName,
-                p.getProperty(legacyPrefix + ".schema"), "");
-        String options = firstNonBlank(p.getProperty(modernPrefix + ".options"),
-                p.getProperty(legacyPrefix + ".options"), "");
+        String name = valueOrEmpty(firstNonBlank(databaseName,
+                p.getProperty(legacyPrefix + ".schema")));
+        String options = valueOrEmpty(firstNonBlank(
+                p.getProperty(modernPrefix + ".options"),
+                p.getProperty(legacyPrefix + ".options")));
 
         String jdbcUrl = jdbcPrefix(engine) + host + ":" + port + "/" + name + options;
         return new DatabaseSettings(
