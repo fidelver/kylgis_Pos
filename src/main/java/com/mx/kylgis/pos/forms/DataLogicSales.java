@@ -1693,60 +1693,45 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
         }
 
-        final Payments payments = new Payments();
         SentenceExec paymentinsert = new PreparedSentence(s
             , "INSERT INTO payments (ID, RECEIPT, PAYMENT, TOTAL, TRANSID, RETURNMSG, "
                 + "TENDERED, CARDNAME, VOUCHER) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 , SerializerWriteParams.INSTANCE);
-                
-        ticket.getPayments().forEach((p) -> {
-                payments.addPayment(p.getName(),p.getTotal(), p.getPaid(),ticket.getReturnMessage(), p.getVoucher()); 
-        });
-                while (payments.getSize()>=1){                
-                    paymentinsert.exec(new DataParams() {
-                       @Override
-                        public void writeValues() throws BasicException {
-                            pName = payments.getFirstElement();
-                            getTotal = payments.getPaidAmount(pName);
-                            getTendered = payments.getTendered(pName);
-                            getRetMsg = payments.getRtnMessage(pName);
 
-                            if (pName.contains("voucher")) {
-                                getVoucher = payments.getVoucher(pName);
-                            }
-                            payments.removeFirst(pName);  
-                             
-                            setString(1, UUID.randomUUID().toString());
-                            setString(2, ticket.getId());
-                            setString(3, pName);
-                            setDouble(4, getTotal);
-                            setString(5, ticket.getTransactionID());
-                            setBytes(6, (byte[]) Formats.BYTEA.parseValue(getRetMsg));
-                            setDouble(7, getTendered);
-                            setString(8, getCardName);
-                            setString(9, getVoucher);
-                            payments.removeFirst(pName);
-                        }
-                    });
-        
-                    if (pName.contains("voucher")) {
-                        getVoucherNonActive().exec(payments.getVoucher(pName));
-                    }
-        
-                    if ("debt".equals(pName) || "debtpaid".equals(pName)) {                                     
-                        ticket.getCustomer().updateCurDebt(getTotal, ticket.getDate());                        
-                        getDebtUpdate().exec(new DataParams() {
-
-                            @Override
-                            public void writeValues() throws BasicException {
-                            setDouble(1, ticket.getCustomer().getAccdebt());
-                            setTimestamp(2, ticket.getCustomer().getCurdate());
-                            setString(3, ticket.getCustomer().getId());
-                            }
-                        });
-                    }
+        for (final PaymentInfo payment : ticket.getPayments()) {
+            paymentinsert.exec(new DataParams() {
+                @Override
+                public void writeValues() throws BasicException {
+                    setString(1, UUID.randomUUID().toString());
+                    setString(2, ticket.getId());
+                    setString(3, payment.getName());
+                    setDouble(4, payment.getTotal());
+                    setString(5, ticket.getTransactionID());
+                    setBytes(6, (byte[]) Formats.BYTEA.parseValue(ticket.getReturnMessage()));
+                    // Preserve the historical meaning of TENDERED used by this code path.
+                    setDouble(7, payment.getPaid());
+                    setString(8, null);
+                    setString(9, payment.getVoucher());
                 }
- 
+            });
+
+            if (payment.getName().contains("voucher")) {
+                getVoucherNonActive().exec(payment.getVoucher());
+            }
+
+            if ("debt".equals(payment.getName()) || "debtpaid".equals(payment.getName())) {
+                ticket.getCustomer().updateCurDebt(payment.getTotal(), ticket.getDate());
+                getDebtUpdate().exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setDouble(1, ticket.getCustomer().getAccdebt());
+                        setTimestamp(2, ticket.getCustomer().getCurdate());
+                        setString(3, ticket.getCustomer().getId());
+                    }
+                });
+            }
+        }
+
                 SentenceExec taxlinesinsert = new PreparedSentence(s
                     , "INSERT INTO taxlines (ID, RECEIPT, TAXID, BASE, AMOUNT)  "
                     + "VALUES (?, ?, ?, ?, ?)"
