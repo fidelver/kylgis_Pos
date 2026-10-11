@@ -20,6 +20,7 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scale;
 
+import com.mx.kylgis.pos.forms.AppLocal;
 import gnu.io.*;
 import java.io.*;
 import java.util.TooManyListenersException;
@@ -62,7 +63,7 @@ public class ScaleTorreyMetrologyLatam implements Scale, SerialPortEventListener
      * @return
      */
     @Override
-    public Double readWeight() {
+    public Double readWeight() throws ScaleException {
         
         synchronized(this) {
 
@@ -104,33 +105,59 @@ public class ScaleTorreyMetrologyLatam implements Scale, SerialPortEventListener
         }
     }
     
-    private void flush() {
+    private void flush() throws ScaleException {
+        if (m_out == null) {
+            throw new ScaleException(AppLocal.getIntString("scale.portnotaccessible") + " " + m_sPortScale);
+        }
         try {
             m_out.flush();
         } catch (IOException e) {
-        }        
+            throw new ScaleException(AppLocal.getIntString("scale.senderror") + " " + m_sPortScale + ": " + e.getMessage());
+        }
     }
-    
-    private void write(byte[] data) {
-        try {  
-            if (m_out == null) {
-                m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale); // Tomamos el puerto                   
-                m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 2000); // Abrimos el puerto       
 
-                m_out = m_CommPortPrinter.getOutputStream(); // Tomamos el chorro de escritura   
+    private void write(byte[] data) throws ScaleException {
+        try {
+            if (m_out == null) {
+                m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale);
+                m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("KylGisPOS-Scale", 2000);
+                m_CommPortPrinter.setSerialPortParams(9600,
+                        SerialPort.DATABITS_8,
+                        SerialPort.STOPBITS_1,
+                        SerialPort.PARITY_NONE);
+                m_out = m_CommPortPrinter.getOutputStream();
                 m_in = m_CommPortPrinter.getInputStream();
-                
                 m_CommPortPrinter.addEventListener(this);
                 m_CommPortPrinter.notifyOnDataAvailable(true);
-                
-                m_CommPortPrinter.setSerialPortParams(9600, 
-                        SerialPort.DATABITS_8, 
-                        SerialPort.STOPBITS_1, 
-                        SerialPort.PARITY_NONE); // Configuramos el puerto
             }
             m_out.write(data);
-        } catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException | TooManyListenersException | IOException e) {
-        }        
+        } catch (NoSuchPortException e) {
+            resetPort();
+            throw new ScaleException(AppLocal.getIntString("scale.portnotaccessible") + " " + m_sPortScale);
+        } catch (PortInUseException e) {
+            resetPort();
+            throw new ScaleException(AppLocal.getIntString("scale.portinuse") + " " + m_sPortScale);
+        } catch (UnsupportedCommOperationException e) {
+            resetPort();
+            throw new ScaleException(AppLocal.getIntString("scale.serialunsupported") + " " + m_sPortScale);
+        } catch (TooManyListenersException e) {
+            resetPort();
+            throw new ScaleException(AppLocal.getIntString("scale.listenererror") + " " + m_sPortScale);
+        } catch (IOException e) {
+            resetPort();
+            throw new ScaleException(AppLocal.getIntString("scale.ioerror") + " " + m_sPortScale + ": " + e.getMessage());
+        }
+    }
+
+    private void resetPort() {
+        if (m_CommPortPrinter != null) {
+            try { m_CommPortPrinter.removeEventListener(); } catch (Exception ignored) { }
+            try { m_CommPortPrinter.close(); } catch (Exception ignored) { }
+        }
+        m_out = null;
+        m_in = null;
+        m_CommPortPrinter = null;
+        m_PortIdPrinter = null;
     }
     
     /**

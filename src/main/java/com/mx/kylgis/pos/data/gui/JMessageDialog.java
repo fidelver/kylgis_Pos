@@ -22,12 +22,38 @@ package com.mx.kylgis.pos.data.gui;
 
 import com.mx.kylgis.pos.data.loader.LocalRes;
 import java.awt.*;
+import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 /**
  *
  * @author  adrian
  */
 public class JMessageDialog extends javax.swing.JDialog {
+
+    private static final Logger LOGGER = Logger.getLogger(JMessageDialog.class.getName());
+
+    private static String createReference() {
+        return Long.toString(System.currentTimeMillis(), 36).toUpperCase(Locale.ROOT);
+    }
+
+    private static void logCause(String reference, MessageInf inf) {
+        Object cause = inf.getCause();
+        String context = "KYL-500 Ref=" + reference + " MessageCode=" + inf.getErrorCodeMsg();
+        if (cause instanceof Throwable) {
+            LOGGER.log(Level.SEVERE, context, (Throwable) cause);
+        } else if (cause instanceof Throwable[]) {
+            Throwable[] causes = (Throwable[]) cause;
+            for (Throwable t : causes) {
+                if (t != null) {
+                    LOGGER.log(Level.SEVERE, context, t);
+                }
+            }
+        } else {
+            LOGGER.log(Level.SEVERE, context + " Cause=" + String.valueOf(cause));
+        }
+    }
     
     /** Creates new form JMessageDialog */
     private JMessageDialog(java.awt.Frame parent, boolean modal) {        
@@ -54,6 +80,25 @@ public class JMessageDialog extends javax.swing.JDialog {
      * @param inf
      */
     public static void showMessage(Component parent, MessageInf inf) {
+
+        if (inf.getCause() != null) {
+            String reference = createReference();
+            logCause(reference, inf);
+            int messageType = JOptionPane.WARNING_MESSAGE;
+            if (inf.getSignalWord() == MessageInf.SGN_DANGER) {
+                messageType = JOptionPane.ERROR_MESSAGE;
+            } else if (inf.getSignalWord() == MessageInf.SGN_NOTICE
+                    || inf.getSignalWord() == MessageInf.SGN_IMPORTANT
+                    || inf.getSignalWord() == MessageInf.SGN_SUCCESS) {
+                messageType = JOptionPane.INFORMATION_MESSAGE;
+            }
+            JOptionPane.showMessageDialog(parent,
+                    "<html><b>KYL-500 · Ref: " + reference + "</b><br><br>"
+                    + inf.getMessageMsg() + "</html>",
+                    "KylGis POS",
+                    messageType);
+            return;
+        }
         
         Window window = getWindow(parent);      
         
@@ -66,7 +111,8 @@ public class JMessageDialog extends javax.swing.JDialog {
         
         myMsg.initComponents();
         myMsg.applyComponentOrientation(parent.getComponentOrientation());
-        myMsg.jscrException.setVisible(false);        
+        myMsg.jscrException.setVisible(false);
+        myMsg.jcmdMore.setVisible(false);
         myMsg.getRootPane().setDefaultButton(myMsg.jcmdOK);
         
         myMsg.jlblIcon.setIcon(inf.getSignalWordIcon());

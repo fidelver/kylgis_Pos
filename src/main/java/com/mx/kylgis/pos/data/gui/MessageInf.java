@@ -102,7 +102,7 @@ public class MessageInf {
     /** Creates a new instance of MessageInf
      * @param e */
     public MessageInf(Throwable e) {
-        this(SGN_WARNING, e.getLocalizedMessage(), e);
+        this(SGN_WARNING, LocalRes.getIntString("message.systemerror"), e);
     }
     
     /**

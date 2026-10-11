@@ -1284,7 +1284,9 @@ System.out.println("PanelContainer : Focus Lost");
 
     } else {
 
-            m_sBarcode.append(cTrans);
+            if (cTrans != '\u00a7') {
+                m_sBarcode.append(cTrans);
+            }
 
             if (cTrans == '\u007f') { 
                 stateToZero();
@@ -1428,16 +1430,35 @@ System.out.println("PanelContainer : Focus Lost");
 
                 if (m_App.getDeviceScale().existsScale() 
                     && m_App.getAppUserView().getUser().hasPermission("sales.EditLines")) {
+                    String sCode = m_sBarcode.toString();
                     try {
-                        Double value = m_App.getDeviceScale().readWeight();
-                        if (value != null) {
-                            ProductInfoExt product = getInputProduct();
-                            addTicketLine(product, value, product.getPriceSell());
+                        ProductInfoExt product = dlSales.getProductInfoByCode(sCode);
+                        if (product == null) {
+                            Toolkit.getDefaultToolkit().beep();
+                            JOptionPane.showMessageDialog(this,
+                                sCode + " - " + AppLocal.getIntString("message.noproduct"),
+                                AppLocal.getIntString("label.scale"), JOptionPane.WARNING_MESSAGE);
+                            stateToZero();
+                        } else if (!product.isScale()) {
+                            Toolkit.getDefaultToolkit().beep();
+                            JOptionPane.showMessageDialog(this,
+                                AppLocal.getIntString("message.productnotscale"),
+                                AppLocal.getIntString("label.scale"), JOptionPane.WARNING_MESSAGE);
+                            stateToZero();
+                        } else {
+                            Double value = m_App.getDeviceScale().readWeight();
+                            if (value != null) {
+                                addTicketLine(product, value, product.getPriceSell());
+                                stateToZero();
+                            }
                         }
                     } catch (ScaleException e) {
                         Toolkit.getDefaultToolkit().beep();
-                        new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.noweight"), e).show(this);           
-                        stateToZero(); 
+                        new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.noweight"), e).show(this);
+                        stateToZero();
+                    } catch (BasicException eData) {
+                        stateToZero();
+                        new MessageInf(eData).show(this);
                     }
                 } else {
 
@@ -1452,17 +1473,30 @@ System.out.println("PanelContainer : Focus Lost");
                     Toolkit.getDefaultToolkit().beep();
                 } else if (m_App.getDeviceScale().existsScale()) {
                     try {
-                        Double value = m_App.getDeviceScale().readWeight();
-                        if (value != null) {
-                            TicketLineInfo newline = new TicketLineInfo(m_oTicket.getLine(i));
-                            newline.setMultiply(value);
-                            newline.setPrice(Math.abs(newline.getPrice()));
-                            paintTicketLine(i, newline);
+                        TicketLineInfo currentLine = m_oTicket.getLine(i);
+                        ProductInfoExt product = currentLine.getProductID() == null
+                            ? null : dlSales.getProductInfo(currentLine.getProductID());
+                        if (product == null || !product.isScale()) {
+                            Toolkit.getDefaultToolkit().beep();
+                            JOptionPane.showMessageDialog(this,
+                                AppLocal.getIntString("message.productnotscale"),
+                                AppLocal.getIntString("label.scale"), JOptionPane.WARNING_MESSAGE);
+                        } else {
+                            Double value = m_App.getDeviceScale().readWeight();
+                            if (value != null) {
+                                TicketLineInfo newline = new TicketLineInfo(currentLine);
+                                newline.setMultiply(value);
+                                newline.setPrice(Math.abs(newline.getPrice()));
+                                paintTicketLine(i, newline);
+                            }
                         }
                     } catch (ScaleException e) {
                         Toolkit.getDefaultToolkit().beep();
-                        new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.noweight"), e).show(this);           
-                        stateToZero(); 
+                        new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.noweight"), e).show(this);
+                        stateToZero();
+                    } catch (BasicException eData) {
+                        stateToZero();
+                        new MessageInf(eData).show(this);
                     }
                 } else {
 

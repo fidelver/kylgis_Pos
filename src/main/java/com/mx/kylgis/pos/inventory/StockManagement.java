@@ -36,6 +36,7 @@ import com.mx.kylgis.pos.panels.JProductFinder;
 import com.mx.kylgis.pos.printer.TicketParser;
 import com.mx.kylgis.pos.printer.TicketPrinterException;
 import com.mx.kylgis.pos.sales.JProductAttEdit2;
+import com.mx.kylgis.pos.scale.ScaleException;
 import com.mx.kylgis.pos.scripting.ScriptEngine;
 import com.mx.kylgis.pos.scripting.ScriptException;
 import com.mx.kylgis.pos.scripting.ScriptFactory;
@@ -279,7 +280,17 @@ public class StockManagement extends JPanel implements JPanelView {
     }
     
     private void incProductByCode(String sCode) {
-        incProductByCode(sCode, 1.0);
+        try {
+            ProductInfoExt oProduct = m_dlSales.getProductInfoByCode(sCode);
+            if (oProduct == null) {
+                Toolkit.getDefaultToolkit().beep();
+            } else {
+                incProduct(oProduct);
+            }
+        } catch (BasicException eData) {
+            MessageInf msg = new MessageInf(eData);
+            msg.show(this);
+        }
     }
     private void incProductByCode(String sCode, double dQuantity) {
         
@@ -700,14 +711,14 @@ public class StockManagement extends JPanel implements JPanelView {
         @Override
         public void actionPerformed(ActionEvent e) {
             
+            ProductInfoExt product = (ProductInfoExt) e.getSource();
             String sQty = m_jcodebar.getText();
-            if (sQty != null) {
-                Double dQty = (Double.valueOf(sQty)==0) ? 1.0 : Double.valueOf(sQty);
-                incProduct( (ProductInfoExt) e.getSource(), dQty);
-                m_jcodebar.setText(null);
+            if (sQty == null || sQty.trim().isEmpty() || Double.valueOf(sQty) == 0.0) {
+                incProduct(product);
             } else {
-                incProduct( (ProductInfoExt) e.getSource(),1.0);
+                incProduct(product, Double.valueOf(sQty));
             }
+            m_jcodebar.setText(null);
         }  
     } 
     
@@ -739,7 +750,20 @@ public class StockManagement extends JPanel implements JPanelView {
 
     private void incProduct(ProductInfoExt prod) {
 
-        incProduct(1.0, prod);          
+        if (prod.isScale() && m_App.getDeviceScale().existsScale()) {
+            try {
+                Double value = m_App.getDeviceScale().readWeight();
+                if (value != null) {
+                    incProduct(value, prod);
+                }
+            } catch (ScaleException e) {
+                Toolkit.getDefaultToolkit().beep();
+                new MessageInf(MessageInf.SGN_WARNING,
+                        AppLocal.getIntString("message.noweight"), e).show(this);
+            }
+        } else {
+            incProduct(1.0, prod);
+        }
     }
 
     private void incProduct(double dPor, ProductInfoExt prod) {
@@ -822,6 +846,8 @@ public class StockManagement extends JPanel implements JPanelView {
 
         m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
         m_jbtndate.setToolTipText("Open Calendar");
+        m_jbtndate.setFocusable(false);
+        m_jbtndate.setRequestFocusEnabled(false);
         m_jbtndate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 m_jbtndateActionPerformed(evt);
