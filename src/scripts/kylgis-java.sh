@@ -24,7 +24,7 @@ else
     return 2
 fi
 
-KYLGIS_JAVA_VERSION_LINE=$("$KYLGIS_JAVA" -version 2>&1 | sed -n '1p')
+KYLGIS_JAVA_VERSION_LINE=$("$KYLGIS_JAVA" -version 2>&1 | sed -n '/version "[^"]*"/{p;q;}')
 KYLGIS_JAVA_VERSION=$(printf '%s\n' "$KYLGIS_JAVA_VERSION_LINE" | sed -n 's/.*version "\([^"]*\)".*/\1/p')
 case "$KYLGIS_JAVA_VERSION" in
     1.*)
