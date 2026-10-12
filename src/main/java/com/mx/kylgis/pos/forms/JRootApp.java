@@ -63,7 +63,6 @@ import javax.swing.*;
 import org.joda.time.DateTime;
 import com.mx.kylgis.pos.util.OptionalIButtonMonitor;
 import com.mx.kylgis.pos.util.uOWWatch;
-import com.mx.kylgis.pos.util.FtpUpload;
 import org.joda.time.Instant;
 import java.io.IOException;
 import java.nio.file.Files;
