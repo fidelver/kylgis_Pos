@@ -44,20 +44,24 @@ public final class SerialPortConnection implements Closeable {
             throw new IOException("Serial port is required");
         }
 
-        SerialPort port = SerialPort.getCommPort(portName.trim());
-        port.setComPortParameters(baudRate, dataBits, mapStopBits(stopBits), mapParity(parity));
-        port.setFlowControl(mapFlowControl(flowControl));
-        if (readTimeoutMillis > 0) {
-            port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING,
-                    readTimeoutMillis, 0);
-        } else {
-            port.setComPortTimeouts(SerialPort.TIMEOUT_NONBLOCKING, 0, 0);
-        }
+        try {
+            SerialPort port = SerialPort.getCommPort(portName.trim());
+            port.setComPortParameters(baudRate, dataBits, mapStopBits(stopBits), mapParity(parity));
+            port.setFlowControl(mapFlowControl(flowControl));
+            if (readTimeoutMillis > 0) {
+                port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING,
+                        readTimeoutMillis, 0);
+            } else {
+                port.setComPortTimeouts(SerialPort.TIMEOUT_NONBLOCKING, 0, 0);
+            }
 
-        if (!port.openPort()) {
-            throw new IOException("Unable to open serial port " + portName);
+            if (!port.openPort()) {
+                throw new IOException("Unable to open serial port " + portName);
+            }
+            return new SerialPortConnection(port);
+        } catch (RuntimeException ex) {
+            throw new IOException("Unable to access serial port " + portName, ex);
         }
-        return new SerialPortConnection(port);
     }
 
     public InputStream getInputStream() {

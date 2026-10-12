@@ -20,7 +20,7 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scanpal2;
 
-import gnu.io.*;
+import com.mx.kylgis.pos.hardware.serial.SerialPortConnection;
 import java.io.*;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -30,14 +30,15 @@ import java.util.StringTokenizer;
  *
  * @author JG uniCenta
  */
-public class DeviceScannerComm implements DeviceScanner, SerialPortEventListener {
+public class DeviceScannerComm implements DeviceScanner {
 
-    private CommPortIdentifier m_PortIdPrinter;
-    private SerialPort m_CommPortPrinter;  
-    
+    private SerialPortConnection m_connection;
     private String m_sPort;
     private OutputStream m_out;
     private InputStream m_in;
+    private volatile boolean m_readerRunning;
+    private Thread m_readerThread;
+    private IOException m_readerFailure;
     
     private static final byte[] COMMAND_READ = new byte[] {0x52, 0x45, 0x41, 0x44};
     private static final byte[] COMMAND_CIPHER = new byte[] {0x43, 0x49, 0x50, 0x48, 0x45, 0x52};
@@ -57,79 +58,125 @@ public class DeviceScannerComm implements DeviceScanner, SerialPortEventListener
     DeviceScannerComm(String sPort) {
         m_sPort = sPort;
         
-        m_PortIdPrinter = null;
-        m_CommPortPrinter = null;
+        m_connection = null;
         m_out = null;
         m_in = null;
+        m_readerRunning = false;
+        m_readerThread = null;
+        m_readerFailure = null;
     }
 
     /**
      *
      * @throws DeviceScannerException
      */
-    public void connectDevice() throws DeviceScannerException {    
-        
-        try {
-            // Conecto con el puerto
-            m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPort); // Tomamos el puerto                   
-            m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 2000); // Abrimos el puerto       
+    public void connectDevice() throws DeviceScannerException {
+        disconnectDevice();
 
-            m_out = m_CommPortPrinter.getOutputStream(); // Tomamos el chorro de escritura   
-            m_in = m_CommPortPrinter.getInputStream();
-
-            m_CommPortPrinter.addEventListener(this);
-            m_CommPortPrinter.notifyOnDataAvailable(true);
-
-            m_CommPortPrinter.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE); // Configuramos el puerto
-//        } catch (NoSuchPortException e) {
-//            e.printStackTrace();
-//        } catch (PortInUseException e) {
-//            e.printStackTrace();
-//        } catch (UnsupportedCommOperationException e) {
-//            e.printStackTrace();
-//        } catch (TooManyListenersException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-        } catch (Exception e) {
-            m_PortIdPrinter = null;
-            m_CommPortPrinter = null;
-            m_out = null;
-            m_in = null;
-            throw new DeviceScannerException(e);
-        }         
-        
-        synchronized(this) {
-            // m_iStatus = STATUS_WAITING;
+        synchronized (this) {
             m_aLines = new LinkedList<byte[]>();
             m_abuffer = new ByteArrayOutputStream();
-        }       
+            m_readerFailure = null;
+        }
+
+        try {
+            m_connection = SerialPortConnection.open(
+                    m_sPort,
+                    115200,
+                    8,
+                    1,
+                    SerialPortConnection.Parity.NONE,
+                    SerialPortConnection.FlowControl.NONE,
+                    200);
+            m_out = m_connection.getOutputStream();
+            m_in = m_connection.getInputStream();
+            startReader();
+        } catch (IOException e) {
+            closeConnectionQuietly();
+            synchronized (this) {
+                m_aLines = null;
+                m_abuffer = null;
+            }
+            throw new DeviceScannerException(e);
+        }
     }
-    
+
     /**
      *
      */
     public void disconnectDevice() {
-        
-        try {
-            m_out.close();
-            m_in.close();
-            m_CommPortPrinter.close();
-        } catch (IOException e) {
-        } 
-        
-        synchronized(this) {
-            // m_iStatus = STATUS_WAITING;
-            m_aLines = null;
-            m_abuffer = null;
+        m_readerRunning = false;
+        closeConnectionQuietly();
+
+        Thread reader = m_readerThread;
+        m_readerThread = null;
+        if (reader != null && reader != Thread.currentThread()) {
+            reader.interrupt();
+            try {
+                reader.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
 
-        m_PortIdPrinter = null;
-        m_CommPortPrinter = null;
-        m_out = null;
-        m_in = null;      
+        synchronized(this) {
+            m_aLines = null;
+            m_abuffer = null;
+            m_readerFailure = null;
+        }
     }
-    
+
+    private void startReader() {
+        final InputStream readerInput = m_in;
+        m_readerRunning = true;
+        m_readerThread = new Thread(() -> {
+            try {
+                while (m_readerRunning) {
+                    int value = readerInput.read();
+                    if (value < 0) {
+                        continue;
+                    }
+                    synchronized (DeviceScannerComm.this) {
+                        if (m_aLines == null || m_abuffer == null) {
+                            continue;
+                        }
+                        if (value == 0x0D) {
+                            m_aLines.add(m_abuffer.toByteArray());
+                            m_abuffer.reset();
+                            DeviceScannerComm.this.notifyAll();
+                        } else {
+                            m_abuffer.write(value);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                if (m_readerRunning) {
+                    synchronized (DeviceScannerComm.this) {
+                        m_readerFailure = e;
+                        DeviceScannerComm.this.notifyAll();
+                    }
+                }
+            } finally {
+                m_readerRunning = false;
+            }
+        }, "kylgis-scanpal-reader");
+        m_readerThread.setDaemon(true);
+        m_readerThread.start();
+    }
+
+    private void closeConnectionQuietly() {
+        SerialPortConnection current = m_connection;
+        m_connection = null;
+        m_out = null;
+        m_in = null;
+        if (current != null) {
+            try {
+                current.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
     /**
      *
      * @throws DeviceScannerException
@@ -238,7 +285,7 @@ public class DeviceScannerComm implements DeviceScanner, SerialPortEventListener
     
     private void writeLine(byte[] aline) throws DeviceScannerException {
         
-        if (m_CommPortPrinter == null) {
+        if (m_connection == null || !m_connection.isOpen() || m_out == null) {
             throw new DeviceScannerException("No Serial port opened");
         } else {
         
@@ -257,8 +304,10 @@ public class DeviceScannerComm implements DeviceScanner, SerialPortEventListener
     private byte[] readLine() throws DeviceScannerException {
         
         synchronized (this) {
-            
-            if (!m_aLines.isEmpty()) {              
+            if (m_aLines == null) {
+                throw new DeviceScannerException("No Serial port opened");
+            }
+            if (!m_aLines.isEmpty()) {
                 return m_aLines.poll();
             }
            
@@ -268,11 +317,14 @@ public class DeviceScannerComm implements DeviceScanner, SerialPortEventListener
             } catch (InterruptedException e) {
             }  
             
-            if (m_aLines.isEmpty()) {  
+            if (m_readerFailure != null) {
+                throw new DeviceScannerException(m_readerFailure);
+            }
+            if (m_aLines == null || m_aLines.isEmpty()) {
                 throw new DeviceScannerException("Timeout");
             } else {
                 return m_aLines.poll();
-            }            
+            }
         }
     }
     
@@ -330,40 +382,5 @@ public class DeviceScannerComm implements DeviceScanner, SerialPortEventListener
         }      
     }
     
-    /**
-     *
-     * @param e
-     */
-    public void serialEvent(SerialPortEvent e) {
 
-	// Determine type of event.
-	switch (e.getEventType()) {
-            case SerialPortEvent.BI:
-            case SerialPortEvent.OE:
-            case SerialPortEvent.FE:
-            case SerialPortEvent.PE:
-            case SerialPortEvent.CD:
-            case SerialPortEvent.CTS:
-            case SerialPortEvent.DSR:
-            case SerialPortEvent.RI:
-            case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-                break;
-            case SerialPortEvent.DATA_AVAILABLE:
-                try {
-                    while (m_in.available() > 0) {
-                        int b = m_in.read();
-                        synchronized(this) {
-                            if (b == 0x0D) {
-                                m_aLines.add(m_abuffer.toByteArray());
-                                m_abuffer.reset();
-                                notifyAll();
-                            } else {
-                                m_abuffer.write(b);
-                            }                                                             
-                        }
-                    }
-                } catch (IOException eIO) {}
-                break;
-        }
-    }
 }
