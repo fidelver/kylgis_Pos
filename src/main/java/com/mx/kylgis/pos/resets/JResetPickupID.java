@@ -113,14 +113,15 @@ public class JResetPickupID extends javax.swing.JFrame {
 // Set the look and feel.
 // JG 6 May 2013 to Multicatch                
                 try {                    
-                    Object laf = Class.forName(config.getProperty("swing.defaultlaf")).newInstance();                    
+                    Object laf = Class.forName(config.getProperty("swing.defaultlaf"))
+                            .getDeclaredConstructor().newInstance();
                     if (laf instanceof LookAndFeel){
                         UIManager.setLookAndFeel((LookAndFeel) laf);
 //                    } else if (laf instanceof SubstanceSkin) {                      
 //                        SubstanceLookAndFeel.setSkin((SubstanceSkin) laf);                   
                     }
 // JG 6 May 2013 to multicatch
-                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+                } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
                 }
                 
                 JResetPickupID resetFrame = new JResetPickupID(config);//
