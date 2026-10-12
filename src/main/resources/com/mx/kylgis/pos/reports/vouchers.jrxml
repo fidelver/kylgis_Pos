@@ -17,6 +17,7 @@
 	<field name="ENDDATE" class="java.util.Date"/>
 	<field name="TOTAL" class="java.lang.Double"/>
 	<field name="TICKETID" class="java.lang.String"/>
+	<field name="RECEIPT" class="java.lang.String"/>
 	<variable name="BIGTOTAL" class="java.lang.Double" calculation="Sum">
 		<variableExpression><![CDATA[$F{TOTAL}]]></variableExpression>
 		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
@@ -264,7 +265,7 @@
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{ticketsid}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{TICKETID}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-8" mode="Opaque" x="400" y="0" width="35" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="07e63783-cba4-4dbd-b133-f70aa1b045a4"/>
