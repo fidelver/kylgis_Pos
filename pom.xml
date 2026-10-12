@@ -40,11 +40,6 @@
       <version>1.0.19</version> 
     </dependency>  
     <dependency> 
-      <groupId>org.eclipse.jdt</groupId>  
-      <artifactId>core</artifactId>  
-      <version>3.3.0-v_771</version> 
-    </dependency>  
-    <dependency> 
       <groupId>commons-beanutils</groupId>  
       <artifactId>commons-beanutils</artifactId>  
       <version>1.11.0</version> 
@@ -190,11 +185,11 @@
       <artifactId>jasperreports-fonts</artifactId>  
       <version>6.21.5</version>
     </dependency>  
-    <dependency> 
-      <groupId>org.eclipse.jdt.core.compiler</groupId>  
-      <artifactId>ecj</artifactId>  
-      <version>4.6.1</version> 
-    </dependency>  
+    <dependency>
+      <groupId>org.eclipse.jdt</groupId>
+      <artifactId>ecj</artifactId>
+      <version>3.46.100</version>
+    </dependency>
     <!-- Commercial version -->  
     <dependency> 
       <groupId>joda-time</groupId>  
