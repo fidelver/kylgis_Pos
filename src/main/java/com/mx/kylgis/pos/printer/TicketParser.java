@@ -26,19 +26,22 @@ import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.LocalRes;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.ticket.TicketInfo;
-import java.applet.Applet;
-import java.applet.AudioClip;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Calendar;
 import java.util.Date;
 import javax.imageio.ImageIO;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineEvent;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -408,14 +411,9 @@ public class TicketParser extends DefaultHandler {
         switch (m_iOutputType) {
         case OUTPUT_NONE:
             if ("play".equals(qName)) {
-                try { 
-                    AudioClip oAudio = Applet.newAudioClip(getClass().getClassLoader().getResource(text.toString()));
-                    oAudio.play();        
-                } catch (Exception fnfe) {
-                    //throw new ResourceNotFoundException( fnfe.getMessage() );
-                }
+                playAudioResource(text.toString());
                 text = null;
-            } 
+            }
             break;    
             
 // Added 23.05.13 used by star TSP700 to print stored logo image JDL            
@@ -532,6 +530,31 @@ public class TicketParser extends DefaultHandler {
         }
     }
     
+    private void playAudioResource(String resourceName) {
+        URL resource = getClass().getClassLoader().getResource(resourceName);
+        if (resource == null) {
+            return;
+        }
+
+        try (AudioInputStream audio = AudioSystem.getAudioInputStream(resource)) {
+            Clip clip = AudioSystem.getClip();
+            try {
+                clip.open(audio);
+            } catch (Exception ex) {
+                clip.close();
+                throw ex;
+            }
+            clip.addLineListener(event -> {
+                if (event.getType() == LineEvent.Type.STOP) {
+                    clip.close();
+                }
+            });
+            clip.start();
+        } catch (Exception ex) {
+            // Audio is optional: playback failure must never abort receipt printing.
+        }
+    }
+
     private int parseInt(String sValue, int iDefault) {
         try {
             return Integer.parseInt(sValue);
