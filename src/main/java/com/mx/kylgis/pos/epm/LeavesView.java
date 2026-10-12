@@ -33,7 +33,8 @@ import java.awt.Component;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import java.util.Calendar;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 /**
  *
@@ -179,49 +180,35 @@ public final class LeavesView extends javax.swing.JPanel implements EditorRecord
         }
         return leaves;
     }
-// TODO - rewrite IsValidEndDate using Apache commons or Calendar 
-    
     private boolean IsValidEndDate(Date date) {
-        Date systemDate = new Date();
-        if (! m_jStartDate.getText().equals("")) {
-            Date startdate;
+        LocalDate selectedDate = toLocalDate(date);
+        if (!m_jStartDate.getText().equals("")) {
             try {
-                startdate = (Date) Formats.TIMESTAMP.parseValue(m_jStartDate.getText());
-                return (startdate.before(date) 
-                        || (startdate.getDate() == date.getDate() 
-                        && startdate.getMonth() == date.getMonth() 
-                        && startdate.getYear() == date.getYear()));
-                
+                Date startdate = (Date) Formats.TIMESTAMP.parseValue(m_jStartDate.getText());
+                return !toLocalDate(startdate).isAfter(selectedDate);
             } catch (BasicException ex) {
             }
         }
-        return (systemDate.before(date) 
-                || (systemDate.getDate() == date.getDate() 
-                && systemDate.getMonth() == date.getMonth() 
-                && systemDate.getYear() == date.getYear()));
+        return !LocalDate.now().isAfter(selectedDate);
     }
-
-// TODO - rewrite IsValidStartDate using Apache commons or Calendar 
 
     private boolean IsValidStartDate(Date date) {
-        Date systemDate = new Date();
+        LocalDate selectedDate = toLocalDate(date);
         boolean validEndDate = true;
-        if (! m_jEndDate.getText().equals("")) {
+        if (!m_jEndDate.getText().equals("")) {
             try {
                 Date enddate = (Date) Formats.TIMESTAMP.parseValue(m_jEndDate.getText());
-                validEndDate = (enddate.after(date) 
-                        || (enddate.getDate() == date.getDate() 
-                        && enddate.getMonth() == date.getMonth() 
-                        && enddate.getYear() == date.getYear()));
+                validEndDate = !toLocalDate(enddate).isBefore(selectedDate);
             } catch (BasicException ex) {
             }
         }
-        return validEndDate && (systemDate.before(date) 
-                || (systemDate.getDate() == date.getDate() 
-                && systemDate.getMonth() == date.getMonth() 
-                && systemDate.getYear() == date.getYear()));
+        return validEndDate && !LocalDate.now().isAfter(selectedDate);
     }
-    
+
+    private static LocalDate toLocalDate(Date date) {
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
