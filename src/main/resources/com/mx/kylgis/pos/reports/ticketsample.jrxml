@@ -146,7 +146,7 @@ net.sf.jasperreports.engine.xml.JRXmlLoader.load(getClass().getResourceAsStream(
 				<reportElement key="textField-4" x="324" y="51" width="190" height="19" uuid="65eba4ef-093c-4261-84e4-f4d704a4cc4d">
 					<printWhenExpression><![CDATA[Boolean.valueOf($F{TICKET}.getCustomer() != null)]]></printWhenExpression>
 				</reportElement>
-				<textFieldExpression><![CDATA[$F{TICKET}.getCustomer().getPostal()]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{TICKET}.getCustomer().getPcode()]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
