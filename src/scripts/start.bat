@@ -25,21 +25,23 @@ set "DIR=%~dp0"
 call "%DIR%kylgis-java.bat"
 if errorlevel 1 exit /b %ERRORLEVEL%
 
+set "KYLGIS_NATIVE_DIR="
+if /I "%PROCESSOR_ARCHITECTURE%"=="x86" set "KYLGIS_NATIVE_DIR=%DIR%lib\Windows\i686-mingw32"
+if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "KYLGIS_NATIVE_DIR=%DIR%lib\Windows\x86_64-mingw32"
+if defined KYLGIS_NATIVE_DIR if not exist "%KYLGIS_NATIVE_DIR%" set "KYLGIS_NATIVE_DIR="
+
 if /I "%KYLGIS_LAUNCHER_CHECK_ONLY%"=="1" (
     echo KYLGIS_RUNTIME_CHECK_OK
     echo java=%KYLGIS_JAVA%
     echo java.version=%KYLGIS_JAVA_VERSION%
     echo java.source=%KYLGIS_JAVA_SOURCE%
     echo arch=%PROCESSOR_ARCHITECTURE%
+    if defined KYLGIS_NATIVE_DIR (echo native=%KYLGIS_NATIVE_DIR%) else (echo native=none)
     exit /b 0
 )
 
-if /I "%PROCESSOR_ARCHITECTURE%"=="x86" goto native
-if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto native
-goto nonative
-:native
-"%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Djava.library.path=%DIR%lib\Windows\i368-mingw32" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
-goto end
-:nonative
-"%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
-:end
+if defined KYLGIS_NATIVE_DIR (
+    "%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Djava.library.path=%KYLGIS_NATIVE_DIR%" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
+) else (
+    "%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
+)

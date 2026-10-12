@@ -1,0 +1,3 @@
+KylGis POS Windows x86_64 RXTX compatibility natives.
+The historical *64.dll files are packaged here under the library names RXTX actually requests (`rxtxSerial.dll` / `rxtxParallel.dll`).
+This directory is transitional while remaining RXTX peripherals migrate to jSerialComm/remote services.
