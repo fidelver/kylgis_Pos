@@ -11,6 +11,11 @@
     <maven.compiler.release>21</maven.compiler.release>
     <maven.compiler.parameters>true</maven.compiler.parameters>
     <project.build.outputTimestamp>2026-10-11T00:00:00Z</project.build.outputTimestamp>
+    <kylgis.git.commit>UNSET</kylgis.git.commit>
+    <kylgis.git.branch>UNSET</kylgis.git.branch>
+    <kylgis.git.dirty>UNSET</kylgis.git.dirty>
+    <kylgis.git.commitTime>UNSET</kylgis.git.commitTime>
+    <kylgis.build.time>UNSET</kylgis.build.time>
     <!-- Specify this via command line i.e -Dbitrock.exec=/path/to/bitrock/builder-->  
     <bitrock.exec/>  
     <!-- windows, osx, linux -->  
@@ -278,7 +283,15 @@
               <addClasspath>true</addClasspath>  
               <classpathPrefix>lib/</classpathPrefix>  
               <mainClass>com.mx.kylgis.pos.launcher.KylGisRuntime</mainClass>
-            </manifest> 
+            </manifest>
+            <manifestEntries>
+              <KylGis-Release>${project.version}</KylGis-Release>
+              <Git-Commit>${kylgis.git.commit}</Git-Commit>
+              <Git-Branch>${kylgis.git.branch}</Git-Branch>
+              <Git-Dirty>${kylgis.git.dirty}</Git-Dirty>
+              <Git-Commit-Time>${kylgis.git.commitTime}</Git-Commit-Time>
+              <Build-Time>${kylgis.build.time}</Build-Time>
+            </manifestEntries>
           </archive> 
         </configuration> 
       </plugin>  
