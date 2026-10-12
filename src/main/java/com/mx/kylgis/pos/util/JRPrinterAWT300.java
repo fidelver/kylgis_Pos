@@ -41,18 +41,19 @@
 package com.mx.kylgis.pos.util;
 
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.HeadlessException;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.print.*;
 import javax.print.PrintService;
 import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JRExporterParameter;
 import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.export.*;
 import net.sf.jasperreports.engine.export.JRGraphics2DExporter;
-import net.sf.jasperreports.engine.export.JRGraphics2DExporterParameter;
 import net.sf.jasperreports.engine.util.JRGraphEnvInitializer;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleGraphics2DExporterOutput;
+import net.sf.jasperreports.export.SimpleGraphics2DReportConfiguration;
 import org.apache.poi.hssf.usermodel.*;
 
         
@@ -242,9 +243,13 @@ public class JRPrinterAWT300 implements Printable
 		try
 		{
 			JRGraphics2DExporter exporter = new JRGraphics2DExporter();
-			exporter.setParameter(JRExporterParameter.JASPER_PRINT, this.jasperPrint);                       
-			exporter.setParameter(JRGraphics2DExporterParameter.GRAPHICS_2D, graphics);
-			exporter.setParameter(JRExporterParameter.PAGE_INDEX, new Integer(pageIndex));
+                        SimpleGraphics2DExporterOutput output = new SimpleGraphics2DExporterOutput();
+                        output.setGraphics2D((Graphics2D) graphics);
+                        SimpleGraphics2DReportConfiguration configuration = new SimpleGraphics2DReportConfiguration();
+                        configuration.setPageIndex(pageIndex);
+                        exporter.setExporterInput(new SimpleExporterInput(this.jasperPrint));
+                        exporter.setExporterOutput(output);
+                        exporter.setConfiguration(configuration);
                         exporter.exportReport();
 		}
 		catch (JRException e)
@@ -261,19 +266,27 @@ public class JRPrinterAWT300 implements Printable
 	 */
 	private Image printPageToImage(int pageIndex, float zoom) throws JRException
 	{
-		Image pageImage = new BufferedImage(
+		BufferedImage pageImage = new BufferedImage(
 			(int)(jasperPrint.getPageWidth() * zoom) + 1,
 			(int)(jasperPrint.getPageHeight() * zoom) + 1,
 			BufferedImage.TYPE_INT_RGB
 			);
 
-		JRGraphics2DExporter exporter = new JRGraphics2DExporter();
-		exporter.setParameter(JRExporterParameter.JASPER_PRINT, this.jasperPrint);
-		exporter.setParameter(JRGraphics2DExporterParameter.GRAPHICS_2D, pageImage.getGraphics());
-		exporter.setParameter(JRExporterParameter.PAGE_INDEX, new Integer(pageIndex));
-		exporter.setParameter(JRGraphics2DExporterParameter.ZOOM_RATIO, new Float(zoom));
-                
-		exporter.exportReport();
+                Graphics2D graphics = pageImage.createGraphics();
+                try {
+                    JRGraphics2DExporter exporter = new JRGraphics2DExporter();
+                    SimpleGraphics2DExporterOutput output = new SimpleGraphics2DExporterOutput();
+                    output.setGraphics2D(graphics);
+                    SimpleGraphics2DReportConfiguration configuration = new SimpleGraphics2DReportConfiguration();
+                    configuration.setPageIndex(pageIndex);
+                    configuration.setZoomRatio(zoom);
+                    exporter.setExporterInput(new SimpleExporterInput(this.jasperPrint));
+                    exporter.setExporterOutput(output);
+                    exporter.setConfiguration(configuration);
+                    exporter.exportReport();
+                } finally {
+                    graphics.dispose();
+                }
 
 		return pageImage;
 	}
