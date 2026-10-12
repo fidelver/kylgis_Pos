@@ -41,8 +41,10 @@ public final class NodeBundleTool {
             List<File> modules) throws IOException {
         File jar = new File(distribution, "kylgispos.jar");
         File lib = new File(distribution, "lib");
-        if (!jar.isFile() || !lib.isDirectory()) {
-            throw new IOException("Distribution must contain kylgispos.jar and lib/: " + distribution);
+        File javaSh = new File(distribution, "kylgis-java.sh");
+        File javaBat = new File(distribution, "kylgis-java.bat");
+        if (!jar.isFile() || !lib.isDirectory() || !javaSh.isFile() || !javaBat.isFile()) {
+            throw new IOException("Distribution must contain kylgispos.jar, lib/, kylgis-java.sh and kylgis-java.bat: " + distribution);
         }
         if (!bootstrap.isFile()) throw new IOException("Bootstrap does not exist: " + bootstrap);
         if (output.exists()) {
@@ -55,6 +57,9 @@ public final class NodeBundleTool {
         }
 
         copyFile(jar.toPath(), new File(output, "kylgispos.jar").toPath());
+        copyFile(javaSh.toPath(), new File(output, "kylgis-java.sh").toPath());
+        copyFile(javaBat.toPath(), new File(output, "kylgis-java.bat").toPath());
+        new File(output, "kylgis-java.sh").setExecutable(true, true);
         File outputLib = new File(output, "lib");
         copyTree(lib.toPath(), outputLib.toPath());
 
@@ -94,6 +99,7 @@ public final class NodeBundleTool {
         File sh = new File(output, "run.sh");
         String shell = "#!/usr/bin/env sh\n"
                 + "DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\n"
+                + ". \"$DIR/kylgis-java.sh\" || exit $?\n"
                 + "OS=$(uname -s 2>/dev/null || echo unknown)\n"
                 + "ARCH=$(uname -m 2>/dev/null || echo unknown)\n"
                 + "NATIVE=\n"
@@ -103,9 +109,9 @@ public final class NodeBundleTool {
                 + "  Darwin/i?86|Darwin/x86_64|Darwin/amd64) NATIVE=\"$DIR/lib/Mac_OS_X\" ;;\n"
                 + "esac\n"
                 + "if [ -n \"$NATIVE\" ] && [ -d \"$NATIVE\" ]; then\n"
-                + "  exec java \"-Djava.library.path=$NATIVE\" \"-Ddirname.path=$DIR/\" -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n"
+                + "  exec \"$KYLGIS_JAVA\" \"-Djava.library.path=$NATIVE\" \"-Ddirname.path=$DIR/\" -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n"
                 + "else\n"
-                + "  exec java \"-Ddirname.path=$DIR/\" -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n"
+                + "  exec \"$KYLGIS_JAVA\" \"-Ddirname.path=$DIR/\" -jar \"$DIR/kylgispos.jar\" \"$DIR/config/node.properties\" \"$@\"\n"
                 + "fi\n";
         Files.write(sh.toPath(), shell.getBytes(StandardCharsets.UTF_8));
         sh.setExecutable(true, true);
@@ -113,15 +119,17 @@ public final class NodeBundleTool {
         File cmd = new File(output, "run.cmd");
         String windows = "@echo off\r\n"
                 + "set \"DIR=%~dp0\"\r\n"
-                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"x86\" goto native\r\n"
-                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" goto native\r\n"
-                + "goto nonative\r\n"
-                + ":native\r\n"
-                + "java \"-Djava.library.path=%DIR%lib\\Windows\\i368-mingw32\" \"-Ddirname.path=%DIR%.\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
-                + "goto end\r\n"
-                + ":nonative\r\n"
-                + "java \"-Ddirname.path=%DIR%.\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
-                + ":end\r\n";
+                + "call \"%DIR%kylgis-java.bat\"\r\n"
+                + "if errorlevel 1 exit /b %ERRORLEVEL%\r\n"
+                + "set \"KYLGIS_NATIVE_DIR=\"\r\n"
+                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"x86\" set \"KYLGIS_NATIVE_DIR=%DIR%lib\\Windows\\i686-mingw32\"\r\n"
+                + "if /I \"%PROCESSOR_ARCHITECTURE%\"==\"AMD64\" set \"KYLGIS_NATIVE_DIR=%DIR%lib\\Windows\\x86_64-mingw32\"\r\n"
+                + "if defined KYLGIS_NATIVE_DIR if not exist \"%KYLGIS_NATIVE_DIR%\" set \"KYLGIS_NATIVE_DIR=\"\r\n"
+                + "if defined KYLGIS_NATIVE_DIR (\r\n"
+                + "  \"%KYLGIS_JAVA%\" \"-Djava.library.path=%KYLGIS_NATIVE_DIR%\" \"-Ddirname.path=%DIR%.\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
+                + ") else (\r\n"
+                + "  \"%KYLGIS_JAVA%\" \"-Ddirname.path=%DIR%.\" -jar \"%DIR%kylgispos.jar\" \"%DIR%config\\node.properties\" %*\r\n"
+                + ")\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -129,7 +137,8 @@ public final class NodeBundleTool {
         File sh = new File(output, "check.sh");
         String shell = "#!/usr/bin/env sh\n"
                 + "DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\n"
-                + "exec java \"-Ddirname.path=$DIR/\" \"-Dkylgis.bundle.dir=$DIR\" -cp \"$DIR/kylgispos.jar:$DIR/lib/*\" "
+                + ". \"$DIR/kylgis-java.sh\" || exit $?\n"
+                + "exec \"$KYLGIS_JAVA\" \"-Ddirname.path=$DIR/\" \"-Dkylgis.bundle.dir=$DIR\" -cp \"$DIR/kylgispos.jar:$DIR/lib/*\" "
                 + "com.mx.kylgis.pos.launcher.KylGisCheck \"$DIR/config/node.properties\" \"$@\"\n";
         Files.write(sh.toPath(), shell.getBytes(StandardCharsets.UTF_8));
         sh.setExecutable(true, true);
@@ -137,7 +146,9 @@ public final class NodeBundleTool {
         File cmd = new File(output, "check.cmd");
         String windows = "@echo off\r\n"
                 + "set \"DIR=%~dp0\"\r\n"
-                + "java \"-Ddirname.path=%DIR%.\" \"-Dkylgis.bundle.dir=%DIR%.\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
+                + "call \"%DIR%kylgis-java.bat\"\r\n"
+                + "if errorlevel 1 exit /b %ERRORLEVEL%\r\n"
+                + "\"%KYLGIS_JAVA%\" \"-Ddirname.path=%DIR%.\" \"-Dkylgis.bundle.dir=%DIR%.\" -cp \"%DIR%kylgispos.jar;%DIR%lib/*\" "
                 + "com.mx.kylgis.pos.launcher.KylGisCheck \"%DIR%config\\node.properties\" %*\r\n";
         Files.write(cmd.toPath(), windows.getBytes(StandardCharsets.UTF_8));
     }

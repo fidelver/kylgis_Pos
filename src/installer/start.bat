@@ -1,27 +1,17 @@
 @echo off
 setlocal EnableExtensions
 set "DIR=%~dp0"
+call "%DIR%kylgis-java.bat"
+if errorlevel 1 exit /b %ERRORLEVEL%
 
-rem WebLaF 1.2.9 embeds XStream 1.4.9 and needs reflective access to a
-rem handful of JDK internals on modular Java (9+). Java 8 ignores
-rem JDK_JAVA_OPTIONS, while Java 9+ consumes these options before startup.
-set "KYLGIS_MODULAR_OPENS=--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.desktop/java.awt.font=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED"
-if defined JDK_JAVA_OPTIONS (
-    set "JDK_JAVA_OPTIONS=%JDK_JAVA_OPTIONS% %KYLGIS_MODULAR_OPENS%"
+set "KYLGIS_NATIVE_DIR="
+if /I "%PROCESSOR_ARCHITECTURE%"=="x86" set "KYLGIS_NATIVE_DIR=%DIR%lib\Windows\i686-mingw32"
+if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "KYLGIS_NATIVE_DIR=%DIR%lib\Windows\x86_64-mingw32"
+if defined KYLGIS_NATIVE_DIR if not exist "%KYLGIS_NATIVE_DIR%" set "KYLGIS_NATIVE_DIR="
+
+if defined KYLGIS_NATIVE_DIR (
+    "%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Djava.library.path=%KYLGIS_NATIVE_DIR%" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
 ) else (
-    set "JDK_JAVA_OPTIONS=%KYLGIS_MODULAR_OPENS%"
+    "%KYLGIS_JAVAW%" -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
 )
-
-if /I "%PROCESSOR_ARCHITECTURE%"=="x86" goto native
-if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto native
-goto nonative
-
-:native
-javaw -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Djava.library.path=%DIR%lib\Windows\i368-mingw32" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
-goto end
-
-:nonative
-javaw -Xms256m -Xmx1024m "-splash:%DIR%kylgispos_splash_dark.png" "-Ddirname.path=%DIR%" -jar "%DIR%kylgispos.jar" %*
-
-:end
 endlocal
