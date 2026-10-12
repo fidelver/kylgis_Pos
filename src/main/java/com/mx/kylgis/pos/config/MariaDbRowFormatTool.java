@@ -6,6 +6,7 @@ package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.JdbcDriverLoader;
+import com.mx.kylgis.pos.util.AltEncrypter;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -44,10 +45,19 @@ public final class MariaDbRowFormatTool {
         DatabaseSettings settings = DatabaseSettings.primary(config);
 
         JdbcDriverLoader.ensureLoaded(settings.getDriver(), settings.getDriverLibraryFile());
+        String password = resolvePassword(settings.getUser(), settings.getPassword());
         try (Connection connection = DriverManager.getConnection(
-                settings.getJdbcUrl(), settings.getUser(), settings.getPassword())) {
+                settings.getJdbcUrl(), settings.getUser(), password)) {
             run(connection, options);
         }
+    }
+
+    static String resolvePassword(String user, String password) {
+        if (user != null && password != null && password.startsWith("crypt:")) {
+            AltEncrypter cypher = new AltEncrypter("cypherkey" + user);
+            return cypher.decrypt(password.substring(6));
+        }
+        return password;
     }
 
     static void run(Connection connection, Options options) throws Exception {
