@@ -108,7 +108,7 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
             try {     
                 
                 // Archivo de recursos
-                String res = "com/mx/kylgis/pos/reports/voucher_messages";//getResourceBundle();  
+                String res = "com/mx/kylgis/pos/reports/vouchers_messages";//getResourceBundle();  
                 
                 // Parametros y los datos
 //                Object params = (editor == null) ? null : editor.createValue();                
@@ -161,10 +161,12 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
         
         jPanel4.add(reportviewer, BorderLayout.CENTER);
         
-        try {     
-            jr = JasperCompileManager.compileReport("com/mx/kylgis/pos/reports/voucher" + ".jrxml");   
-//                jr = JasperCompileManager.compileReport(getClass().getResourceAsStream("reports" +  "/com/mx/kylgis/pos/reports/voucher" + ".jrxml"));   
-        } catch (JRException e) {
+        try (InputStream in = getClass().getResourceAsStream("/com/mx/kylgis/pos/reports/voucher.jrxml")) {
+            if (in == null) {
+                throw new JRException("No se encontró el recurso /com/mx/kylgis/pos/reports/voucher.jrxml");
+            }
+            jr = JasperCompileManager.compileReport(in);
+        } catch (JRException | IOException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadreport"), e);
             msg.show(this);
             jr = null;
