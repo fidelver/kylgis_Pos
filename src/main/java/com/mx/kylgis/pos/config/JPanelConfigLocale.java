@@ -125,7 +125,7 @@ public class JPanelConfigLocale extends javax.swing.JPanel implements PanelConfi
         String svariant = config.getProperty("user.variant");
         
         if (slang != null && !slang.equals("") && scountry != null && svariant != null) {                    
-            Locale currentlocale = new Locale(slang, scountry, svariant);
+            Locale currentlocale = Locale.of(slang, scountry, svariant);
             for (int i = 0 ; i < jcboLocale.getItemCount(); i++)  {
                 LocaleInfo l = (LocaleInfo) jcboLocale.getItemAt(i);
                 if (currentlocale.equals(l.getLocale())) {
