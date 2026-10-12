@@ -117,7 +117,7 @@ public class StartPOS {
                 && !slang.equals("")
                 && scountry != null
                 && svariant != null) {
-            Locale.setDefault(new Locale(slang, scountry, svariant));
+            Locale.setDefault(Locale.of(slang, scountry, svariant));
         }
 
         Formats.setIntegerPattern(config.getProperty("format.integer"));
@@ -129,13 +129,14 @@ public class StartPOS {
         Formats.setDateTimePattern(config.getProperty("format.datetime"));
 
         try {
-            Object laf = Class.forName(config.getProperty("swing.defaultlaf")).newInstance();
+            Object laf = Class.forName(config.getProperty("swing.defaultlaf"))
+                    .getDeclaredConstructor().newInstance();
             if (laf instanceof LookAndFeel) {
                 UIManager.setLookAndFeel((LookAndFeel) laf);
             } else if (laf instanceof SubstanceSkin) {
                 SubstanceLookAndFeel.setSkin((SubstanceSkin) laf);
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+        } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
             logger.log(Level.WARNING, "Cannot set Look and Feel", e);
         }
 
