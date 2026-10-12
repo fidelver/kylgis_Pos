@@ -2487,7 +2487,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             c.setVisible(dr.getBoolean(21));
             c.setCurdate(dr.getTimestamp(22));
             c.setAccdebt(dr.getDouble(23));
-            c.setImage(ImageUtils.readImage(dr.getString(24)));
+            c.setImage(ImageUtils.readImage(dr.getBytes(24)));
             c.setisVIP(dr.getBoolean(25));
             c.setDiscount(dr.getDouble(26));
             c.setMemoDate(dr.getString(27));

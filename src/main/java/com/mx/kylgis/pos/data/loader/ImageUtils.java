@@ -24,6 +24,7 @@ import java.io.*;
 import javax.imageio.ImageIO;
 import java.awt.image.*;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Properties;
@@ -95,8 +96,8 @@ public class ImageUtils {
      */
     public static BufferedImage readImage(String url) {
         try {
-            return readImage(new URL(url));
-        } catch (MalformedURLException e) {
+            return readImage(URI.create(url).toURL());
+        } catch (IllegalArgumentException | MalformedURLException e) {
             return null;
         }
     }
