@@ -5,12 +5,11 @@ package com.mx.kylgis.pos.printer;
 import com.mx.kylgis.pos.basic.BasicException;
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.StringWriter;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ParseErrorException;
+import org.apache.velocity.Template;
+import org.apache.velocity.runtime.RuntimeInstance;
+import org.apache.velocity.runtime.parser.ParseException;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -82,21 +81,18 @@ public final class TicketTemplateValidator {
     }
 
     private static void validateVelocitySyntax(String template) throws BasicException {
-        VelocityEngine engine = new VelocityEngine();
-        engine.setProperty(VelocityEngine.RUNTIME_LOG_LOGSYSTEM_CLASS,
-                "org.apache.velocity.runtime.log.NullLogSystem");
-        engine.setProperty(VelocityEngine.ENCODING_DEFAULT, "UTF-8");
-        engine.setProperty(VelocityEngine.INPUT_ENCODING, "UTF-8");
+        RuntimeInstance runtime = new RuntimeInstance();
         try {
-            engine.init();
-            engine.evaluate(new VelocityContext(), new StringWriter(),
-                    "kylgis-template-validation", new StringReader(template));
-        } catch (ParseErrorException ex) {
+            runtime.init();
+            Template parsed = new Template();
+            parsed.setName("kylgis-template-validation");
+            parsed.setEncoding("UTF-8");
+            parsed.setRuntimeServices(runtime);
+            runtime.parse(new StringReader(template), parsed);
+        } catch (ParseException ex) {
             throw new BasicException("Plantilla no guardada. Sintaxis Velocity inválida: "
                     + ex.getMessage(), ex);
         } catch (Exception ex) {
-            // Missing runtime objects ($ticket, $config, etc.) are intentionally
-            // not supplied here. Any other engine failure must still block save.
             throw new BasicException("Plantilla no guardada. No se pudo validar Velocity: "
                     + ex.getMessage(), ex);
         }

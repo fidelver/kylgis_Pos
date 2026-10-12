@@ -60,9 +60,8 @@ class ScriptEngineVelocity implements ScriptEngine {
     //        m_ve.setProperty("class.resource.loader.description", "Velocity Resource Loader");
     //        m_ve.setProperty("class.resource.loader.appresources", this);
 
-            m_ve.setProperty(VelocityEngine.RUNTIME_LOG_LOGSYSTEM_CLASS, "org.apache.velocity.runtime.log.NullLogSystem");
-            m_ve.setProperty(VelocityEngine.ENCODING_DEFAULT, "UTF-8");
-            m_ve.setProperty(VelocityEngine.INPUT_ENCODING, "UTF-8");
+            // Velocity 2.x uses SLF4J and UTF-8 defaults; the legacy NullLogSystem
+            // and encoding constants were removed from the public API.
             try {
                 m_ve.init();
             } catch (Exception e) {
