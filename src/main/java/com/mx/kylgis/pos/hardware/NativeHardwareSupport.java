@@ -4,7 +4,6 @@ package com.mx.kylgis.pos.hardware;
 
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
-import com.mx.kylgis.pos.scanpal2.service.ScannerServiceConfig;
 import java.util.Locale;
 
 /**
@@ -13,8 +12,9 @@ import java.util.Locale;
  * Serial printers and customer displays no longer belong to this gate: their
  * serial transport uses jSerialComm and can load a native implementation for
  * the current supported platform/architecture from the dependency JAR itself.
- * Scale and ScanPal implementations remain on RXTX until their dedicated
- * drivers are migrated and therefore still require this compatibility check.
+ * Scale implementations remain on RXTX until their dedicated drivers are
+ * migrated and therefore still require this compatibility check. ScanPal uses
+ * jSerialComm and is portable across the architectures supported by that JAR.
  */
 public final class NativeHardwareSupport {
 
@@ -44,12 +44,6 @@ public final class NativeHardwareSupport {
                     "Configure device.scale.service para usar un servicio de báscula remoto");
         }
 
-        String scanner = properties.getProperty("machine.scanner");
-        if (ScannerServiceConfig.getServiceId(properties) == null
-                && HardwareOwnership.canOpen(properties, "scanner") && usesSerialScanner(scanner)) {
-            throw unsupported("scanner", scanner, osName, arch,
-                    "Configure device.scanner.service para usar un servicio de scanner remoto");
-        }
     }
 
     /**
@@ -70,14 +64,12 @@ public final class NativeHardwareSupport {
         }
     }
 
+    /**
+     * ScanPal serial transport uses jSerialComm, so scanner services no longer
+     * require an RXTX architecture gate. The method remains as a stable API.
+     */
     public static void validateScannerService(AppProperties properties, String serviceId) {
-        if (isRxtxSupportedCurrentPlatform()) return;
-        String scanner = properties == null ? null : properties.getProperty("machine.scanner");
-        if (usesSerialScanner(scanner)) {
-            throw unsupported("scanner", scanner,
-                    System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
-                    "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
-        }
+        // Intentionally no-op: local ScanPal transport uses jSerialComm.
     }
 
     public static boolean isRxtxSupportedCurrentPlatform() {
@@ -105,12 +97,6 @@ public final class NativeHardwareSupport {
         String value = configured.trim().toLowerCase(Locale.ENGLISH);
         if (value.isEmpty() || value.startsWith("not defined") || value.startsWith("screen")) return false;
         return value.indexOf(':') > 0;
-    }
-
-    private static boolean usesSerialScanner(String configured) {
-        if (configured == null) return false;
-        String value = configured.trim().toLowerCase(Locale.ENGLISH);
-        return value.startsWith("scanpal2:");
     }
 
     private static IllegalStateException unsupported(String deviceId,
