@@ -538,6 +538,7 @@ public class JRootApp extends JPanel implements AppView {
         
         if (closeAppView()) {
                 m_TP.getDeviceDisplay().clearVisor();
+                m_TP.close();
                 shutdownIButtonMonitor();
 
 // delete the open.db tracking file

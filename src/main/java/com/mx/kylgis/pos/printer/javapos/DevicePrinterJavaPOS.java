@@ -38,7 +38,7 @@ import jpos.POSPrinterConst;
  *
  * @author JG uniCenta
  */
-public class DevicePrinterJavaPOS  implements DevicePrinter {
+public class DevicePrinterJavaPOS  implements DevicePrinter, AutoCloseable {
     
     private static final String JPOS_SIZE0 = "\u001b|1C";
     private static final String JPOS_SIZE1 = "\u001b|2C";
@@ -53,6 +53,7 @@ public class DevicePrinterJavaPOS  implements DevicePrinter {
     
     private POSPrinter m_printer = null;
     private CashDrawer m_drawer = null;
+    private boolean closed;
     
     private StringBuilder m_sline;
 
@@ -75,6 +76,7 @@ public class DevicePrinterJavaPOS  implements DevicePrinter {
             m_printer.setMapMode(POSPrinterConst.PTR_MM_METRIC);  // unit = 1/100 mm - i.e. 1 cm = 10 mm = 10 * 100 units
         } catch (JposException e) {
             // cannot live without the printer.
+            close();
             throw new TicketPrinterException(e.getMessage(), e);
         } 
         
@@ -84,7 +86,8 @@ public class DevicePrinterJavaPOS  implements DevicePrinter {
             m_drawer.claim(10000);
             m_drawer.setDeviceEnabled(true);
         } catch (JposException e) {
-            // can live without the drawer;
+            // can live without the drawer; release any partially opened device.
+            closeDrawer();
             m_drawer = null;
         }
     }
@@ -264,18 +267,48 @@ public class DevicePrinterJavaPOS  implements DevicePrinter {
     }
     
     @Override
-    public void finalize() throws Throwable {
-       
-        m_printer.setDeviceEnabled(false);
-        m_printer.release();
-        m_printer.close();
-        
-        if (m_drawer != null) {
-            m_drawer.setDeviceEnabled(false);
-            m_drawer.release();
-            m_drawer.close();
+    public synchronized void close() {
+        if (closed) {
+            return;
         }
-        
-        super.finalize();
+        closed = true;
+        closeDrawer();
+        closePrinter();
+    }
+
+    private void closePrinter() {
+        if (m_printer == null) {
+            return;
+        }
+        try {
+            m_printer.setDeviceEnabled(false);
+        } catch (JposException ignored) {
+        }
+        try {
+            m_printer.release();
+        } catch (JposException ignored) {
+        }
+        try {
+            m_printer.close();
+        } catch (JposException ignored) {
+        }
+    }
+
+    private void closeDrawer() {
+        if (m_drawer == null) {
+            return;
+        }
+        try {
+            m_drawer.setDeviceEnabled(false);
+        } catch (JposException ignored) {
+        }
+        try {
+            m_drawer.release();
+        } catch (JposException ignored) {
+        }
+        try {
+            m_drawer.close();
+        } catch (JposException ignored) {
+        }
     }    
 }

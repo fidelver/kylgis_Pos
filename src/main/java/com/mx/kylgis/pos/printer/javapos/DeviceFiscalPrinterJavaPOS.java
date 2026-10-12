@@ -31,11 +31,12 @@ import jpos.JposException;
  *
  * @author JG uniCenta
  */
-public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements DeviceFiscalPrinter  {
+public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements DeviceFiscalPrinter, AutoCloseable  {
     
     private String m_sName;
     
     private FiscalPrinter m_fiscal;
+    private boolean closed;
     
     /** Creates new form DeviceFiscalPrinterJavaPOSPanel
      * @param sDeviceFiscalPrinterName
@@ -54,6 +55,7 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
             m_fiscal.setCheckTotal(false);
             
         } catch (JposException e) {
+            close();
             throw new TicketPrinterException(e.getMessage(), e);
         }
         
@@ -167,13 +169,26 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
     }
     
     @Override
-    public void finalize() throws Throwable {
-    
-        m_fiscal.setDeviceEnabled(false);
-        m_fiscal.release();
-        m_fiscal.close();
-        
-        super.finalize();       
+    public synchronized void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        if (m_fiscal == null) {
+            return;
+        }
+        try {
+            m_fiscal.setDeviceEnabled(false);
+        } catch (JposException ignored) {
+        }
+        try {
+            m_fiscal.release();
+        } catch (JposException ignored) {
+        }
+        try {
+            m_fiscal.close();
+        } catch (JposException ignored) {
+        }
     } 
     
     private int roundFiscal(double value) {

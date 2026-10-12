@@ -151,8 +151,12 @@ public final class PrintServiceServer implements AutoCloseable {
 
     @Override public void close() throws IOException {
         running = false;
-        serverSocket.close();
-        clients.shutdownNow();
+        try {
+            serverSocket.close();
+        } finally {
+            clients.shutdownNow();
+            deviceTicket.close();
+        }
     }
 
     /**

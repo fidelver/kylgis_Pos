@@ -32,12 +32,13 @@ import jpos.LineDisplayConst;
  *
  * @author JG uniCenta
  */
-public class DeviceDisplayJavaPOS implements DeviceDisplay, DeviceDisplayImpl {
+public class DeviceDisplayJavaPOS implements DeviceDisplay, DeviceDisplayImpl, AutoCloseable {
     
     private String m_sName;
     private LineDisplay m_ld;
     
     private DeviceDisplayBase m_displaylines;
+    private boolean closed;
     
     /** Creates a new instance of DeviceDisplayJavaPOS
      * @param sDeviceName
@@ -51,6 +52,7 @@ public class DeviceDisplayJavaPOS implements DeviceDisplay, DeviceDisplayImpl {
             m_ld.claim(10000);
             m_ld.setDeviceEnabled(true);
         } catch (JposException e) {
+            close();
             throw new TicketPrinterException(e.getMessage(), e);
         }
 
@@ -126,12 +128,29 @@ public class DeviceDisplayJavaPOS implements DeviceDisplay, DeviceDisplayImpl {
     }
     
     @Override
-    public void finalize() throws Throwable {
-   
-        m_ld.setDeviceEnabled(false);
-        m_ld.release();
-        m_ld.close();
-        
-        super.finalize();
+    public synchronized void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        closeDisplay();
+    }
+
+    private void closeDisplay() {
+        if (m_ld == null) {
+            return;
+        }
+        try {
+            m_ld.setDeviceEnabled(false);
+        } catch (JposException ignored) {
+        }
+        try {
+            m_ld.release();
+        } catch (JposException ignored) {
+        }
+        try {
+            m_ld.close();
+        } catch (JposException ignored) {
+        }
     }
 }

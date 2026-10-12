@@ -48,7 +48,7 @@ import java.util.logging.Logger;
  *
  * @author JG uniCenta
  */
-public class DeviceTicket {
+public class DeviceTicket implements AutoCloseable {
 
     private static final Logger logger = Logger.getLogger("com.mx.kylgis.pos.printer.DeviceTicket");
 
@@ -60,6 +60,8 @@ public class DeviceTicket {
     private String m_receiptprinterindex = "1";
     private Map<String, DevicePrinter> m_deviceprinters;
     private List<DevicePrinter> m_deviceprinterslist;
+    private final List<AutoCloseable> managedResources = new ArrayList<>();
+    private boolean closed;
 
 /** 
  * 
@@ -102,7 +104,7 @@ public class DeviceTicket {
                 logOwnershipDenied(props, "fiscalprinter");
                 m_deviceFiscal = new DeviceFiscalPrinterNull();
             } else if ("javapos".equals(sFiscalType)) {
-                m_deviceFiscal = new DeviceFiscalPrinterJavaPOS(sFiscalParam1);
+                m_deviceFiscal = manage(new DeviceFiscalPrinterJavaPOS(sFiscalParam1));
             } else {
                 m_deviceFiscal = new DeviceFiscalPrinterNull();
             }
@@ -163,7 +165,7 @@ public class DeviceTicket {
                             , new UnicodeTranslatorEur());
                     break;
                 case "javapos":
-                    m_devicedisplay = new DeviceDisplayJavaPOS(sDisplayParam1);
+                    m_devicedisplay = manage(new DeviceDisplayJavaPOS(sDisplayParam1));
                     break;
                 default:
                     m_devicedisplay = new DeviceDisplayNull();
@@ -314,8 +316,8 @@ public class DeviceTicket {
                                 pws.getPrinterWritter(sPrinterParam1, sPrinterParam2)));
                         break;
                     case "javapos":
-                        addPrinter(sPrinterIndex, new DevicePrinterJavaPOS(
-                                sPrinterParam1, sPrinterParam2));
+                        addPrinter(sPrinterIndex, manage(new DevicePrinterJavaPOS(
+                                sPrinterParam1, sPrinterParam2)));
                         break;
                     default:
                         addPrinter(sPrinterIndex, m_nullprinter);
@@ -390,6 +392,28 @@ public class DeviceTicket {
     private void addPrinter(String sPrinterIndex, DevicePrinter p) {
         m_deviceprinters.put(sPrinterIndex, p);
         m_deviceprinterslist.add(p);
+    }
+
+    private <T extends AutoCloseable> T manage(T resource) {
+        managedResources.add(resource);
+        return resource;
+    }
+
+    @Override
+    public synchronized void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        for (int i = managedResources.size() - 1; i >= 0; i--) {
+            AutoCloseable resource = managedResources.get(i);
+            try {
+                resource.close();
+            } catch (Exception ex) {
+                logger.log(Level.WARNING, "Error closing JavaPOS resource", ex);
+            }
+        }
+        managedResources.clear();
     }
 
     private static class PrinterWritterPool {
