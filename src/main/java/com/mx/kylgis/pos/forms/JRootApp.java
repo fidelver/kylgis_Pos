@@ -662,7 +662,7 @@ public class JRootApp extends JPanel implements AppView {
                     Class bfclass = Class.forName(beanfactory);
 
                     if (BeanFactory.class.isAssignableFrom(bfclass)) {
-                        bf = (BeanFactory) bfclass.newInstance();             
+                        bf = (BeanFactory) bfclass.getDeclaredConstructor().newInstance();             
                     } else {
                         Constructor constMyView = bfclass.getConstructor(new Class[] {AppView.class});
                         Object bean = constMyView.newInstance(new Object[] {this});

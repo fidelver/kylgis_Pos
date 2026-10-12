@@ -45,11 +45,11 @@ public class SerializerReadClass implements SerializerRead {
     @Override
     public Object readValues(DataRead dr) throws BasicException {
         try {
-            SerializableRead sr = (SerializableRead) m_clazz.newInstance();
+            SerializableRead sr = (SerializableRead) m_clazz.getDeclaredConstructor().newInstance();
             sr.readValues(dr);
             return sr;
 // JG 16 May 12 use multicatch
-        } catch (java.lang.InstantiationException | IllegalAccessException | ClassCastException eIns) {
+        } catch (ReflectiveOperationException | ClassCastException eIns) {
             return null;
         }
     }
