@@ -2635,10 +2635,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         return new StaticSentence(s,
             "SELECT " +
                 "vouchers.ID,vouchers.VOUCHER_NUMBER,vouchers.CUSTOMER, " +
-                "customers.NAME,AMOUNT, STATUS " +
+                "customers.NAME,AMOUNT, STATUS, EXPIRES_AT " +
               "FROM vouchers   " +
                 "JOIN customers ON customers.id = vouchers.CUSTOMER  " +
               "WHERE STATUS='A' " +
+              "AND (EXPIRES_AT IS NULL OR EXPIRES_AT > CURRENT_TIMESTAMP) " +
               "ORDER BY vouchers.VOUCHER_NUMBER ASC"
             , null, VoucherInfo.getSerializerRead());
     }
@@ -2647,10 +2648,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         return new PreparedSentence(s,
             "SELECT " +
                 "vouchers.ID,vouchers.VOUCHER_NUMBER,vouchers.CUSTOMER, " +
-                "customers.NAME,AMOUNT, STATUS " +
+                "customers.NAME,AMOUNT, STATUS, EXPIRES_AT " +
               "FROM vouchers " +
                 "JOIN customers ON customers.id = vouchers.CUSTOMER " +
               "WHERE vouchers.STATUS='A' AND vouchers.CUSTOMER = ? " +
+              "AND (vouchers.EXPIRES_AT IS NULL OR vouchers.EXPIRES_AT > CURRENT_TIMESTAMP) " +
               "ORDER BY vouchers.VOUCHER_NUMBER ASC",
             SerializerWriteString.INSTANCE,
             VoucherInfo.getSerializerRead());
@@ -2659,7 +2661,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     private int consumeVoucher(final String voucherNumber, final String customerId) throws BasicException {
         return new PreparedSentence(s,
                 "UPDATE vouchers SET STATUS = 'D' " +
-                "WHERE VOUCHER_NUMBER = ? AND CUSTOMER = ? AND STATUS = 'A'",
+                "WHERE VOUCHER_NUMBER = ? AND CUSTOMER = ? AND STATUS = 'A' " +
+                "AND (EXPIRES_AT IS NULL OR EXPIRES_AT > CURRENT_TIMESTAMP)",
                 SerializerWriteParams.INSTANCE).exec(new DataParams() {
                     @Override
                     public void writeValues() throws BasicException {

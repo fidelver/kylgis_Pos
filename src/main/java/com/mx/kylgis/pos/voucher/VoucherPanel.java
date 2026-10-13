@@ -20,7 +20,8 @@ public class VoucherPanel extends JPanelTable2 {
                 new Field(AppLocal.getIntString("label.Number"), Datas.STRING, Formats.STRING, true, true, true),
                 new Field(AppLocal.getIntString("label.customer"), Datas.STRING, Formats.STRING),
                 new Field(AppLocal.getIntString("label.paymenttotal"), Datas.DOUBLE, Formats.DOUBLE),
-                new Field(AppLocal.getIntString("label.status"), Datas.STRING, Formats.STRING)
+                new Field(AppLocal.getIntString("label.status"), Datas.STRING, Formats.STRING),
+                new Field("EXPIRES_AT", Datas.TIMESTAMP, Formats.TIMESTAMP)
                 
         );        
         Table table = new Table(
@@ -29,7 +30,8 @@ public class VoucherPanel extends JPanelTable2 {
                 new Column("VOUCHER_NUMBER"),
                 new Column("CUSTOMER"),
                 new Column("AMOUNT"),
-                new Column("STATUS"));
+                new Column("STATUS"),
+                new Column("EXPIRES_AT"));
         lpr = row.getListProvider(app.getSession(), table);
         spr = row.getSaveProvider(app.getSession(), table);              
         

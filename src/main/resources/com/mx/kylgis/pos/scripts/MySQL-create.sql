@@ -662,10 +662,12 @@ CREATE TABLE `uom` (
 /* Header line. Object: vouchers. Script date: 23/01/2018 08:00:00 */
 CREATE TABLE `vouchers` (
    `id` VARCHAR(100) NOT NULL,
-   `voucher_number` VARCHAR(100) DEFAULT NULL,
+   `voucher_number` VARCHAR(100) NOT NULL,
    `customer` VARCHAR(100) DEFAULT NULL,
    `amount` DOUBLE DEFAULT NULL,
    `status` CHAR(1) DEFAULT 'A',
+   `expires_at` DATETIME DEFAULT NULL,
+   UNIQUE INDEX `vouchers_number_uq` (`voucher_number`),
   PRIMARY KEY ( `id` )
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 

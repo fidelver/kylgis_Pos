@@ -724,10 +724,12 @@ CREATE TABLE uom (
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE vouchers (
     id VARCHAR NOT NULL,
-    voucher_number VARCHAR DEFAULT NULL,
+    voucher_number VARCHAR NOT NULL,
     customer VARCHAR DEFAULT NULL,
     amount double precision default 0 NOT NULL,
     status CHAR(1) DEFAULT 'A',
+    expires_at TIMESTAMP DEFAULT NULL,
+    CONSTRAINT vouchers_number_uq UNIQUE (voucher_number),
     PRIMARY KEY ( id )
 );
 

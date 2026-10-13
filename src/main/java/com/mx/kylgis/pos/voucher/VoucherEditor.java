@@ -35,6 +35,7 @@ import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.util.ValidateBuilder;
 import java.awt.Component;
 import java.awt.image.BufferedImage;
+import java.util.Date;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,6 +47,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     private final DataLogicCustomers dlCustomers;
     private final  DataLogicSystem dlSystem;
     private CustomerInfo customerInfo;
+    private Date expiresAt;
     private final AppView m_app;
     
     private final ComboBoxValModel m_ReasonModel;    
@@ -78,6 +80,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     @Override
     public void writeValueEOF() {
         id = null;
+        expiresAt = null;
         m_jNumber.setText(null);
         m_jNumber.setEnabled(false);
         m_jCustomer.setText(null);
@@ -93,6 +96,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     @Override
     public void writeValueInsert() {
         id = UUID.randomUUID().toString();
+        expiresAt = null;
         m_jNumber.setText(VoucherCodeGenerator.generate());
         m_jNumber.setEnabled(true);
         m_jCustomer.setText(null);
@@ -120,6 +124,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             m_jAmount.setText(Formats.DOUBLE.formatValue(attr[3]));
             m_jAmount.setEnabled(false);
             m_jStatus.setText(Formats.STRING.formatValue(attr[4]));
+            expiresAt = (Date) attr[5];
             m_jStatus.setEnabled(false);
             
                 jButtonPrint.setEnabled(false);
@@ -148,6 +153,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             m_jAmount.setText(Formats.DOUBLE.formatValue(attr[3]));
             m_jAmount.setEnabled(true);
             m_jStatus.setText(Formats.STRING.formatValue(attr[4]));
+            expiresAt = (Date) attr[5];
             
             jButtonPrint.setEnabled(true);
             
@@ -184,13 +190,14 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     @Override
     public Object createValue() throws BasicException {
         
-        Object[] attr = new Object[5];
+        Object[] attr = new Object[6];
 
         attr[0] = id;
         attr[1] = VoucherCodeGenerator.normalize(m_jNumber.getText());
         attr[2] = customerInfo.getId();
         attr[3] = Formats.DOUBLE.parseValue(m_jAmount.getText());
         attr[4] = m_jStatus.getText();
+        attr[5] = expiresAt;
         
         return attr;
     }    

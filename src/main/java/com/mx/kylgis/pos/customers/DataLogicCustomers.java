@@ -345,7 +345,7 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
     public final int countOtherVouchersWithNumber(String voucherNumber, String voucherId)
             throws BasicException {
         Integer count = (Integer) new PreparedSentence(s,
-                "SELECT COUNT(*) FROM vouchers WHERE VOUCHER_NUMBER=? AND ID<>?",
+                "SELECT COUNT(*) FROM vouchers WHERE UPPER(TRIM(VOUCHER_NUMBER))=? AND ID<>?",
                 new SerializerWriteBasic(new Datas[] {Datas.STRING, Datas.STRING}),
                 SerializerReadInteger.INSTANCE)
                 .find(new Object[] {voucherNumber, voucherId});
@@ -355,10 +355,11 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         public final VoucherInfo getVoucherInfo(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
                 , "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +
-                        "customers.NAME, AMOUNT, STATUS " +
+                        "customers.NAME, AMOUNT, STATUS, EXPIRES_AT " +
                   "FROM vouchers " +
                     "JOIN customers ON customers.id = vouchers.CUSTOMER " +
-                  "WHERE STATUS='A' AND vouchers.ID=?" 
+                  "WHERE STATUS='A' AND vouchers.ID=? " +
+                  "AND (EXPIRES_AT IS NULL OR EXPIRES_AT > CURRENT_TIMESTAMP)"
 //                  "WHERE STATUS='A' "                         
 		, SerializerWriteString.INSTANCE
 		, VoucherInfo.getSerializerRead()).find(id);
@@ -368,7 +369,7 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         public final VoucherInfo getVoucherInfoAll(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
 		, "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +
-                        "customers.NAME, AMOUNT, STATUS " +
+                        "customers.NAME, AMOUNT, STATUS, EXPIRES_AT " +
                     "FROM vouchers " +
                         "JOIN customers ON customers.id = vouchers.CUSTOMER  " +
                     "WHERE vouchers.ID=?" 

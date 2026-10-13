@@ -2025,23 +2025,33 @@ public final class Transfer extends JPanel implements JPanelView {
                         Dbtname="vouchers";
                         rs = con_source.getMetaData().getTables(null,null,Dbtname,null);                    
 
-                        txtOut.append("Vouchers" + "\n");                    
+                        txtOut.append("Vouchers" + "\n");
+                        boolean sourceHasVoucherExpiry = false;
+                        try (ResultSet voucherColumns = con_source.getMetaData()
+                                .getColumns(null, null, Dbtname, null)) {
+                            while (voucherColumns.next()) {
+                                if ("expires_at".equalsIgnoreCase(voucherColumns.getString("COLUMN_NAME"))) {
+                                    sourceHasVoucherExpiry = true;
+                                    break;
+                                }
+                            }
+                        }                    
                         SQL = "SELECT * FROM vouchers";
                         rs = stmt_source.executeQuery(SQL);
 
                         while (rs.next()) {
-                            SQL = "INSERT INTO vouchers("
-                                + "id, voucher_number, customer, "
-                                + "amount, status) "
-                                + "VALUES (?, ?, ?, "
-                                + "?, ?)";
+                            SQL = sourceHasVoucherExpiry
+                                    ? "INSERT INTO vouchers(id, voucher_number, customer, amount, status, expires_at) VALUES (?, ?, ?, ?, ?, ?)"
+                                    : "INSERT INTO vouchers(id, voucher_number, customer, amount, status) VALUES (?, ?, ?, ?, ?)";
                             pstmt = con_target.prepareStatement(SQL);
                             pstmt.setString(1, rs.getString("id"));
                             pstmt.setString(2, rs.getString("voucher_number"));
                             pstmt.setString(3, rs.getString("customer"));
                             pstmt.setDouble(4, rs.getDouble("amount"));
                             pstmt.setString(5, rs.getString("status"));
-
+                            if (sourceHasVoucherExpiry) {
+                                pstmt.setTimestamp(6, rs.getTimestamp("expires_at"));
+                            }
                             pstmt.executeUpdate();
                         } 
                     } else {
