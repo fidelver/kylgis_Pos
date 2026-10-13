@@ -63,6 +63,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     private Map<String, JPaymentInterface> payments = new HashMap<>();
     private String m_sTransactionID;
     private boolean paymentInProgress;
+    private String voucherEditSourceReceiptId;
      
 
     /**
@@ -120,6 +121,14 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     
     public boolean isPrintSelected() {
         return printselected;
+    }
+
+    public void setVoucherEditSourceReceiptId(String sourceReceiptId) {
+        voucherEditSourceReceiptId = sourceReceiptId;
+    }
+
+    public String getVoucherEditSourceReceiptId() {
+        return voucherEditSourceReceiptId;
     }
 
     private void applyReceiptPrintPolicy() {

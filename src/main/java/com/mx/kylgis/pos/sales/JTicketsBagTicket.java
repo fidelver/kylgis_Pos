@@ -34,6 +34,9 @@ import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.forms.AppView;
+import com.mx.kylgis.pos.forms.AppUser;
+import com.mx.kylgis.pos.voucher.VoucherEditAuthorization;
+import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.printer.DeviceTicket;
@@ -146,15 +149,28 @@ public class JTicketsBagTicket extends JTicketsBag {
     @Override
     public void deleteTicket() {
         
-        if (m_ticketCopy != null) {           
-            try {               
-                m_dlSales.deleteTicket(m_ticketCopy, m_App.getInventoryLocation());
+        if (m_ticketCopy != null) {
+            try {
+                TicketInfo replacementTicket = m_panelticketedit.getActiveTicket();
+                if (VoucherEditContext.requiresAuthorization(m_ticketCopy)) {
+                    if (replacementTicket == null
+                            || !m_ticketCopy.getId().equals(replacementTicket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID))) {
+                        throw new BasicException("Edited ticket lost its voucher authorization/source context.");
+                    }
+                    m_dlSales.deleteEditedTicket(m_ticketCopy,
+                            m_App.getInventoryLocation(),
+                            replacementTicket.getId(),
+                            replacementTicket.getProperty(VoucherEditContext.AUTH_USER_ID));
+                } else {
+                    m_dlSales.deleteTicket(m_ticketCopy, m_App.getInventoryLocation());
+                }
             } catch (BasicException eData) {
-                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
-                        AppLocal.getIntString("message.nosaveticket"), 
+                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
+                        AppLocal.getIntString("message.nosaveticket"),
                         eData);
-                msg.show(this);                
-            }            
+                msg.show(this);
+                return;
+            }
         }
         
         m_ticket = null;
@@ -516,12 +532,32 @@ public class JTicketsBagTicket extends JTicketsBag {
     }// </editor-fold>//GEN-END:initComponents
 
     private void m_jEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jEditActionPerformed
-                 
-        m_ticketCopy = m_ticket;        
+        AppUser voucherAuthorizer = null;
+        if (VoucherEditContext.requiresAuthorization(m_ticket)) {
+            try {
+                voucherAuthorizer = VoucherEditAuthorization.request(this, m_dlSystem);
+            } catch (BasicException ex) {
+                JMessageDialog.showMessage(this,
+                        new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.voucheredit.autherror"), ex));
+                return;
+            }
+            if (voucherAuthorizer == null) {
+                return;
+            }
+        }
+
+        m_ticketCopy = m_ticket;
         m_TicketsBagTicketBag.showEdit();
         m_panelticketedit.showCatalog();
-        m_ticketCopy.setOldTicket(true); 
-        m_panelticketedit.setActiveTicket(m_ticket.copyTicket(), null);  
+        m_ticketCopy.setOldTicket(true);
+
+        TicketInfo editedTicket = m_ticket.copyTicket();
+        editedTicket.setProperty(VoucherEditContext.SOURCE_RECEIPT_ID, m_ticket.getId());
+        if (voucherAuthorizer != null) {
+            VoucherEditContext.stamp(editedTicket, m_ticket, voucherAuthorizer);
+        }
+        m_panelticketedit.setActiveTicket(editedTicket, null);
         
     }//GEN-LAST:event_m_jEditActionPerformed
 

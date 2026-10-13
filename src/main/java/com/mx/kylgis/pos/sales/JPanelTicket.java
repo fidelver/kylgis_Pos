@@ -57,6 +57,7 @@ import com.mx.kylgis.pos.ticket.TaxInfo;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import com.mx.kylgis.pos.ticket.TicketLineInfo;
 import com.mx.kylgis.pos.ticket.TicketTaxInfo;
+import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.InactivityListener;
 import com.mx.kylgis.pos.util.JRPrinterAWT300;
@@ -1789,7 +1790,20 @@ System.out.println("PanelContainer : Focus Lost");
                     
                     paymentdialog.setTransactionID(ticket.getTransactionID());
 
-                    if (paymentdialog.showDialog(ticket.getTotal(), ticket.getCustomer())) {
+                    String voucherEditSourceReceiptId = ticket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID);
+                    String voucherEditAuthorizerId = ticket.getProperty(VoucherEditContext.AUTH_USER_ID);
+                    paymentdialog.setVoucherEditSourceReceiptId(
+                            voucherEditAuthorizerId == null || voucherEditAuthorizerId.isBlank()
+                                    ? null : voucherEditSourceReceiptId);
+
+                    boolean paymentAccepted;
+                    try {
+                        paymentAccepted = paymentdialog.showDialog(ticket.getTotal(), ticket.getCustomer());
+                    } finally {
+                        paymentdialog.setVoucherEditSourceReceiptId(null);
+                    }
+
+                    if (paymentAccepted) {
 
                         ticket.setPayments(paymentdialog.getSelectedPayments());
 

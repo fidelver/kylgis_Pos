@@ -114,9 +114,12 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
         webLblcustomerName.setText(customerext == null ? null : customerext.getName());
 
         try {
+            String sourceReceiptId = getVoucherEditSourceReceiptId();
             List vouchers = customerext == null
                     ? java.util.Collections.emptyList()
-                    : m_sentvouch.list(customerext.getId());
+                    : sourceReceiptId == null || sourceReceiptId.isBlank()
+                            ? m_sentvouch.list(customerext.getId())
+                            : dlSales.getVoucherListByCustomerForEdit(customerext.getId(), sourceReceiptId);
             m_VoucherModel = new ComboBoxValModel(vouchers);
             m_jVoucher.setModel(m_VoucherModel);
             m_jVoucher.setEnabled(customerext != null && !vouchers.isEmpty());
@@ -146,20 +149,28 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
             return null;
         }
 
-        try {
-            String id = m_VoucherModel.getSelectedKey().toString();
-            VoucherInfo voucherInfo = dlCustomers.getVoucherInfo(id);
-            if (voucherInfo == null
-                    || !"A".equals(voucherInfo.getStatus())
-                    || !m_customerId.equals(voucherInfo.getCustomerId())) {
-                return null;
-            }
-            m_sVoucher1 = voucherInfo.getVoucherNumber();
-        } catch (BasicException ex) {
+        Object selected = m_VoucherModel.getSelectedItem();
+        if (!(selected instanceof VoucherInfo voucherInfo)
+                || !m_customerId.equals(voucherInfo.getCustomerId())
+                || voucherInfo.isExpired(new java.util.Date())) {
             return null;
         }
 
+        String sourceReceiptId = getVoucherEditSourceReceiptId();
+        boolean active = "A".equals(voucherInfo.getStatus());
+        boolean authorizedSourceVoucher = "D".equals(voucherInfo.getStatus())
+                && sourceReceiptId != null && !sourceReceiptId.isBlank();
+        if (!active && !authorizedSourceVoucher) {
+            return null;
+        }
+        m_sVoucher1 = voucherInfo.getVoucherNumber();
         return new PaymentInfoTicket(m_dTicket, m_sVoucher, m_sVoucher1);
+    }
+
+    private String getVoucherEditSourceReceiptId() {
+        return m_notifier instanceof JPaymentSelect paymentSelect
+                ? paymentSelect.getVoucherEditSourceReceiptId()
+                : null;
     }
 
     private void printState() {
