@@ -395,15 +395,44 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
     // End of variables declaration//GEN-END:variables
 
     public boolean isDataValid() {
+        String voucherNumber = VoucherCodeGenerator.normalize(m_jNumber.getText());
+        m_jNumber.setText(voucherNumber);
+
+        if (!VoucherCodeGenerator.isValid(voucherNumber)) {
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.voucherinvalidnumber"),
+                    AppLocal.getIntString("Check"),
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        try {
+            if (dlCustomers.countOtherVouchersWithNumber(voucherNumber, id.toString()) > 0) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucherduplicatenumber"),
+                        AppLocal.getIntString("Check"),
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        } catch (BasicException ex) {
+            Logger.getLogger(VoucherEditor.class.getName()).log(Level.WARNING,
+                    "Unable to verify voucher-number uniqueness", ex);
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.vouchercheckfailed"),
+                    AppLocal.getIntString("Check"),
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
         ValidateBuilder validate = new ValidateBuilder(this);
-        validate.setValidate(m_jNumber.getText(),ValidateBuilder.IS_NOT_EMPTY,
+        validate.setValidate(voucherNumber,ValidateBuilder.IS_NOT_EMPTY,
                 AppLocal.getIntString("message.message.emptynumber"));
         validate.setValidate(m_jCustomer.getText(),ValidateBuilder.IS_NOT_EMPTY,
                 AppLocal.getIntString("message.emptycustomer"));
         validate.setValidate(m_jAmount.getText(),ValidateBuilder.IS_DOUBLE,
                 AppLocal.getIntString("message.numericamount"));
         validate.setValidate(m_jStatus.getText(),ValidateBuilder.IS_NOT_EMPTY,
-                AppLocal.getIntString("message.emptystatus"));        
+                AppLocal.getIntString("message.emptystatus"));
         return validate.getValid();
     }
     

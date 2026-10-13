@@ -337,6 +337,21 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         return tcustomers;
     }  
     
+    /**
+     * Counts vouchers using the same number except for the record being edited.
+     * This is a user-friendly preflight only; database UNIQUE enforcement is
+     * still required to close concurrent creation races.
+     */
+    public final int countOtherVouchersWithNumber(String voucherNumber, String voucherId)
+            throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM vouchers WHERE VOUCHER_NUMBER=? AND ID<>?",
+                new SerializerWriteBasic(new Datas[] {Datas.STRING, Datas.STRING}),
+                SerializerReadInteger.INSTANCE)
+                .find(new Object[] {voucherNumber, voucherId});
+        return count == null ? 0 : count;
+    }
+
         public final VoucherInfo getVoucherInfo(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
                 , "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +
