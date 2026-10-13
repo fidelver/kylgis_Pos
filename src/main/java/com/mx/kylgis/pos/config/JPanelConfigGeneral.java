@@ -25,7 +25,6 @@ import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
 import java.awt.Component;
-import javax.swing.SwingUtilities;
 import com.mx.kylgis.pos.util.FileChooserEvent;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -76,10 +75,6 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         for (KylGisLookAndFeel.Option option : KylGisLookAndFeel.availableOptions(lafLogger)) {
             jcboLAF.addItem(new LAFInfo(option.getDisplayName(), option.getClassName()));
         }
-
-        jcboLAF.addActionListener((java.awt.event.ActionEvent evt) -> {
-            changeLAF();
-        });
 
         jcboMachineScreenmode.addItem("window");
         jcboMachineScreenmode.addItem("fullscreen");
@@ -176,20 +171,6 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
     private String comboValue(Object value) {
         return value == null ? "" : value.toString();
-    }
-
-    private void changeLAF() {
-
-        final LAFInfo laf = (LAFInfo) jcboLAF.getSelectedItem();
-        if (laf != null && !laf.getClassName().equals(KylGisLookAndFeel.currentClassName())) {
-            SwingUtilities.invokeLater(() -> {
-                Logger logger = Logger.getLogger(JPanelConfigGeneral.class.getName());
-                if (KylGisLookAndFeel.apply(laf.getClassName(), logger)) {
-                    SwingUtilities.updateComponentTreeUI(
-                            JPanelConfigGeneral.this.getTopLevelAncestor());
-                }
-            });
-        }
     }
 
     private static class LAFInfo {
