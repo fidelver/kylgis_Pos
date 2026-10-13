@@ -81,6 +81,7 @@ public class PaymentInfoTicket extends PaymentInfo implements SerializableRead  
         if (dr.getDouble(4) != null) {
             m_dTendered = dr.getDouble(4);}
             m_dCardName = dr.getString(5);
+            m_sVoucher = dr.getString(6);
 //        m_dTip = dr.getDouble(6).doubleValue();
 //        m_isProcessed = dr.getBoolean(7).booleanValue(); 
 //        m_returnMessage = dr.getString(8);        
@@ -88,7 +89,14 @@ public class PaymentInfoTicket extends PaymentInfo implements SerializableRead  
     
     @Override
     public PaymentInfo copyPayment(){
-        return new PaymentInfoTicket(m_dTicket, m_sName);
+        PaymentInfoTicket copy = new PaymentInfoTicket(m_dTicket, m_sName, m_transactionID, m_sVoucher);
+        copy.m_dTendered = m_dTendered;
+        copy.m_change = m_change;
+        copy.m_dCardName = m_dCardName;
+        copy.m_dTip = m_dTip;
+        copy.m_isProcessed = m_isProcessed;
+        copy.m_returnMessage = m_returnMessage;
+        return copy;
     }
     @Override
     public String getName() {

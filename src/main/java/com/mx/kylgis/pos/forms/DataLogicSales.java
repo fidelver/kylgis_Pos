@@ -1635,7 +1635,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 , new SerializerReadClass(TicketLineInfo.class)).list(ticket.getId()));
 
             ticket.setPayments(new PreparedSentence(s
-                , "SELECT PAYMENT, TOTAL, TRANSID, TENDERED, CARDNAME FROM payments WHERE RECEIPT = ?"                    
+                , "SELECT PAYMENT, TOTAL, TRANSID, TENDERED, CARDNAME, VOUCHER FROM payments WHERE RECEIPT = ?"                    
                 , SerializerWriteString.INSTANCE
                 , new SerializerReadClass(PaymentInfoTicket.class)).list(ticket.getId()));
         }
