@@ -24,8 +24,6 @@ import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
 import java.awt.*;
-import com.alee.extended.colorchooser.*;
-import com.alee.extended.colorchooser.ColorDisplayType;
 import javax.swing.*;
 import java.util.logging.Logger;
 
