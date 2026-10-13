@@ -2046,7 +2046,7 @@ System.out.println("PanelContainer : Focus Lost");
             clock.setTimeLeft ( 5000 );
             notification.setContent ( msg );
 
-            NotificationManager.showNotification ( notification );
+            NotificationManager.showNotification ( this, notification );
             clock.start ();
         } catch (RuntimeException ex) {
             // Notifications are non-critical UI feedback. A WebLaF popup failure
