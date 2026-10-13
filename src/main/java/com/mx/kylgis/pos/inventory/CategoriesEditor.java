@@ -38,11 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import javax.swing.JPanel;
-import com.alee.extended.time.ClockType;
-import com.alee.extended.time.WebClock;
-import com.alee.managers.notification.NotificationIcon;
-import com.alee.managers.notification.NotificationManager;
-import com.alee.managers.notification.WebNotification;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -51,6 +46,7 @@ import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 import com.mx.kylgis.pos.catalog.CategoryStock;
+import com.mx.kylgis.pos.ui.KylGisNotifications;
 import java.awt.Font;
 import javax.swing.table.JTableHeader;
 
@@ -385,18 +381,7 @@ public void resetTranxTable() {
     
     
     public void Notify(String msg){
-        final WebNotification notification = new WebNotification ();
-        notification.setIcon ( NotificationIcon.information );
-        notification.setDisplayTime ( 4000 );
-
-        final WebClock clock = new WebClock ();
-        clock.setClockType ( ClockType.timer );
-        clock.setTimeLeft ( 5000 );
-        clock.setTimePattern ( msg );        
-        notification.setContent ( clock );
-
-        NotificationManager.showNotification ( notification );
-        clock.start ();    
+        KylGisNotifications.showTimedInformation(msg);
     } 
     
     /** This method is called from within the constructor to

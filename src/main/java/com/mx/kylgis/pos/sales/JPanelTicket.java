@@ -20,11 +20,6 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.sales;
 
-import com.alee.extended.time.ClockType;
-import com.alee.extended.time.WebClock;
-import com.alee.managers.notification.NotificationIcon;
-import com.alee.managers.notification.NotificationManager;
-import com.alee.managers.notification.WebNotification;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.beans.JNumberPop;
 import com.mx.kylgis.pos.data.gui.ComboBoxValModel;
@@ -55,6 +50,7 @@ import com.mx.kylgis.pos.scripting.ScriptFactory;
 import com.mx.kylgis.pos.ticket.ProductInfoExt;
 import com.mx.kylgis.pos.ticket.TaxInfo;
 import com.mx.kylgis.pos.ticket.TicketInfo;
+import com.mx.kylgis.pos.ui.KylGisNotifications;
 import com.mx.kylgis.pos.ticket.TicketLineInfo;
 import com.mx.kylgis.pos.ticket.TicketTaxInfo;
 import com.mx.kylgis.pos.voucher.VoucherEditContext;
@@ -2050,25 +2046,8 @@ System.out.println("PanelContainer : Focus Lost");
     }     
      
     public void Notify(String msg){
-        try {
-            final WebNotification notification = new WebNotification ();
-            notification.setIcon ( NotificationIcon.information );
-            notification.setDisplayTime ( 4000 );
-
-            final WebClock clock = new WebClock ();
-            clock.setClockType ( ClockType.timer );
-            clock.setTimeLeft ( 5000 );
-            notification.setContent ( msg );
-
-            NotificationManager.showNotification ( this, notification );
-            clock.start ();
-        } catch (RuntimeException ex) {
-            // Notifications are non-critical UI feedback. A WebLaF popup failure
-            // must never abort a sale that has already been committed/printed.
-            Logger.getLogger(JPanelTicket.class.getName()).log(Level.WARNING,
-                    "Unable to show non-critical POS notification", ex);
-        }
-    }    
+        KylGisNotifications.showInformation(this, msg);
+    }   
     
     private void printReport(String resourcefile, TicketInfo ticket, Object ticketext) {
 
