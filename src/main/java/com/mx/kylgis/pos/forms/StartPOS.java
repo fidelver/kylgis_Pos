@@ -26,15 +26,11 @@ import com.mx.kylgis.pos.node.NodeContext;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import com.mx.kylgis.pos.ticket.TicketInfo;
+import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
 import java.io.IOException;
 import javax.swing.SwingUtilities;
 
-import org.pushingpixels.substance.api.SubstanceLookAndFeel;
-import org.pushingpixels.substance.api.SubstanceSkin;
 
 
 public class StartPOS {
@@ -128,17 +124,7 @@ public class StartPOS {
         Formats.setTimePattern(config.getProperty("format.time"));
         Formats.setDateTimePattern(config.getProperty("format.datetime"));
 
-        try {
-            Object laf = Class.forName(config.getProperty("swing.defaultlaf"))
-                    .getDeclaredConstructor().newInstance();
-            if (laf instanceof LookAndFeel) {
-                UIManager.setLookAndFeel((LookAndFeel) laf);
-            } else if (laf instanceof SubstanceSkin) {
-                SubstanceLookAndFeel.setSkin((SubstanceSkin) laf);
-            }
-        } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
-            logger.log(Level.WARNING, "Cannot set Look and Feel", e);
-        }
+        KylGisLookAndFeel.apply(config.getProperty("swing.defaultlaf"), logger);
 
         TicketInfo.setHostname(config.getProperty("machine.hostname"));
         String screenmode = config.getProperty("machine.screenmode");
