@@ -35,9 +35,6 @@ import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.util.ValidateBuilder;
 import java.awt.Component;
 import java.awt.image.BufferedImage;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,7 +42,6 @@ import javax.swing.JOptionPane;
 
 public final class VoucherEditor extends javax.swing.JPanel implements EditorRecord {
 
-    private static final DateFormat m_simpledate = new SimpleDateFormat("MM-yy");
     private Object id;
     private final DataLogicCustomers dlCustomers;
     private final  DataLogicSystem dlSystem;
@@ -97,7 +93,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     @Override
     public void writeValueInsert() {
         id = UUID.randomUUID().toString();
-        m_jNumber.setText(generateVoucherNumber());
+        m_jNumber.setText(VoucherCodeGenerator.generate());
         m_jNumber.setEnabled(true);
         m_jCustomer.setText(null);
         m_jCustomer.setEnabled(true);
@@ -191,7 +187,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
         Object[] attr = new Object[5];
 
         attr[0] = id;
-        attr[1] = m_jNumber.getText();
+        attr[1] = VoucherCodeGenerator.normalize(m_jNumber.getText());
         attr[2] = customerInfo.getId();
         attr[3] = Formats.DOUBLE.parseValue(m_jAmount.getText());
         attr[4] = m_jStatus.getText();
@@ -412,35 +408,5 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
     }
     
     
-    public String generateVoucherNumber(){
-        String result="";
 
-        try {
-            result = "VO-";
-            String date = m_simpledate.format(new Date());
-            result = result + date;
-            String lastNumber= (String)dlCustomers.getVoucherNumber().find(result);
-            int newNumber = 1 ;
-
-            if (lastNumber!=null){
-               newNumber = Integer.parseInt(lastNumber) +1;
-           }
-            result = result + "-" + getNewNumber(newNumber);
-            
-            return result;
-            
-        } catch (BasicException ex) {
-        }
-        return result;
-    }
-    
-    
-    private String getNewNumber(int newNumber){
-        String newNo = newNumber + "";
-        String zero = "";
-        for (int i=0;i< 3 - newNo.length();i++){
-            zero = zero + "0";
-        }
-        return zero+newNo;
-    }
 }

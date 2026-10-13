@@ -337,15 +337,6 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         return tcustomers;
     }  
     
-    public final PreparedSentence getVoucherNumber() {
-        return new PreparedSentence(s,  
-            "SELECT SUBSTRING(MAX(VOUCHER_NUMBER),10,3) AS LAST_NUMBER FROM vouchers " +
-            "WHERE SUBSTRING(VOUCHER_NUMBER,1,8) = ?" 
-            , SerializerWriteString.INSTANCE
-            , (DataRead dr) -> dr.getString(1));
-    }
-      
-      
         public final VoucherInfo getVoucherInfo(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
                 , "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +
