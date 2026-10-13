@@ -51,16 +51,27 @@ if [ "$KYLGIS_JAVA_MAJOR" -lt "$KYLGIS_MIN_JAVA_MAJOR" ]; then
 fi
 
 # Legacy WebLaF components still need limited reflective access on modular Java.
-KYLGIS_MODULAR_OPENS="--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.desktop/java.awt.font=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED"
-case " ${JDK_JAVA_OPTIONS:-} " in
-    *" --add-opens=java.base/java.util=ALL-UNNAMED "*) ;;
-    *)
-        if [ -n "${JDK_JAVA_OPTIONS:-}" ]; then
-            JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS $KYLGIS_MODULAR_OPENS"
-        else
-            JDK_JAVA_OPTIONS="$KYLGIS_MODULAR_OPENS"
-        fi
-        ;;
-esac
+# Append each option independently so a partially customized JDK_JAVA_OPTIONS
+# cannot suppress the remaining required opens.
+for KYLGIS_OPEN in \
+    --add-opens=java.base/java.util=ALL-UNNAMED \
+    --add-opens=java.base/java.lang.reflect=ALL-UNNAMED \
+    --add-opens=java.base/java.text=ALL-UNNAMED \
+    --add-opens=java.desktop/java.awt.font=ALL-UNNAMED \
+    --add-opens=java.desktop/java.awt=ALL-UNNAMED \
+    --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED
+do
+    case " ${JDK_JAVA_OPTIONS:-} " in
+        *" $KYLGIS_OPEN "*) ;;
+        *)
+            if [ -n "${JDK_JAVA_OPTIONS:-}" ]; then
+                JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS $KYLGIS_OPEN"
+            else
+                JDK_JAVA_OPTIONS="$KYLGIS_OPEN"
+            fi
+            ;;
+    esac
+done
+unset KYLGIS_OPEN
 export JDK_JAVA_OPTIONS
 export KYLGIS_JAVA KYLGIS_JAVA_SOURCE KYLGIS_JAVA_VERSION KYLGIS_JAVA_MAJOR

@@ -65,13 +65,21 @@ if %KYLGIS_JAVA_MAJOR_NUM% LSS %KYLGIS_MIN_JAVA_MAJOR% (
     exit /b 2
 )
 
-set "KYLGIS_MODULAR_OPENS=--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.desktop/java.awt.font=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED"
-echo %JDK_JAVA_OPTIONS% | findstr /c:"--add-opens=java.base/java.util=ALL-UNNAMED" >nul 2>&1
+call :ensure_open "--add-opens=java.base/java.util=ALL-UNNAMED"
+call :ensure_open "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+call :ensure_open "--add-opens=java.base/java.text=ALL-UNNAMED"
+call :ensure_open "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED"
+call :ensure_open "--add-opens=java.desktop/java.awt=ALL-UNNAMED"
+call :ensure_open "--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED"
+exit /b 0
+
+:ensure_open
+echo %JDK_JAVA_OPTIONS% | findstr /c:"%~1" >nul 2>&1
 if errorlevel 1 (
     if defined JDK_JAVA_OPTIONS (
-        set "JDK_JAVA_OPTIONS=%JDK_JAVA_OPTIONS% %KYLGIS_MODULAR_OPENS%"
+        set "JDK_JAVA_OPTIONS=%JDK_JAVA_OPTIONS% %~1"
     ) else (
-        set "JDK_JAVA_OPTIONS=%KYLGIS_MODULAR_OPENS%"
+        set "JDK_JAVA_OPTIONS=%~1"
     )
 )
 exit /b 0
