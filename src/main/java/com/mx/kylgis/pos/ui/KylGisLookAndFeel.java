@@ -102,6 +102,22 @@ public final class KylGisLookAndFeel {
         }
     }
 
+    /**
+     * Initializes legacy WebLaF managers for screens that still embed WebLaF
+     * widgets. Kept reflective so callers are no longer coupled to WebLaF.
+     */
+    public static boolean initializeLegacyWebManagers(Logger logger) {
+        try {
+            Class<?> webLookAndFeel = Class.forName(WEB_LAF);
+            Method initializeManagers = webLookAndFeel.getMethod("initializeManagers");
+            initializeManagers.invoke(null);
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            log(logger, Level.WARNING, "Cannot initialize legacy WebLaF managers", ex);
+            return false;
+        }
+    }
+
     private static void addLegacySubstanceOptions(
             Map<String, Option> options, Logger logger) {
         try {
