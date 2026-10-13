@@ -21,6 +21,7 @@
 package com.mx.kylgis.pos.voucher;
 
 import com.mx.kylgis.pos.basic.BasicException;
+import com.mx.kylgis.pos.beans.JCalendarDialog;
 import com.mx.kylgis.pos.data.gui.ComboBoxValModel;
 import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.data.user.EditorRecord;
@@ -66,7 +67,9 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
         m_jAmount.getDocument().addDocumentListener(dirty);
         m_jStatus.getDocument().addDocumentListener(dirty);
         
-        jButtonPrint.setVisible(false);       
+        jButtonPrint.setVisible(false);
+        jChkNoExpiry.addActionListener(dirty);
+        m_jBtnExpiresAt.addActionListener(dirty);       
         
         m_ReasonModel = new ComboBoxValModel();
         m_ReasonModel.add(AppLocal.getIntString("cboption.find"));
@@ -81,6 +84,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     public void writeValueEOF() {
         id = null;
         expiresAt = null;
+        updateExpiryControls(false);
         m_jNumber.setText(null);
         m_jNumber.setEnabled(false);
         m_jCustomer.setText(null);
@@ -97,6 +101,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     public void writeValueInsert() {
         id = UUID.randomUUID().toString();
         expiresAt = null;
+        updateExpiryControls(true);
         m_jNumber.setText(VoucherCodeGenerator.generate());
         m_jNumber.setEnabled(true);
         m_jCustomer.setText(null);
@@ -125,6 +130,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             m_jAmount.setEnabled(false);
             m_jStatus.setText(Formats.STRING.formatValue(attr[4]));
             expiresAt = (Date) attr[5];
+            updateExpiryControls(false);
             m_jStatus.setEnabled(false);
             
                 jButtonPrint.setEnabled(false);
@@ -154,6 +160,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             m_jAmount.setEnabled(true);
             m_jStatus.setText(Formats.STRING.formatValue(attr[4]));
             expiresAt = (Date) attr[5];
+            updateExpiryControls(false);
             
             jButtonPrint.setEnabled(true);
             
@@ -167,6 +174,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
                     m_jAmount.setEnabled(true); 
                     jCBCustomer.setEnabled(true);
                     m_jStatus.setText("A");
+                    updateExpiryControls(true);
                     break;
                 case "D":
                     jLblStatus.setIcon(new javax.swing.ImageIcon(getClass()
@@ -174,7 +182,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
                     m_jNumber.setEnabled(false);
                     m_jAmount.setEnabled(false);
                     jCBCustomer.setEnabled(false);                    
-                    m_jStatus.setText("D");                    
+                    m_jStatus.setText("D");
+                    updateExpiryControls(false);
                     
                     break;
                 default:
@@ -211,6 +220,15 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     public void refresh() {
     }
 
+    private void updateExpiryControls(boolean editable) {
+        boolean noExpiry = expiresAt == null;
+        jChkNoExpiry.setSelected(noExpiry);
+        m_jExpiresAt.setText(noExpiry ? "" : Formats.TIMESTAMP.formatValue(expiresAt));
+        m_jExpiresAt.setEnabled(editable && !noExpiry);
+        m_jBtnExpiresAt.setEnabled(editable && !noExpiry);
+        jChkNoExpiry.setEnabled(editable);
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -230,6 +248,10 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
         jLblStatus = new javax.swing.JLabel();
         m_jStatus = new javax.swing.JTextField();
         jCBCustomer = new javax.swing.JComboBox<>();
+        jLblExpiry = new javax.swing.JLabel();
+        m_jExpiresAt = new javax.swing.JTextField();
+        m_jBtnExpiresAt = new javax.swing.JButton();
+        jChkNoExpiry = new javax.swing.JCheckBox();
 
         setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
 
@@ -289,6 +311,32 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             }
         });
 
+        jLblExpiry.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLblExpiry.setText(AppLocal.getIntString("label.voucherexpiry")); // NOI18N
+        jLblExpiry.setPreferredSize(new java.awt.Dimension(100, 30));
+
+        m_jExpiresAt.setEditable(false);
+        m_jExpiresAt.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jExpiresAt.setPreferredSize(new java.awt.Dimension(200, 30));
+
+        m_jBtnExpiresAt.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
+        m_jBtnExpiresAt.setToolTipText(AppLocal.getIntString("tooltip.voucherexpiry")); // NOI18N
+        m_jBtnExpiresAt.setPreferredSize(new java.awt.Dimension(40, 30));
+        m_jBtnExpiresAt.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jBtnExpiresAtActionPerformed(evt);
+            }
+        });
+
+        jChkNoExpiry.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jChkNoExpiry.setSelected(true);
+        jChkNoExpiry.setText(AppLocal.getIntString("label.vouchernoexpiry")); // NOI18N
+        jChkNoExpiry.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jChkNoExpiryActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -312,7 +360,15 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(m_jAmount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addComponent(m_jAmount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLblExpiry, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jExpiresAt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jBtnExpiresAt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jChkNoExpiry)))
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLblStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -339,7 +395,13 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jAmount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(26, 26, 26)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLblExpiry, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jExpiresAt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jBtnExpiresAt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jChkNoExpiry))
+                .addGap(15, 15, 15)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jButtonPrint, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLblStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -387,16 +449,41 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
 
     }//GEN-LAST:event_jCBCustomerActionPerformed
 
+    private void m_jBtnExpiresAtActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jBtnExpiresAtActionPerformed
+        Date selected = expiresAt == null ? new Date() : expiresAt;
+        selected = JCalendarDialog.showCalendarTime(this, selected);
+        if (selected != null) {
+            expiresAt = selected;
+            jChkNoExpiry.setSelected(false);
+            updateExpiryControls(true);
+        }
+    }//GEN-LAST:event_m_jBtnExpiresAtActionPerformed
+
+    private void jChkNoExpiryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jChkNoExpiryActionPerformed
+        if (jChkNoExpiry.isSelected()) {
+            expiresAt = null;
+            updateExpiryControls(true);
+        } else {
+            m_jExpiresAt.setEnabled(true);
+            m_jBtnExpiresAt.setEnabled(true);
+            m_jBtnExpiresAt.requestFocusInWindow();
+        }
+    }//GEN-LAST:event_jChkNoExpiryActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonPrint;
     private javax.swing.JComboBox<String> jCBCustomer;
+    private javax.swing.JCheckBox jChkNoExpiry;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLblExpiry;
     private javax.swing.JLabel jLblStatus;
     private javax.swing.JTextField m_jAmount;
+    private javax.swing.JButton m_jBtnExpiresAt;
     private javax.swing.JTextField m_jCustomer;
+    private javax.swing.JTextField m_jExpiresAt;
     private javax.swing.JTextField m_jNumber;
     private javax.swing.JTextField m_jStatus;
     // End of variables declaration//GEN-END:variables
@@ -429,6 +516,23 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
                     AppLocal.getIntString("Check"),
                     JOptionPane.WARNING_MESSAGE);
             return false;
+        }
+
+        if (!jChkNoExpiry.isSelected()) {
+            if (expiresAt == null) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucherexpiryrequired"),
+                        AppLocal.getIntString("Check"),
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if ("A".equals(m_jStatus.getText()) && !expiresAt.after(new Date())) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucherexpiryfuture"),
+                        AppLocal.getIntString("Check"),
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
         }
 
         ValidateBuilder validate = new ValidateBuilder(this);
