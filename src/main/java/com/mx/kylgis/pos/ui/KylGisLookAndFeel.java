@@ -26,6 +26,7 @@ public final class KylGisLookAndFeel {
             "org.pushingpixels.substance.api.SubstanceSkin";
     private static final String SUBSTANCE_LAF =
             "org.pushingpixels.substance.api.SubstanceLookAndFeel";
+    private static final String WEB_LAF = "com.alee.laf.WebLookAndFeel";
 
     private KylGisLookAndFeel() {
     }
@@ -82,6 +83,23 @@ public final class KylGisLookAndFeel {
     public static String currentClassName() {
         LookAndFeel current = UIManager.getLookAndFeel();
         return current == null ? "" : current.getClass().getName();
+    }
+
+    /**
+     * Preserves the legacy standalone configurator appearance without exposing
+     * WebLaF classes to that entry point. This method is intentionally isolated
+     * so it can disappear when the configurator migrates to the common LAF.
+     */
+    public static boolean installLegacyWebLookAndFeel(Logger logger) {
+        try {
+            Class<?> webLookAndFeel = Class.forName(WEB_LAF);
+            Method install = webLookAndFeel.getMethod("install");
+            install.invoke(null);
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            log(logger, Level.WARNING, "Cannot install legacy WebLaF", ex);
+            return false;
+        }
     }
 
     private static void addLegacySubstanceOptions(
