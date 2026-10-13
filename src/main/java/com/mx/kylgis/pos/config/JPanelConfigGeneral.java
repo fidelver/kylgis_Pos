@@ -20,27 +20,19 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.config;
 
-import com.alee.laf.WebLookAndFeel;
 import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
 import java.awt.Component;
-import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.UnsupportedLookAndFeelException;
 import com.mx.kylgis.pos.util.FileChooserEvent;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
-import org.pushingpixels.substance.api.SubstanceLookAndFeel;
-import org.pushingpixels.substance.api.SubstanceSkin;
-import org.pushingpixels.substance.api.skin.SkinInfo;
 
 /**
  *
@@ -80,19 +72,10 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 //        jtxtStartupMedia.getDocument().addDocumentListener(dirty);             // Coming later!
 //        jbtnMedia.addActionListener(new FileChooserEvent(jtxtStartupHTML));    // Coming later!          
         
-        // Installed skins
-        LookAndFeelInfo[] lafs = UIManager.getInstalledLookAndFeels();
-        for (LookAndFeelInfo laf : lafs) {
-            jcboLAF.addItem(new LAFInfo(laf.getName(), laf.getClassName()));
+        Logger lafLogger = Logger.getLogger(JPanelConfigGeneral.class.getName());
+        for (KylGisLookAndFeel.Option option : KylGisLookAndFeel.availableOptions(lafLogger)) {
+            jcboLAF.addItem(new LAFInfo(option.getDisplayName(), option.getClassName()));
         }
-
-        // Substance skins
-        // new SubstanceLookAndFeel()
-        Map<String, SkinInfo> skins = SubstanceLookAndFeel.getAllSkins();
-
-        skins.values().forEach((skin) -> {
-            jcboLAF.addItem(new LAFInfo(skin.getDisplayName(), skin.getClassName()));
-        });
 
         jcboLAF.addActionListener((java.awt.event.ActionEvent evt) -> {
             changeLAF();
@@ -198,20 +181,12 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     private void changeLAF() {
 
         final LAFInfo laf = (LAFInfo) jcboLAF.getSelectedItem();
-        if (laf != null && !laf.getClassName().equals(UIManager.getLookAndFeel().getClass().getName())) {
-            // The selected look and feel is different from the current look and feel.
+        if (laf != null && !laf.getClassName().equals(KylGisLookAndFeel.currentClassName())) {
             SwingUtilities.invokeLater(() -> {
-                try {
-                    String lafname = laf.getClassName();
-                    Object laf1 = Class.forName(lafname)
-                            .getDeclaredConstructor().newInstance();
-                    if (laf1 instanceof LookAndFeel) {
-                        UIManager.setLookAndFeel((LookAndFeel) laf1);
-                    } else if (laf1 instanceof SubstanceSkin) {
-                        SubstanceLookAndFeel.setSkin((SubstanceSkin) laf1);
-                    }
-                    SwingUtilities.updateComponentTreeUI(JPanelConfigGeneral.this.getTopLevelAncestor());
-                } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
+                Logger logger = Logger.getLogger(JPanelConfigGeneral.class.getName());
+                if (KylGisLookAndFeel.apply(laf.getClassName(), logger)) {
+                    SwingUtilities.updateComponentTreeUI(
+                            JPanelConfigGeneral.this.getTopLevelAncestor());
                 }
             });
         }

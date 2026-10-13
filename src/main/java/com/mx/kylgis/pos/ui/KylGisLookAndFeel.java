@@ -3,6 +3,10 @@
 package com.mx.kylgis.pos.ui;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.LookAndFeel;
@@ -10,11 +14,11 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
 /**
- * Central boundary for applying the configured Swing look and feel.
+ * Central boundary for Swing Look & Feel discovery and application.
  *
  * Legacy Substance support is resolved reflectively so application entry
- * points and this API have no compile-time dependency on a particular UI
- * library. Future FlatLaf adoption can therefore stay behind this boundary.
+ * points and configuration screens have no compile-time dependency on a
+ * particular UI library. Future FlatLaf adoption can stay behind this API.
  */
 public final class KylGisLookAndFeel {
 
@@ -24,6 +28,20 @@ public final class KylGisLookAndFeel {
             "org.pushingpixels.substance.api.SubstanceLookAndFeel";
 
     private KylGisLookAndFeel() {
+    }
+
+    /**
+     * Discovers standard Swing Look & Feels plus legacy Substance skins when
+     * the Substance library is present. Results are de-duplicated by class.
+     */
+    public static List<Option> availableOptions(Logger logger) {
+        Map<String, Option> options = new LinkedHashMap<>();
+        for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            options.putIfAbsent(info.getClassName(),
+                    new Option(info.getName(), info.getClassName()));
+        }
+        addLegacySubstanceOptions(options, logger);
+        return new ArrayList<>(options.values());
     }
 
     /**
@@ -61,6 +79,40 @@ public final class KylGisLookAndFeel {
         }
     }
 
+    public static String currentClassName() {
+        LookAndFeel current = UIManager.getLookAndFeel();
+        return current == null ? "" : current.getClass().getName();
+    }
+
+    private static void addLegacySubstanceOptions(
+            Map<String, Option> options, Logger logger) {
+        try {
+            Class<?> substanceLaf = Class.forName(SUBSTANCE_LAF);
+            Method getAllSkins = substanceLaf.getMethod("getAllSkins");
+            Object result = getAllSkins.invoke(null);
+            if (!(result instanceof Map<?, ?>)) {
+                return;
+            }
+            for (Object skinInfo : ((Map<?, ?>) result).values()) {
+                if (skinInfo == null) {
+                    continue;
+                }
+                Method getDisplayName = skinInfo.getClass().getMethod("getDisplayName");
+                Method getClassName = skinInfo.getClass().getMethod("getClassName");
+                String displayName = String.valueOf(getDisplayName.invoke(skinInfo));
+                String className = String.valueOf(getClassName.invoke(skinInfo));
+                if (!className.isBlank()) {
+                    options.putIfAbsent(className, new Option(displayName, className));
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            // Substance is optional at this boundary; standard Swing LAFs remain valid.
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            log(logger, Level.FINE,
+                    "Legacy Substance Look and Feel catalogue is unavailable", ex);
+        }
+    }
+
     private static boolean applyLegacySubstanceSkin(Object candidate)
             throws ReflectiveOperationException {
         Class<?> skinType;
@@ -87,6 +139,24 @@ public final class KylGisLookAndFeel {
             logger.log(level, message);
         } else {
             logger.log(level, message, error);
+        }
+    }
+
+    public static final class Option {
+        private final String displayName;
+        private final String className;
+
+        public Option(String displayName, String className) {
+            this.displayName = displayName;
+            this.className = className;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public String getClassName() {
+            return className;
         }
     }
 }
