@@ -9,6 +9,7 @@ import com.mx.kylgis.pos.data.loader.QBFBuilder;
 import com.mx.kylgis.pos.data.loader.SerializerReadBasic;
 import com.mx.kylgis.pos.data.loader.StaticSentence;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.reports.ReportFields;
 import com.mx.kylgis.pos.reports.ReportFieldsArray;
@@ -123,7 +124,15 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
                 reportparams.put("ISSUED", new Date());
                 reportparams.put("VALUE", voucherInfo.getAmount());
                 if (res != null) {
-                      reportparams.put("REPORT_RESOURCE_BUNDLE", ResourceBundle.getBundle(res));
+                      ResourceBundle reportBundle = ResourceBundle.getBundle(res);
+                      reportparams.put("REPORT_RESOURCE_BUNDLE", reportBundle);
+                      reportparams.put("EXPIRY", voucherInfo.getExpiresAt() == null
+                              ? reportBundle.getString("label.noexpiry")
+                              : Formats.TIMESTAMP.formatValue(voucherInfo.getExpiresAt()));
+                } else {
+                      reportparams.put("EXPIRY", voucherInfo.getExpiresAt() == null
+                              ? "No expiration"
+                              : Formats.TIMESTAMP.formatValue(voucherInfo.getExpiresAt()));
                 }                
               
 //                if (paramsreport.size()>0){

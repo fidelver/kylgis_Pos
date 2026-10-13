@@ -9,6 +9,7 @@
     <parameter name="CODE" class="java.lang.String"/>
     <parameter name="ISSUED" class="java.util.Date"/>
     <parameter name="VALUE" class="java.lang.Double"/>
+    <parameter name="EXPIRY" class="java.lang.String"/>
 
     <title>
         <band height="210">
@@ -61,8 +62,18 @@
                 <textFieldExpression><![CDATA[$P{VALUE}]]></textFieldExpression>
             </textField>
 
+            <textField>
+                <reportElement x="0" y="175" width="120" height="20"/>
+                <textElement><font isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$R{label.expiry}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="120" y="175" width="415" height="20"/>
+                <textFieldExpression><![CDATA[$P{EXPIRY}]]></textFieldExpression>
+            </textField>
+
             <line>
-                <reportElement x="0" y="190" width="535" height="1"/>
+                <reportElement x="0" y="200" width="535" height="1"/>
             </line>
         </band>
     </title>
