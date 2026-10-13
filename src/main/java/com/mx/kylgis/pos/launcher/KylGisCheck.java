@@ -41,7 +41,7 @@ public final class KylGisCheck {
             String javaCompatibility = JavaRuntimeSupport.classification(javaMajor);
             line("java.compatibility", javaCompatibility);
             if ("UNSUPPORTED".equals(javaCompatibility)) {
-                System.out.println("result=FAIL:java-8-or-newer-required");
+                System.out.println("result=FAIL:java-21-or-newer-required");
                 return 1;
             }
             line("provisioning", provisioning(config));

@@ -4,7 +4,7 @@ package com.mx.kylgis.pos.runtime;
 
 /** Runtime compatibility policy for KylGis POS 1.0. */
 public final class JavaRuntimeSupport {
-    public static final int CERTIFIED_MAJOR = 8;
+    public static final int CERTIFIED_MAJOR = 21;
 
     private JavaRuntimeSupport() { }
 
