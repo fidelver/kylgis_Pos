@@ -471,6 +471,23 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             , CategoryInfo.getSerializerRead()).list();
     }
 
+    /** Categories available to inventory/warehouse, independent of sales catalog visibility. */
+    public final List<CategoryInfo> getRootCategoriesInventory() throws BasicException {
+        return new PreparedSentence(s
+            , "SELECT "
+                + "ID, "
+                + "NAME, "
+                + "IMAGE, "
+                + "TEXTTIP, "
+                + "CATSHOWNAME, "
+                + "CATORDER "
+                + "FROM categories "
+                + "WHERE PARENTID IS NULL "
+                + "ORDER BY CATORDER, NAME"
+            , null
+            , CategoryInfo.getSerializerRead()).list();
+    }
+
     /**
      *
      * @param category
@@ -536,6 +553,47 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "ORDER BY O.CATORDER, P.NAME "                
 		, SerializerWriteString.INSTANCE
 		, ProductInfoExt.getSerializerRead()).list(category);
+    }
+
+    /** Products manageable by inventory, independent of products_cat. */
+    public List<ProductInfoExt> getProductCatalogInventory(String category) throws BasicException {
+        return new PreparedSentence(s
+                , "SELECT "
+                + "P.ID, "
+                + "P.REFERENCE, "
+                + "P.CODE, "
+                + "P.CODETYPE, "
+                + "P.NAME, "
+                + "P.PRICEBUY, "
+                + "P.PRICESELL, "
+                + "P.CATEGORY, "
+                + "P.TAXCAT, "
+                + "P.ATTRIBUTESET_ID, "
+                + "P.STOCKCOST, "
+                + "P.STOCKVOLUME, "
+                + "P.IMAGE, "
+                + "P.ISCOM, "
+                + "P.ISSCALE, "
+                + "P.ISCONSTANT, "
+                + "P.PRINTKB, "
+                + "P.SENDSTATUS, "
+                + "P.ISSERVICE, "
+                + "P.ATTRIBUTES, "
+                + "P.DISPLAY, "
+                + "P.ISVPRICE, "
+                + "P.ISVERPATRIB, "
+                + "P.TEXTTIP, "
+                + "P.WARRANTY, "
+                + "P.STOCKUNITS, "
+                + "P.PRINTTO, "
+                + "P.SUPPLIER, "
+                + "P.UOM, "
+                + "P.MEMODATE "
+                + "FROM products P "
+                + "WHERE P.CATEGORY = ? AND P.ISSERVICE = " + s.DB.FALSE() + " "
+                + "ORDER BY P.NAME "
+                , SerializerWriteString.INSTANCE
+                , ProductInfoExt.getSerializerRead()).list(category);
     }
 
     /**
@@ -627,6 +685,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     + "products.MEMODATE "
                 + "FROM categories INNER JOIN products ON (products.CATEGORY = categories.ID) "
                 + "WHERE products.ISCONSTANT = " +s.DB.TRUE()+ " "
+                + "AND EXISTS (SELECT 1 FROM products_cat PC WHERE PC.PRODUCT = products.ID) "
                 + "ORDER BY categories.NAME, products.NAME", 
                 null,
                 ProductInfoExt.getSerializerRead()).list();
@@ -2356,8 +2415,34 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      */
     public final SentenceExec getCatalogCategoryAdd() {
         return new StaticSentence(s
-                , "INSERT INTO products_cat(PRODUCT, CATORDER) SELECT ID, " + s.DB.INTEGER_NULL() + " FROM products WHERE CATEGORY = ?"
+                , "INSERT INTO products_cat(PRODUCT, CATORDER) "
+                + "SELECT P.ID, " + s.DB.INTEGER_NULL() + " FROM products P "
+                + "WHERE P.CATEGORY = ? AND NOT EXISTS "
+                + "(SELECT 1 FROM products_cat C WHERE C.PRODUCT = P.ID)"
                 , SerializerWriteString.INSTANCE);
+    }
+
+    /** Returns {total products in category, products currently in sales catalog}. */
+    public final int[] getCatalogCategoryCounts(String category) throws BasicException {
+        Integer total = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM products WHERE CATEGORY = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(category);
+        Integer inCatalog = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM products P INNER JOIN products_cat C ON P.ID = C.PRODUCT WHERE P.CATEGORY = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(category);
+        return new int[] {total == null ? 0 : total, inCatalog == null ? 0 : inCatalog};
+    }
+
+    /** Number of catalog rows in a category with an explicit sales-button order. */
+    public final int getCatalogCategoryOrderedCount(String category) throws BasicException {
+        Integer ordered = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM products P INNER JOIN products_cat C ON P.ID = C.PRODUCT "
+                + "WHERE P.CATEGORY = ? AND C.CATORDER IS NOT NULL",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(category);
+        return ordered == null ? 0 : ordered;
     }
 
     /**

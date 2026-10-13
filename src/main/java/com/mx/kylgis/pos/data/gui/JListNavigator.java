@@ -29,6 +29,7 @@ import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.LocalRes;
 import com.mx.kylgis.pos.data.user.BrowsableEditableData;
 import com.mx.kylgis.pos.data.user.BrowseListener;
+import com.mx.kylgis.pos.forms.AppLocal;
 
 /**
  *
@@ -68,6 +69,9 @@ public class JListNavigator extends javax.swing.JPanel implements BrowseListener
 
         m_jlist.addListSelectionListener(this);        
         m_jlist.setModel(m_bd.getListModel());
+        String accessibleName = AppLocal.getIntString("accessible.navigator.records");
+        m_jlist.getAccessibleContext().setAccessibleName(accessibleName);
+        m_jlist.getAccessibleContext().setAccessibleDescription(AppLocal.getIntString("accessible.navigator.records.description"));
         
         m_bd.addBrowseListener(this);
     }
@@ -135,8 +139,8 @@ public class JListNavigator extends javax.swing.JPanel implements BrowseListener
 
         m_jlist.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jlist.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        m_jlist.setFocusable(false);
-        m_jlist.setRequestFocusEnabled(false);
+        m_jlist.setFocusable(true);
+        m_jlist.setRequestFocusEnabled(true);
         jScrollPane1.setViewportView(m_jlist);
 
         add(jScrollPane1, java.awt.BorderLayout.CENTER);

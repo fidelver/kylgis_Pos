@@ -99,6 +99,11 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         m_jTextTip.getDocument().addDocumentListener(dirty); 
         m_jCatOrder.getDocument().addDocumentListener(dirty);
         webSwtch_InCatalog.addActionListener(dirty);
+        String catalogHelp = AppLocal.getIntString("tooltip.category.salescatalog");
+        webSwtch_InCatalog.setToolTipText(catalogHelp);
+        webSwtch_InCatalog.getAccessibleContext().setAccessibleName(AppLocal.getIntString("label.category.salescatalog"));
+        webSwtch_InCatalog.getAccessibleContext().setAccessibleDescription(catalogHelp);
+        jLblInCat.setToolTipText(catalogHelp);
      
         writeValueEOF();
     }
@@ -138,7 +143,8 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         m_jName.setEnabled(false);
         m_jCategory.setEnabled(false);
         m_jImage.setEnabled(false);
-        webSwtch_InCatalog.isSelected();
+        webSwtch_InCatalog.setSelected(false);
+        jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
         m_jTextTip.setText(null);        
         m_jTextTip.setEnabled(false);
         m_jCatNameShow.setSelected(false);
@@ -195,6 +201,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         m_jCatNameShow.setEnabled(false);
         m_jCatOrder.setEnabled(false);   
         
+        refreshCatalogMembershipState();
         stockModel = new CategoriesEditor.StockTableModel(getProductOfName((String) m_oId));      
         
     }
@@ -268,8 +275,35 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         return this;
     }
     
+    private void refreshCatalogMembershipState() {
+        if (m_id == null) {
+            webSwtch_InCatalog.setSelected(false);
+            jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
+            return;
+        }
+        try {
+            int[] counts = dlSales.getCatalogCategoryCounts(m_id.toString());
+            int total = counts[0];
+            int inCatalog = counts[1];
+            boolean allIncluded = total > 0 && total == inCatalog;
+            webSwtch_InCatalog.setSelected(allIncluded);
+            if (inCatalog == 0) {
+                jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
+            } else if (allIncluded) {
+                jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusYes"));
+            } else {
+                jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusPartial"));
+            }
+        } catch (BasicException ex) {
+            Logger.getLogger(CategoriesEditor.class.getName()).log(Level.WARNING,
+                    "Cannot refresh category sales catalog membership", ex);
+            webSwtch_InCatalog.setSelected(false);
+        }
+    }
+
 public void resetTranxTable() {
 
+    refreshCatalogMembershipState();
     jTableCategoryStock.getColumnModel().getColumn(0).setPreferredWidth(250);
     
     // set font for headers
@@ -603,9 +637,8 @@ public void resetTranxTable() {
 
             try {
                 Object param = m_id;
-                m_sentdel.exec(param);
                 m_sentadd.exec(param);
-                jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusYes"));
+                refreshCatalogMembershipState();
                 Notify(AppLocal.getIntString("notify.added"));                                                    
             } catch (BasicException e) {
                 JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotexecute"), e));
@@ -613,8 +646,18 @@ public void resetTranxTable() {
         } else {
 
             try {
+                if (dlSales.getCatalogCategoryOrderedCount(m_id.toString()) > 0) {
+                    int answer = JOptionPane.showConfirmDialog(this,
+                            AppLocal.getIntString("message.category.catalog.removeorder"),
+                            AppLocal.getIntString("title.category.catalog.removeorder"),
+                            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                    if (answer != JOptionPane.YES_OPTION) {
+                        refreshCatalogMembershipState();
+                        return;
+                    }
+                }
                 m_sentdel.exec(m_id);
-                jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
+                refreshCatalogMembershipState();
                 Notify(AppLocal.getIntString("notify.removed"));                                                                    
             } catch (BasicException e) {
                 JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotexecute"), e));

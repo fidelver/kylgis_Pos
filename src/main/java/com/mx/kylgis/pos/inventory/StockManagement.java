@@ -160,7 +160,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_sentsuppliers = m_dlSuppliers.getSupplierList();
         m_SuppliersModel =  new ComboBoxValModel();         
         
-        m_cat = new JCatalog(m_dlSales);
+        m_cat = new JCatalog(m_dlSales, JCatalog.Mode.INVENTORY);
         m_cat.addActionListener(new CatalogListener());
         catcontainer.add(m_cat.getComponent(), BorderLayout.CENTER);
  

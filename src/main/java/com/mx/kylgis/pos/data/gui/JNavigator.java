@@ -28,6 +28,7 @@ import com.mx.kylgis.pos.data.loader.Vectorer;
 import com.mx.kylgis.pos.data.user.BrowseListener;
 import com.mx.kylgis.pos.data.user.BrowsableEditableData;
 import com.mx.kylgis.pos.data.user.StateListener;
+import com.mx.kylgis.pos.forms.AppLocal;
 
 /**
  *
@@ -81,11 +82,11 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnFirst = new javax.swing.JButton();
             jbtnFirst.setPreferredSize(new java.awt.Dimension(60,45));
-            jbtnFirst.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2leftarrow.png")));
+            jbtnFirst.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2uparrow.png")));
             jbtnFirst.setMargin(new java.awt.Insets(2, 2, 2, 2));            
-            jbtnFirst.setFocusPainted(false);
-            jbtnFirst.setFocusable(false);
-            jbtnFirst.setRequestFocusEnabled(false);
+            jbtnFirst.setFocusPainted(true);
+            jbtnFirst.setFocusable(true);
+            jbtnFirst.setRequestFocusEnabled(true);
             jbtnFirst.addActionListener(new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     jbtnFirstActionPerformed(evt);
@@ -97,11 +98,11 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnPrev = new javax.swing.JButton();
             jbtnPrev.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnPrev.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1leftarrow.png")));
+            jbtnPrev.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1uparrow.png")));
             jbtnPrev.setMargin(new java.awt.Insets(2, 2, 2, 2));
-            jbtnPrev.setFocusPainted(false);
-            jbtnPrev.setFocusable(false);
-            jbtnPrev.setRequestFocusEnabled(false);
+            jbtnPrev.setFocusPainted(true);
+            jbtnPrev.setFocusable(true);
+            jbtnPrev.setRequestFocusEnabled(true);
             jbtnPrev.addActionListener(new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     jbtnPrevActionPerformed(evt);
@@ -112,11 +113,11 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
 
         jbtnRefresh = new javax.swing.JButton();
         jbtnRefresh.setPreferredSize(new java.awt.Dimension(60,45));        
-        jbtnRefresh.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1downarrow.png")));
+        jbtnRefresh.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png")));
         jbtnRefresh.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnRefresh.setFocusPainted(false);
-        jbtnRefresh.setFocusable(false);
-        jbtnRefresh.setRequestFocusEnabled(false);
+        jbtnRefresh.setFocusPainted(true);
+        jbtnRefresh.setFocusable(true);
+        jbtnRefresh.setRequestFocusEnabled(true);
         jbtnRefresh.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jbtnRefreshActionPerformed(evt);
@@ -127,11 +128,11 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnNext = new javax.swing.JButton();
             jbtnNext.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnNext.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1rightarrow.png")));
+            jbtnNext.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/1downarrow.png")));
             jbtnNext.setMargin(new java.awt.Insets(2, 2, 2, 2));
-            jbtnNext.setFocusPainted(false);
-            jbtnNext.setFocusable(false);
-            jbtnNext.setRequestFocusEnabled(false);
+            jbtnNext.setFocusPainted(true);
+            jbtnNext.setFocusable(true);
+            jbtnNext.setRequestFocusEnabled(true);
             jbtnNext.addActionListener(new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     jbtnNextActionPerformed(evt);
@@ -143,11 +144,11 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         if (iButtons == BUTTONS_ALL) {
             jbtnLast = new javax.swing.JButton();
             jbtnLast.setPreferredSize(new java.awt.Dimension(60,45));            
-            jbtnLast.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2rightarrow.png")));
+            jbtnLast.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/2downarrow.png")));
             jbtnLast.setMargin(new java.awt.Insets(2, 2, 2, 2));
-            jbtnLast.setFocusPainted(false);
-            jbtnLast.setFocusable(false);
-            jbtnLast.setRequestFocusEnabled(false);
+            jbtnLast.setFocusPainted(true);
+            jbtnLast.setFocusable(true);
+            jbtnLast.setRequestFocusEnabled(true);
             jbtnLast.addActionListener(new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     jbtnLastActionPerformed(evt);
@@ -163,9 +164,9 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
             jbtnReload.setPreferredSize(new java.awt.Dimension(60,45));            
             jbtnReload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png")));
             jbtnReload.setMargin(new java.awt.Insets(2, 2, 2, 2));
-            jbtnReload.setFocusPainted(false);
-            jbtnReload.setFocusable(false);
-            jbtnReload.setRequestFocusEnabled(false);
+            jbtnReload.setFocusPainted(true);
+            jbtnReload.setFocusable(true);
+            jbtnReload.setRequestFocusEnabled(true);
             jbtnReload.addActionListener(new java.awt.event.ActionListener() {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -185,9 +186,9 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
             jbtnFind.setPreferredSize(new java.awt.Dimension(60,45));            
             jbtnFind.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/search24.png")));
             jbtnFind.setMargin(new java.awt.Insets(2, 2, 2, 2));
-            jbtnFind.setFocusPainted(false);
-            jbtnFind.setFocusable(false);
-            jbtnFind.setRequestFocusEnabled(false);
+            jbtnFind.setFocusPainted(true);
+            jbtnFind.setFocusable(true);
+            jbtnFind.setRequestFocusEnabled(true);
             jbtnFind.addActionListener(new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     jbtnFindActionPerformed(evt);
@@ -202,9 +203,9 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
             jbtnSort.setPreferredSize(new java.awt.Dimension(60,45));            
             jbtnSort.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/sort_incr.png")));
             jbtnSort.setMargin(new java.awt.Insets(2, 2, 2, 2));
-            jbtnSort.setFocusPainted(false);
-            jbtnSort.setFocusable(false);
-            jbtnSort.setRequestFocusEnabled(false);
+            jbtnSort.setFocusPainted(true);
+            jbtnSort.setFocusable(true);
+            jbtnSort.setRequestFocusEnabled(true);
             jbtnSort.addActionListener(new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent evt) {
                     jbtnSortActionPerformed(evt);
@@ -216,6 +217,60 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         m_bd = bd;
         bd.addBrowseListener(this);
         bd.addStateListener(this);
+
+        configureNavigationButtons();
+        installKeyboardBindings();
+    }
+
+    private void configureNavigationButtons() {
+        configureButton(jbtnFirst, "tooltip.navigator.first");
+        configureButton(jbtnPrev, "tooltip.navigator.previous");
+        configureButton(jbtnRefresh, "tooltip.navigator.reloadcurrent");
+        configureButton(jbtnNext, "tooltip.navigator.next");
+        configureButton(jbtnLast, "tooltip.navigator.last");
+        configureButton(jbtnReload, "tooltip.navigator.reloadlist");
+        configureButton(jbtnFind, "tooltip.navigator.find");
+        configureButton(jbtnSort, "tooltip.navigator.sort");
+    }
+
+    private void configureButton(javax.swing.JButton button, String tooltipKey) {
+        if (button == null) {
+            return;
+        }
+        String help = AppLocal.getIntString(tooltipKey);
+        button.setToolTipText(help);
+        button.getAccessibleContext().setAccessibleName(help);
+        button.getAccessibleContext().setAccessibleDescription(help);
+    }
+
+    private void installKeyboardBindings() {
+        bindKey("HOME", "navigator.first", jbtnFirst);
+        bindKey("UP", "navigator.previous", jbtnPrev);
+        bindKey("control R", "navigator.reloadcurrent", jbtnRefresh);
+        bindKey("DOWN", "navigator.next", jbtnNext);
+        bindKey("END", "navigator.last", jbtnLast);
+        bindKey("F5", "navigator.reloadlist", jbtnReload);
+        bindKey("F3", "navigator.find", jbtnFind);
+        bindKey("control shift S", "navigator.sort", jbtnSort);
+    }
+
+    private void bindKey(String keyStroke, String actionName, final javax.swing.JButton button) {
+        if (button == null) {
+            return;
+        }
+        javax.swing.KeyStroke key = javax.swing.KeyStroke.getKeyStroke(keyStroke);
+        if (key == null) {
+            return;
+        }
+        getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(key, actionName);
+        getActionMap().put(actionName, new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                if (button.isEnabled()) {
+                    button.doClick();
+                }
+            }
+        });
     }
 
     /**
