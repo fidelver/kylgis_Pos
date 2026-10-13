@@ -23,7 +23,6 @@ package com.mx.kylgis.pos.forms;
 import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.ImageIcon;
 
 /**
  *
@@ -40,7 +39,7 @@ public class MenuExecAction extends AbstractAction {
      * @param keytext
      * @param sMyView */
     public MenuExecAction(AppView app, String icon, String keytext, String sMyView) {
-        putValue(Action.SMALL_ICON, new ImageIcon(JPrincipalApp.class.getResource(icon)));
+        putValue(Action.SMALL_ICON, MenuIconResolver.resolve(icon));
         putValue(Action.NAME, AppLocal.getIntString(keytext));
         putValue(AppUserView.ACTION_TASKNAME, sMyView);
         m_App = app;
