@@ -39,11 +39,11 @@ public class JProductFinder extends javax.swing.JDialog {
 
     private ProductInfoExt m_ReturnProduct;
     private ListProvider lpr;
+    private ProductFilterSales productFilter;
     public final static int PRODUCT_ALL = 0;
     public final static int PRODUCT_NORMAL = 1;
     public final static int PRODUCT_AUXILIAR = 2;
     public final static int PRODUCT_BUNDLE = 3;    
-    private Object dlSales;
     
     private JProductFinder(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
@@ -60,25 +60,36 @@ public class JProductFinder extends javax.swing.JDialog {
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         jScrollPane1.getHorizontalScrollBar().setPreferredSize(new Dimension(35, 35));        
 
-        ProductFilterSales jproductfilter = new ProductFilterSales(dlSales, m_jKeys);
-        jproductfilter.activate();
-        m_jProductSelect.add(jproductfilter, BorderLayout.CENTER);
+        productFilter = new ProductFilterSales(dlSales, m_jKeys);
+        productFilter.activate();
+        m_jProductSelect.add(productFilter, BorderLayout.CENTER);
         switch (productsType) {
             case PRODUCT_NORMAL:
-                lpr = new ListProviderCreator(dlSales.getProductListNormal(), jproductfilter);
+                lpr = new ListProviderCreator(dlSales.getProductListNormal(), productFilter);
                 break;
             case PRODUCT_AUXILIAR:               
-                lpr = new ListProviderCreator(dlSales.getProductListAuxiliar(), jproductfilter);
+                lpr = new ListProviderCreator(dlSales.getProductListAuxiliar(), productFilter);
                 break;
             default: // PRODUCT_ALL
-                lpr = new ListProviderCreator(dlSales.getProductList(), jproductfilter);                
+                lpr = new ListProviderCreator(dlSales.getProductList(), productFilter);
                 break;
                 
         }
         jListProducts.setCellRenderer(new ProductRenderer());
+        jButton3.setToolTipText(AppLocal.getIntString("tooltip.search.execute"));
+        jButton3.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.execute"));
+        jButton3.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.execute"));
+        jListProducts.setToolTipText(AppLocal.getIntString("tooltip.search.results"));
+        jListProducts.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.results"));
+        jListProducts.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.results"));
+        configureKeyboardActions();
         
      
-        getRootPane().setDefaultButton(jcmdOK);   
+        getRootPane().setDefaultButton(null);
         m_ReturnProduct = null;
        
         setVisible(true);
@@ -129,6 +140,122 @@ public class JProductFinder extends javax.swing.JDialog {
         return myMsg.init(dlSales, productsType);
     }
     
+    private void configureKeyboardActions() {
+        productFilter.configureKeyboardNavigation(
+                () -> focusPreviousFromFilter(),
+                () -> jButton3.requestFocusInWindow());
+
+        bindTraversal(jButton3, "productFinderSearch",
+                () -> jListProducts.requestFocusInWindow(),
+                () -> productFilter.focusLastControl());
+        bindTraversal(jListProducts, "productFinderResults",
+                () -> jcmdCancel.requestFocusInWindow(),
+                () -> jButton3.requestFocusInWindow());
+        bindTraversal(jcmdCancel, "productFinderCancel",
+                () -> {
+                    if (jcmdOK.isEnabled()) {
+                        jcmdOK.requestFocusInWindow();
+                    } else {
+                        productFilter.focusPrimaryField();
+                    }
+                },
+                () -> jListProducts.requestFocusInWindow());
+        bindTraversal(jcmdOK, "productFinderOk",
+                () -> productFilter.focusPrimaryField(),
+                () -> jcmdCancel.requestFocusInWindow());
+
+        jListProducts.getInputMap(javax.swing.JComponent.WHEN_FOCUSED).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0),
+                "productFinderAccept");
+        jListProducts.getActionMap().put("productFinderAccept", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                acceptSelectedProduct();
+            }
+        });
+
+        getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0),
+                "productFinderCancelDialog");
+        getRootPane().getActionMap().put("productFinderCancelDialog", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                cancelAndClose();
+            }
+        });
+
+        getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L,
+                        java.awt.event.InputEvent.ALT_DOWN_MASK),
+                "productFinderReset");
+        getRootPane().getActionMap().put("productFinderReset", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                productFilter.resetAndFocus();
+            }
+        });
+
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent event) {
+                m_ReturnProduct = null;
+            }
+        });
+    }
+
+    private void focusPreviousFromFilter() {
+        if (jcmdOK.isEnabled()) {
+            jcmdOK.requestFocusInWindow();
+        } else {
+            jcmdCancel.requestFocusInWindow();
+        }
+    }
+
+    private void bindTraversal(javax.swing.JComponent component, String actionPrefix,
+            Runnable forward, Runnable backward) {
+        component.setFocusTraversalKeysEnabled(false);
+        component.getInputMap(javax.swing.JComponent.WHEN_FOCUSED).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_TAB, 0),
+                actionPrefix + "Forward");
+        component.getActionMap().put(actionPrefix + "Forward", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                forward.run();
+            }
+        });
+        component.getInputMap(javax.swing.JComponent.WHEN_FOCUSED).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_TAB,
+                        java.awt.event.InputEvent.SHIFT_DOWN_MASK),
+                actionPrefix + "Backward");
+        component.getActionMap().put(actionPrefix + "Backward", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                backward.run();
+            }
+        });
+    }
+
+    private void clearSearchResults() {
+        jListProducts.setModel(new MyListData(java.util.Collections.emptyList()));
+        jListProducts.clearSelection();
+        m_ReturnProduct = null;
+        jcmdOK.setEnabled(false);
+        jImageViewerProduct.setImage(null);
+    }
+
+    private void acceptSelectedProduct() {
+        ProductInfoExt selected = (ProductInfoExt) jListProducts.getSelectedValue();
+        if (selected != null) {
+            m_ReturnProduct = selected;
+            dispose();
+        }
+    }
+
+    private void cancelAndClose() {
+        m_ReturnProduct = null;
+        dispose();
+    }
+
     private static class MyListData extends javax.swing.AbstractListModel {
         
         private final java.util.List m_data;
@@ -182,7 +309,7 @@ public class JProductFinder extends javax.swing.JDialog {
         jButton3.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jButton3.setText(AppLocal.getIntString("button.executefilter")); // NOI18N
-        jButton3.setToolTipText("Execute Filter");
+        jButton3.setToolTipText(AppLocal.getIntString("tooltip.search.execute"));
         jButton3.setPreferredSize(new java.awt.Dimension(110, 45));
         jButton3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -304,19 +431,20 @@ public class JProductFinder extends javax.swing.JDialog {
             }
         }
         
+        // Previewing a row is not acceptance; return value stays unset until Enter/OK.
+        m_ReturnProduct = null;
+
     }//GEN-LAST:event_jListProductsMouseClicked
 
     private void jcmdOKActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcmdOKActionPerformed
         
-        m_ReturnProduct = (ProductInfoExt) jListProducts.getSelectedValue();
-        dispose();
+        acceptSelectedProduct();
         
     }//GEN-LAST:event_jcmdOKActionPerformed
 
     private void jcmdCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcmdCancelActionPerformed
 
-        m_ReturnProduct=null; 
-        dispose();
+        cancelAndClose();
         
     }//GEN-LAST:event_jcmdCancelActionPerformed
 
@@ -334,22 +462,25 @@ public class JProductFinder extends javax.swing.JDialog {
         
         jcmdOK.setEnabled(jListProducts.getSelectedValue() != null);
          
+        // Highlighting a result only enables acceptance and previews the image.
+        m_ReturnProduct = null;
+
     }//GEN-LAST:event_jListProductsValueChanged
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        clearSearchResults();
 
         try {
             jListProducts.setModel(new MyListData(lpr.loadData()));
-            if (jListProducts.getModel().getSize() > 0) {
-                jListProducts.setSelectedIndex(0);
-            }
+            // Results remain unselected until the user explicitly navigates or clicks.
         } catch (BasicException e) {
+            new com.mx.kylgis.pos.data.gui.MessageInf(e).show(this);
         }
         
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void m_jKeysActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jKeysActionPerformed
-        // TODO add your handling code here:
+        jButton3.doClick();
     }//GEN-LAST:event_m_jKeysActionPerformed
     
     

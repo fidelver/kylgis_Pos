@@ -73,7 +73,9 @@
                     <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
                       <ResourceString bundle="pos_messages.properties" key="button.executefilter" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
                     </Property>
-                    <Property name="toolTipText" type="java.lang.String" value="Execute Filter"/>
+                    <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
+                      <ResourceString bundle="pos_messages.properties" key="tooltip.search.execute" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
+                    </Property>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[110, 45]"/>
                     </Property>

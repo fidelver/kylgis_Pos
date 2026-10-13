@@ -778,7 +778,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "FROM products "
                 + "WHERE ?(QBF_FILTER) "
                 + "ORDER BY REFERENCE", 
-                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"})
+                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE|REFERENCE"})
 		, new SerializerWriteBasic(new Datas[] {
                     Datas.OBJECT, Datas.STRING, 
                     Datas.OBJECT, Datas.DOUBLE, 
@@ -828,7 +828,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "MEMODATE "
 		+ "FROM products "
                 + "WHERE ISCOM = " + s.DB.FALSE() + " AND ?(QBF_FILTER) ORDER BY REFERENCE",
-                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"})
+                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE|REFERENCE"})
 		, new SerializerWriteBasic(new Datas[] {
                     Datas.OBJECT, Datas.STRING, 
                     Datas.OBJECT, Datas.DOUBLE, 
@@ -952,7 +952,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 		+ "MEMODATE "
                 + "FROM products "
                 + "WHERE ISCOM = " + s.DB.TRUE() + " AND ?(QBF_FILTER) "
-                + "ORDER BY REFERENCE", new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"})
+                + "ORDER BY REFERENCE", new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE|REFERENCE"})
 		, new SerializerWriteBasic(new Datas[] {
                     Datas.OBJECT, Datas.STRING, 
                     Datas.OBJECT, Datas.DOUBLE, 
@@ -2003,7 +2003,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     + "WHERE ?(QBF_FILTER) "
                     + "ORDER BY P.REFERENCE", 
                     new String[] {
-                        "P.NAME", "P.PRICEBUY", "P.PRICESELL", "P.CATEGORY", "P.CODE"})
+                        "P.NAME", "P.PRICEBUY", "P.PRICESELL", "P.CATEGORY", "P.CODE|P.REFERENCE"})
 	, new SerializerWriteBasic(new Datas[] {
             Datas.OBJECT, Datas.STRING, 
             Datas.OBJECT, Datas.DOUBLE, 

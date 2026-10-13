@@ -40,12 +40,23 @@ public class ProductFilterSales extends javax.swing.JPanel implements EditorCrea
     
     private SentenceList m_sentcat;
     private ComboBoxValModel m_CategoryModel;
+    private final JEditorKeys m_editorKeys;
+    private Runnable m_beforeFirstControl = () -> { };
+    private Runnable m_afterLastControl = () -> { };
     
     /** Creates new form ProductFilterSales
      * @param dlSales
      * @param jKeys */
     public ProductFilterSales(DataLogicSales dlSales, JEditorKeys jKeys) {
+        m_editorKeys = jKeys;
         initComponents();
+        jLabel1.setText(AppLocal.getIntString("label.prodcodeorref"));
+        jBtnReset.setToolTipText(AppLocal.getIntString("tooltip.search.reset"));
+        jBtnReset.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnReset.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.reset"));
+        configureInternalKeyboardNavigation();
         
         // El modelo de categorias
         m_sentcat = dlSales.getCategoriesList();
@@ -82,7 +93,7 @@ public class ProductFilterSales extends javax.swing.JPanel implements EditorCrea
             m_CategoryModel = new ComboBoxValModel(catlist);
             m_jCategory.setModel(m_CategoryModel);
         } catch (BasicException eD) {
-            // no hay validacion
+            new com.mx.kylgis.pos.data.gui.MessageInf(eD).show(this);
         }
     }
     
@@ -127,12 +138,120 @@ public class ProductFilterSales extends javax.swing.JPanel implements EditorCrea
             afilter[9] = null;
         } else{
             afilter[8] = QBFCompareEnum.COMP_RE;
-            afilter[9] = "%" + m_jtxtBarCode.getText() + "%";
+            afilter[9] = m_jtxtBarCode.getText() + "%";
         }
         
         return afilter;
     } 
     
+    /**
+     * Connects the filter's first/last Tab boundaries to its containing dialog.
+     * The actions remain local to this filter and its editor keyboard.
+     *
+     * @param beforeFirst action used by Shift+Tab from the first filter field
+     * @param afterLast action used by Tab from Reset
+     */
+    public void configureKeyboardNavigation(Runnable beforeFirst, Runnable afterLast) {
+        m_beforeFirstControl = beforeFirst == null ? () -> { } : beforeFirst;
+        m_afterLastControl = afterLast == null ? () -> { } : afterLast;
+    }
+
+    /** Clears all filters and returns keyboard input to the primary field. */
+    public void resetAndFocus() {
+        jBtnReset.doClick();
+    }
+
+    /** Returns keyboard input to the main product-name filter. */
+    public void focusPrimaryField() {
+        m_jtxtName.activate();
+    }
+
+    /** Gives focus to the final control in this filter for reverse traversal. */
+    public void focusLastControl() {
+        jBtnReset.requestFocusInWindow();
+    }
+
+    private void configureInternalKeyboardNavigation() {
+        m_editorKeys.bindFocusedKeyAction(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_TAB, 0),
+                "productFilterTabForward",
+                new javax.swing.AbstractAction() {
+                    @Override
+                    public void actionPerformed(java.awt.event.ActionEvent event) {
+                        com.mx.kylgis.pos.editor.EditorComponent active = m_editorKeys.getActiveEditor();
+                        if (active == m_jtxtName) {
+                            m_jtxtBarCode.activate();
+                        } else if (active == m_jtxtBarCode) {
+                            m_jCategory.requestFocusInWindow();
+                        } else if (active == m_jPriceBuy) {
+                            m_jCboPriceSell.requestFocusInWindow();
+                        } else if (active == m_jPriceSell) {
+                            jBtnReset.requestFocusInWindow();
+                        } else {
+                            m_afterLastControl.run();
+                        }
+                    }
+                });
+        m_editorKeys.bindFocusedKeyAction(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_TAB,
+                        java.awt.event.InputEvent.SHIFT_DOWN_MASK),
+                "productFilterTabBackward",
+                new javax.swing.AbstractAction() {
+                    @Override
+                    public void actionPerformed(java.awt.event.ActionEvent event) {
+                        com.mx.kylgis.pos.editor.EditorComponent active = m_editorKeys.getActiveEditor();
+                        if (active == m_jtxtName) {
+                            m_beforeFirstControl.run();
+                        } else if (active == m_jtxtBarCode) {
+                            m_jtxtName.activate();
+                        } else if (active == m_jPriceBuy) {
+                            m_jCboPriceBuy.requestFocusInWindow();
+                        } else if (active == m_jPriceSell) {
+                            m_jCboPriceSell.requestFocusInWindow();
+                        } else {
+                            m_beforeFirstControl.run();
+                        }
+                    }
+                });
+
+        bindTraversal(m_jCategory, "productFilterCategory",
+                () -> m_jCboPriceBuy.requestFocusInWindow(),
+                () -> m_jtxtBarCode.activate());
+        bindTraversal(m_jCboPriceBuy, "productFilterPriceBuyComparator",
+                () -> m_jPriceBuy.activate(),
+                () -> m_jCategory.requestFocusInWindow());
+        bindTraversal(m_jCboPriceSell, "productFilterPriceSellComparator",
+                () -> m_jPriceSell.activate(),
+                () -> m_jPriceBuy.activate());
+        bindTraversal(jBtnReset, "productFilterReset",
+                () -> m_afterLastControl.run(),
+                () -> m_jPriceSell.activate());
+    }
+
+    private void bindTraversal(javax.swing.JComponent component, String actionPrefix,
+            Runnable forward, Runnable backward) {
+        component.setFocusTraversalKeysEnabled(false);
+        component.getInputMap(javax.swing.JComponent.WHEN_FOCUSED).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_TAB, 0),
+                actionPrefix + "Forward");
+        component.getActionMap().put(actionPrefix + "Forward", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                forward.run();
+            }
+        });
+        component.getInputMap(javax.swing.JComponent.WHEN_FOCUSED).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_TAB,
+                        java.awt.event.InputEvent.SHIFT_DOWN_MASK),
+                actionPrefix + "Backward");
+        component.getActionMap().put(actionPrefix + "Backward", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                backward.run();
+            }
+        });
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -301,6 +420,7 @@ public class ProductFilterSales extends javax.swing.JPanel implements EditorCrea
         m_jtxtName.setText(null);
         m_jPriceBuy.setDoubleValue(null);
         m_jPriceSell.setDoubleValue(null);
+        m_jtxtName.activate();
     }//GEN-LAST:event_jBtnResetActionPerformed
     
     

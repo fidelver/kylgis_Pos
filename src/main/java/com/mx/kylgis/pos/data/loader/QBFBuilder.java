@@ -180,6 +180,24 @@ public class QBFBuilder implements ISQLBuilderStatic {
             }
         }
         
+        private String buildExpression(QBFCompareEnum comparator, String field, String parameter) {
+            if (field == null || field.indexOf('|') < 0) {
+                return comparator.getExpression(field, parameter);
+            }
+
+            StringBuilder alternatives = new StringBuilder();
+            for (String alternative : field.split("\\|")) {
+                String expression = comparator.getExpression(alternative, parameter);
+                if (expression != null) {
+                    if (alternatives.length() > 0) {
+                        alternatives.append(" OR ");
+                    }
+                    alternatives.append(expression);
+                }
+            }
+            return alternatives.length() == 0 ? null : "(" + alternatives + ")";
+        }
+
         public String getFilter() {
             // El retorno debe ser siempre una expresion valida puesto que no se donde sera insertada.
             
@@ -187,7 +205,7 @@ public class QBFBuilder implements ISQLBuilderStatic {
             
             String sItem;                
             for (int i = 0; i < m_asFindFields.length; i ++) {
-                sItem = m_aiCondFields[i].getExpression(m_asFindFields[i], m_aParams[i]);           
+                sItem = buildExpression(m_aiCondFields[i], m_asFindFields[i], m_aParams[i]);
                 if (sItem != null) {
                     if (sFilter.length() > 0) {
                         sFilter.append(" AND ");

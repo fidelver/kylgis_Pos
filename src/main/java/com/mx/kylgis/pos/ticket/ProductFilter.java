@@ -52,6 +52,22 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     public ProductFilter() {
 
         initComponents();
+        jLabel5.setText(AppLocal.getIntString("label.prodcodeorref"));
+        jBtnReset.setToolTipText(AppLocal.getIntString("tooltip.search.reset"));
+        jBtnReset.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnReset.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.reset"));
+        getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L,
+                        java.awt.event.InputEvent.ALT_DOWN_MASK),
+                "productFilterReset");
+        getActionMap().put("productFilterReset", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                jBtnReset.doClick();
+            }
+        });
     }
     
     /**
@@ -133,7 +149,7 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
                 QBFCompareEnum.COMP_NONE, null,
                 QBFCompareEnum.COMP_NONE, null,
                 QBFCompareEnum.COMP_NONE, null,
-                QBFCompareEnum.COMP_EQUALS, m_jBarcode.getText()
+                QBFCompareEnum.COMP_RE, m_jBarcode.getText() + "%"
             };
         }
     } 
@@ -295,6 +311,7 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
         m_jName.setText(null);
         m_jPriceBuy.setText(null);
         m_jPriceSell.setText(null);
+        m_jName.requestFocusInWindow();
     }//GEN-LAST:event_jBtnResetActionPerformed
    
     
