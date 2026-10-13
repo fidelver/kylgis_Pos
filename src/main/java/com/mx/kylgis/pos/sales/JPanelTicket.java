@@ -2036,17 +2036,24 @@ System.out.println("PanelContainer : Focus Lost");
     }     
      
     public void Notify(String msg){
-        final WebNotification notification = new WebNotification ();
-        notification.setIcon ( NotificationIcon.information );
-        notification.setDisplayTime ( 4000 );
+        try {
+            final WebNotification notification = new WebNotification ();
+            notification.setIcon ( NotificationIcon.information );
+            notification.setDisplayTime ( 4000 );
 
-        final WebClock clock = new WebClock ();
-        clock.setClockType ( ClockType.timer );
-        clock.setTimeLeft ( 5000 );
-        notification.setContent ( msg );
+            final WebClock clock = new WebClock ();
+            clock.setClockType ( ClockType.timer );
+            clock.setTimeLeft ( 5000 );
+            notification.setContent ( msg );
 
-        NotificationManager.showNotification ( notification );
-        clock.start ();    
+            NotificationManager.showNotification ( notification );
+            clock.start ();
+        } catch (RuntimeException ex) {
+            // Notifications are non-critical UI feedback. A WebLaF popup failure
+            // must never abort a sale that has already been committed/printed.
+            Logger.getLogger(JPanelTicket.class.getName()).log(Level.WARNING,
+                    "Unable to show non-critical POS notification", ex);
+        }
     }    
     
     private void printReport(String resourcefile, TicketInfo ticket, Object ticketext) {
