@@ -486,6 +486,38 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         });
     }
 
+    private boolean isDuplicateVoucherPayment(PaymentInfo candidate) {
+        if (candidate == null
+                || !"voucherin".equals(candidate.getName())
+                || candidate.getVoucher() == null) {
+            return false;
+        }
+
+        for (PaymentInfo existing : m_aPaymentInfo.getPayments()) {
+            if ("voucherin".equals(existing.getName())
+                    && existing.getVoucher() != null
+                    && candidate.getVoucher().equalsIgnoreCase(existing.getVoucher())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean addPaymentIfAllowed(PaymentInfo payment) {
+        if (payment == null) {
+            return false;
+        }
+        if (isDuplicateVoucherPayment(payment)) {
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.voucher.duplicate"),
+                    AppLocal.getIntString("message.voucher.validation.title"),
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        m_aPaymentInfo.add(payment);
+        return true;
+    }
+
     private boolean isApprovedCardPayment(PaymentInfo payment) {
         return payment instanceof PaymentInfoMagcard
                 && ((PaymentInfoMagcard) payment).isPaymentOK();
@@ -771,8 +803,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         PaymentInfo returnPayment = (
                 (JPaymentInterface) m_jTabPayment.getSelectedComponent())
                 .executePayment();
-        if (returnPayment != null) {
-            m_aPaymentInfo.add(returnPayment);
+        if (addPaymentIfAllowed(returnPayment)) {
             printState();
         }        
         
@@ -812,8 +843,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             protected void done() {
                 try {
                     PaymentInfo payment = get();
-                    if (payment != null) {
-                        m_aPaymentInfo.add(payment);
+                    if (addPaymentIfAllowed(payment)) {
                         accepted = true;
                         dispose();
                     } else {

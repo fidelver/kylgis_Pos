@@ -55,6 +55,7 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
 
     private final String m_sVoucher; // "voucherin", "voucherout"
     private String m_sVoucher1;
+    private String m_customerId;
    
     /** Creates new form JPaymentTicket
      * @param app
@@ -74,26 +75,18 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
     }
     private void init(AppView app) {
 
-        try {
-            dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
-            dlCustomers = (DataLogicCustomers) app.getBean("com.mx.kylgis.pos.customers.DataLogicCustomers");
-            m_sentvouch = dlSales.getVoucherList();
+        dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
+        dlCustomers = (DataLogicCustomers) app.getBean("com.mx.kylgis.pos.customers.DataLogicCustomers");
+        m_sentvouch = dlSales.getVoucherListByCustomer();
 
-            initComponents();        
+        initComponents();
 
-            m_VoucherModel = new ComboBoxValModel();
-            List a = m_sentvouch.list();
-//            a.add(0, null);
+        m_VoucherModel = new ComboBoxValModel();
+        m_jVoucher.setModel(m_VoucherModel);
+        m_jVoucher.setEnabled(false);
+        webLblcustomerName.setText(null);
+    }
 
-            m_VoucherModel = new ComboBoxValModel(a);
-            m_jVoucher.setModel(m_VoucherModel);
-
-            webLblcustomerName.setText(null);            
-            
-        } catch (BasicException ex) {
-        }
-    }    
-    
     /**
      *
      * @param customerext
@@ -102,17 +95,37 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
      */
     @Override
     public void activate(CustomerInfoExt customerext, double dTotal,String transID) {
-    
+
             m_dTotal = dTotal;
-            
+            m_customerId = customerext == null ? null : customerext.getId();
+
             m_jTendered.reset();
-//            m_jTendered.activate();
+            refreshVoucherModel(customerext);
 
             m_jKeys.setEnabled(false);
-            m_jTendered.setEnabled(false);            
-            
+            m_jTendered.setEnabled(false);
+
             printState();
         }
+
+    private void refreshVoucherModel(CustomerInfoExt customerext) {
+        m_jMoneyEuros.setText(null);
+        voucherStatus.setText(null);
+        webLblcustomerName.setText(customerext == null ? null : customerext.getName());
+
+        try {
+            List vouchers = customerext == null
+                    ? java.util.Collections.emptyList()
+                    : m_sentvouch.list(customerext.getId());
+            m_VoucherModel = new ComboBoxValModel(vouchers);
+            m_jVoucher.setModel(m_VoucherModel);
+            m_jVoucher.setEnabled(customerext != null && !vouchers.isEmpty());
+        } catch (BasicException ex) {
+            m_VoucherModel = new ComboBoxValModel();
+            m_jVoucher.setModel(m_VoucherModel);
+            m_jVoucher.setEnabled(false);
+        }
+    }
 
     /**
      *
@@ -129,28 +142,26 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
      */
     @Override
     public PaymentInfo executePayment() {
-/*        try {
-            String id = m_VoucherModel.getSelectedKey().toString();
-            VoucherInfo m_voucherInfo = dlCustomers.getVoucherInfo(id);
-
-        } catch (BasicException ex) {
+        if (m_customerId == null || m_VoucherModel.getSelectedKey() == null) {
+            return null;
         }
-            if (m_dTicket>m_dTotal){
-                return new VoucherPaymentInfo(m_dTotal, m_sPaper,m_voucherInfo.getVoucherNumber());
-            }else{
-                return new VoucherPaymentInfo(m_dTicket, m_sPaper,m_voucherInfo.getVoucherNumber());
-            }         
-*/
+
         try {
             String id = m_VoucherModel.getSelectedKey().toString();
-            VoucherInfo m_voucherInfo1 = dlCustomers.getVoucherInfo(id);
-            m_sVoucher1 = m_voucherInfo1.getVoucherNumber();                    
+            VoucherInfo voucherInfo = dlCustomers.getVoucherInfo(id);
+            if (voucherInfo == null
+                    || !"A".equals(voucherInfo.getStatus())
+                    || !m_customerId.equals(voucherInfo.getCustomerId())) {
+                return null;
+            }
+            m_sVoucher1 = voucherInfo.getVoucherNumber();
         } catch (BasicException ex) {
+            return null;
         }
-            return new PaymentInfoTicket(m_dTicket, m_sVoucher, m_sVoucher1);                    
-        
-    }    
-    
+
+        return new PaymentInfoTicket(m_dTicket, m_sVoucher, m_sVoucher1);
+    }
+
     private void printState() {
 
         Double value = m_jTendered.getDoubleValue();

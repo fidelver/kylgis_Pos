@@ -41,6 +41,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.io.File;
@@ -1653,6 +1655,31 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     @Override
     public Object transact() throws BasicException {
 
+        Set<String> vouchersToConsume = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (PaymentInfo payment : ticket.getPayments()) {
+            if ("voucherin".equals(payment.getName())) {
+                String customerId = ticket.getCustomerId();
+                String voucherNumber = payment.getVoucher();
+
+                if (customerId == null || customerId.isBlank()) {
+                    throw new BasicException("Voucher redemption requires a customer assigned to the ticket.");
+                }
+                if (voucherNumber == null || voucherNumber.isBlank()) {
+                    throw new BasicException("Voucher redemption requires a valid voucher number.");
+                }
+                if (!vouchersToConsume.add(voucherNumber)) {
+                    throw new BasicException("The same voucher cannot be used more than once in a sale.");
+                }
+            }
+        }
+
+        for (String voucherNumber : vouchersToConsume) {
+            int affected = consumeVoucher(voucherNumber, ticket.getCustomerId());
+            if (affected != 1) {
+                throw new BasicException("Voucher is invalid, belongs to another customer, is already redeemed, or is duplicated in the voucher table.");
+            }
+        }
+
         // Set Receipt Id
         if (ticket.getTicketId() == 0) {
             switch (ticket.getTicketType()) {
@@ -1773,10 +1800,6 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     setString(9, payment.getVoucher());
                 }
             });
-
-            if (payment.getName().contains("voucher")) {
-                getVoucherNonActive().exec(payment.getVoucher());
-            }
 
             if ("debt".equals(payment.getName()) || "debtpaid".equals(payment.getName())) {
                 ticket.getCustomer().updateCurDebt(payment.getTotal(), ticket.getDate());
@@ -2617,15 +2640,35 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 "JOIN customers ON customers.id = vouchers.CUSTOMER  " +
               "WHERE STATUS='A' " +
               "ORDER BY vouchers.VOUCHER_NUMBER ASC"
-            , null, VoucherInfo.getSerializerRead());      
+            , null, VoucherInfo.getSerializerRead());
     }
-    public final SentenceExec getVoucherNonActive() {
-        return new PreparedSentence(s, 
+
+    public final SentenceList getVoucherListByCustomer() {
+        return new PreparedSentence(s,
+            "SELECT " +
+                "vouchers.ID,vouchers.VOUCHER_NUMBER,vouchers.CUSTOMER, " +
+                "customers.NAME,AMOUNT, STATUS " +
+              "FROM vouchers " +
+                "JOIN customers ON customers.id = vouchers.CUSTOMER " +
+              "WHERE vouchers.STATUS='A' AND vouchers.CUSTOMER = ? " +
+              "ORDER BY vouchers.VOUCHER_NUMBER ASC",
+            SerializerWriteString.INSTANCE,
+            VoucherInfo.getSerializerRead());
+    }
+
+    private int consumeVoucher(final String voucherNumber, final String customerId) throws BasicException {
+        return new PreparedSentence(s,
                 "UPDATE vouchers SET STATUS = 'D' " +
-                "WHERE VOUCHER_NUMBER = ?"
-                , SerializerWriteString.INSTANCE);
+                "WHERE VOUCHER_NUMBER = ? AND CUSTOMER = ? AND STATUS = 'A'",
+                SerializerWriteParams.INSTANCE).exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, voucherNumber);
+                        setString(2, customerId);
+                    }
+                });
     }
-    
+
     public final SentenceExec resetPickupId() {
 
         return new PreparedSentence(s, 
