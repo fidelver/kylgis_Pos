@@ -2677,6 +2677,26 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     }
                     statement.setTimestamp(6, lastPurchase);
                     statement.executeUpdate();
+                } catch (SQLException concurrentInsert) {
+                    // Another terminal may have created the same N:M row after
+                    // our first UPDATE. Retry as UPDATE before treating it as a
+                    // real failure; a non-duplicate problem will still fail.
+                    try (PreparedStatement retry = connection.prepareStatement(
+                            "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "
+                            + "WHERE product_id = ? AND supplier_id = ?")) {
+                        retry.setBoolean(1, true);
+                        if (lastCost == null) {
+                            retry.setNull(2, java.sql.Types.DOUBLE);
+                        } else {
+                            retry.setDouble(2, lastCost);
+                        }
+                        retry.setTimestamp(3, lastPurchase);
+                        retry.setString(4, productId);
+                        retry.setString(5, supplierId);
+                        if (retry.executeUpdate() != 1) {
+                            throw concurrentInsert;
+                        }
+                    }
                 }
             }
 
