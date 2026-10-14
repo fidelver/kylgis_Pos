@@ -162,22 +162,18 @@ public final class DatabaseUpgradeService {
     }
 
     private static boolean tableExists(DatabaseMetaData meta, String table) throws SQLException {
-        try (ResultSet rows = meta.getTables(null, null, null, new String[]{"TABLE"})) {
-            while (rows.next()) {
-                if (table.equalsIgnoreCase(rows.getString("TABLE_NAME"))) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return resolveTable(meta, table) != null;
     }
 
     private static boolean columnExists(DatabaseMetaData meta, String table, String column)
             throws SQLException {
-        try (ResultSet rows = meta.getColumns(null, null, null, null)) {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            return false;
+        }
+        try (ResultSet rows = meta.getColumns(currentCatalog(meta), currentSchema(meta), actualTable, null)) {
             while (rows.next()) {
-                if (table.equalsIgnoreCase(rows.getString("TABLE_NAME"))
-                        && column.equalsIgnoreCase(rows.getString("COLUMN_NAME"))) {
+                if (column.equalsIgnoreCase(rows.getString("COLUMN_NAME"))) {
                     return true;
                 }
             }
@@ -187,10 +183,13 @@ public final class DatabaseUpgradeService {
 
     private static boolean columnNullable(DatabaseMetaData meta, String table, String column)
             throws SQLException {
-        try (ResultSet rows = meta.getColumns(null, null, null, null)) {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+        try (ResultSet rows = meta.getColumns(currentCatalog(meta), currentSchema(meta), actualTable, null)) {
             while (rows.next()) {
-                if (table.equalsIgnoreCase(rows.getString("TABLE_NAME"))
-                        && column.equalsIgnoreCase(rows.getString("COLUMN_NAME"))) {
+                if (column.equalsIgnoreCase(rows.getString("COLUMN_NAME"))) {
                     return rows.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls;
                 }
             }
@@ -200,7 +199,12 @@ public final class DatabaseUpgradeService {
 
     private static boolean indexExists(DatabaseMetaData meta, String table, String index)
             throws SQLException {
-        try (ResultSet rows = meta.getIndexInfo(null, null, table, false, false)) {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            return false;
+        }
+        try (ResultSet rows = meta.getIndexInfo(currentCatalog(meta), currentSchema(meta),
+                actualTable, false, false)) {
             while (rows.next()) {
                 String name = rows.getString("INDEX_NAME");
                 if (name != null && index.equalsIgnoreCase(name)) {
@@ -208,23 +212,33 @@ public final class DatabaseUpgradeService {
                 }
             }
         }
-        try (ResultSet tables = meta.getTables(null, null, null, new String[]{"TABLE"})) {
-            while (tables.next()) {
-                String actual = tables.getString("TABLE_NAME");
+        return false;
+    }
+
+    private static String resolveTable(DatabaseMetaData meta, String table) throws SQLException {
+        try (ResultSet rows = meta.getTables(currentCatalog(meta), currentSchema(meta),
+                null, new String[]{"TABLE"})) {
+            while (rows.next()) {
+                String actual = rows.getString("TABLE_NAME");
                 if (table.equalsIgnoreCase(actual)) {
-                    try (ResultSet rows = meta.getIndexInfo(null, null, actual, false, false)) {
-                        while (rows.next()) {
-                            String name = rows.getString("INDEX_NAME");
-                            if (name != null && index.equalsIgnoreCase(name)) {
-                                return true;
-                            }
-                        }
-                    }
-                    break;
+                    return actual;
                 }
             }
         }
-        return false;
+        return null;
+    }
+
+    private static String currentCatalog(DatabaseMetaData meta) throws SQLException {
+        String catalog = meta.getConnection().getCatalog();
+        return catalog == null || catalog.isBlank() ? null : catalog;
+    }
+
+    private static String currentSchema(DatabaseMetaData meta) throws SQLException {
+        if (!isPostgreSql(meta)) {
+            return null;
+        }
+        String schema = meta.getConnection().getSchema();
+        return schema == null || schema.isBlank() ? "public" : schema;
     }
 
     private static boolean isSupportedDatabase(DatabaseMetaData meta) throws SQLException {
