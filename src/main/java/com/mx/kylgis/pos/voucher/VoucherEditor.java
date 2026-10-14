@@ -49,6 +49,9 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     private final  DataLogicSystem dlSystem;
     private CustomerInfo customerInfo;
     private Date expiresAt;
+    private static final long MIN_NEW_VOUCHER_LIFETIME_MILLIS = 24L * 60L * 60L * 1000L;
+    private boolean insertingVoucher;
+    private Date minimumNewExpiry;
     private final AppView m_app;
     
     private final ComboBoxValModel m_ReasonModel;    
@@ -84,6 +87,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     public void writeValueEOF() {
         id = null;
         customerInfo = null;
+        insertingVoucher = false;
+        minimumNewExpiry = null;
         expiresAt = null;
         updateExpiryControls(false);
         m_jNumber.setText(null);
@@ -102,6 +107,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     public void writeValueInsert() {
         id = UUID.randomUUID().toString();
         customerInfo = null;
+        insertingVoucher = true;
+        minimumNewExpiry = new Date(System.currentTimeMillis() + MIN_NEW_VOUCHER_LIFETIME_MILLIS);
         expiresAt = null;
         updateExpiryControls(true);
         m_jNumber.setText(VoucherCodeGenerator.generate());
@@ -119,6 +126,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     
     @Override
     public void writeValueDelete(Object value) {
+        insertingVoucher = false;
+        minimumNewExpiry = null;
     if ("A".equals(m_jStatus.getText())) {
         try {
             Object[] attr = (Object[]) value;
@@ -149,6 +158,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     
     @Override
     public void writeValueEdit(Object value) {
+        insertingVoucher = false;
+        minimumNewExpiry = null;
 
         try {
             Object[] attr = (Object[]) value;
@@ -456,10 +467,20 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
 
     private void m_jBtnExpiresAtActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jBtnExpiresAtActionPerformed
         Date selected = expiresAt == null
-                ? new Date(System.currentTimeMillis() + 5 * 60 * 1000L)
+                ? (insertingVoucher && minimumNewExpiry != null
+                        ? minimumNewExpiry
+                        : new Date(System.currentTimeMillis() + 5 * 60 * 1000L))
                 : expiresAt;
         selected = JCalendarDialog.showCalendarTime(this, selected);
         if (selected != null) {
+            if (insertingVoucher && minimumNewExpiry != null
+                    && selected.before(minimumNewExpiry)) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucherminimumlifetime"),
+                        AppLocal.getIntString("Check"),
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             if (!selected.after(new Date())) {
                 JOptionPane.showMessageDialog(this,
                         AppLocal.getIntString("message.voucherexpiryfuture"),
@@ -544,6 +565,14 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
             if (expiresAt == null) {
                 JOptionPane.showMessageDialog(this,
                         AppLocal.getIntString("message.voucherexpiryrequired"),
+                        AppLocal.getIntString("Check"),
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (insertingVoucher && minimumNewExpiry != null
+                    && expiresAt.before(minimumNewExpiry)) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucherminimumlifetime"),
                         AppLocal.getIntString("Check"),
                         JOptionPane.WARNING_MESSAGE);
                 return false;
