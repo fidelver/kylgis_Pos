@@ -2272,7 +2272,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
                 }
             }
 
-            if (JDialogProductSuppliers.showDialog(this, m_dlSuppliers,
+            if (JDialogProductSuppliers.showDialog(this, appView, m_dlSuppliers,
                     productId, suppliers)) {
                 refreshPreferredSupplier(productId);
             }

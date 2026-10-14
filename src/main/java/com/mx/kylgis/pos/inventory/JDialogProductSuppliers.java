@@ -4,9 +4,12 @@ package com.mx.kylgis.pos.inventory;
 
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.suppliers.DataLogicSuppliers;
+import com.mx.kylgis.pos.suppliers.JDialogNewSupplier;
 import com.mx.kylgis.pos.suppliers.ProductSupplierInfo;
 import com.mx.kylgis.pos.suppliers.SupplierInfo;
+import com.mx.kylgis.pos.suppliers.SupplierInfoExt;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -38,28 +41,30 @@ import javax.swing.table.AbstractTableModel;
  */
 public final class JDialogProductSuppliers extends JDialog {
 
+    private final AppView appView;
     private final DataLogicSuppliers logic;
     private final String productId;
     private final SupplierTableModel model;
     private boolean saved;
 
-    private JDialogProductSuppliers(Window owner, DataLogicSuppliers logic,
+    private JDialogProductSuppliers(Window owner, AppView appView, DataLogicSuppliers logic,
             String productId, List<SupplierInfo> supplierChoices,
             List<ProductSupplierInfo> current) {
         super(owner, AppLocal.getIntString("dialog.productsuppliers.title"),
                 ModalityType.APPLICATION_MODAL);
+        this.appView = appView;
         this.logic = logic;
         this.productId = productId;
         this.model = new SupplierTableModel(productId, supplierChoices, current);
         initUi();
     }
 
-    public static boolean showDialog(Component parent, DataLogicSuppliers logic,
+    public static boolean showDialog(Component parent, AppView appView, DataLogicSuppliers logic,
             String productId, List<SupplierInfo> supplierChoices) throws BasicException {
         List<ProductSupplierInfo> current = logic.getProductSuppliers(productId);
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialogProductSuppliers dialog = new JDialogProductSuppliers(
-                owner, logic, productId, supplierChoices, current);
+                owner, appView, logic, productId, supplierChoices, current);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return dialog.saved;
@@ -85,18 +90,30 @@ public final class JDialogProductSuppliers extends JDialog {
         scroll.setPreferredSize(new Dimension(620, 340));
         add(scroll, BorderLayout.CENTER);
 
+        JButton newSupplier = new JButton(AppLocal.getIntString("menu.productsuppliers.new"));
+        newSupplier.addActionListener(e -> createSupplier());
         JButton save = new JButton(AppLocal.getIntString("button.save"));
         save.addActionListener(e -> saveChanges());
         JButton cancel = new JButton(AppLocal.getIntString("button.cancel"));
         cancel.addActionListener(e -> dispose());
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(newSupplier);
         buttons.add(cancel);
         buttons.add(save);
         add(buttons, BorderLayout.SOUTH);
 
         getRootPane().setDefaultButton(save);
         pack();
+    }
+
+    private void createSupplier() {
+        JDialogNewSupplier dialog = JDialogNewSupplier.getDialog(this, appView);
+        dialog.setVisible(true);
+        SupplierInfoExt created = dialog.getSelectedSupplier();
+        if (created != null) {
+            model.addSupplier(created);
+        }
     }
 
     private void saveChanges() {
@@ -255,6 +272,26 @@ public final class JDialogProductSuppliers extends JDialog {
                 }
             }
             fireTableRowsUpdated(rowIndex, rowIndex);
+        }
+
+        private void addSupplier(SupplierInfo supplier) {
+            if (supplier == null || supplier.getID() == null) {
+                return;
+            }
+            for (int i = 0; i < rows.size(); i++) {
+                SupplierRow row = rows.get(i);
+                if (supplier.getID().equals(row.supplier.getID())) {
+                    row.associated = true;
+                    row.active = true;
+                    fireTableRowsUpdated(i, i);
+                    return;
+                }
+            }
+            SupplierRow row = new SupplierRow(supplier, null);
+            row.associated = true;
+            row.active = true;
+            rows.add(row);
+            fireTableRowsInserted(rows.size() - 1, rows.size() - 1);
         }
 
         private Set<String> getOriginalSupplierIds() {
