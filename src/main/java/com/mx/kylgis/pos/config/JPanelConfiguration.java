@@ -141,7 +141,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         } catch (IllegalStateException ex) {
             JMessageDialog.showMessage(this,
                 new MessageInf(MessageInf.SGN_WARNING,
-                        "No se pudo guardar la configuración de nodos", ex));
+                        "No se pudo guardar la configuración", ex));
             return;
         }
         

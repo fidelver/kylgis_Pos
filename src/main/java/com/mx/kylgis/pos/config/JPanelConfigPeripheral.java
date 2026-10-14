@@ -897,8 +897,13 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
             config.setProperty("machine.scale", sMachineScale);
         }
 
-        config.setProperty(ScaleRequestCommand.PROPERTY,
-                scaleRequestSelector.getConfiguredCommand());
+        try {
+            config.setProperty(ScaleRequestCommand.PROPERTY,
+                    scaleRequestSelector.getConfiguredCommand());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException(
+                    "Comando de solicitud de báscula inválido: " + ex.getMessage(), ex);
+        }
 
         // El scanner
         String sMachineScanner = comboValue(jcboMachineScanner.getSelectedItem());
