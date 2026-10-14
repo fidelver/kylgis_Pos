@@ -52,6 +52,9 @@ import java.awt.Color;
 import java.sql.BatchUpdateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JPanel;
@@ -483,6 +486,33 @@ public final class Transfer extends JPanel implements JPanelView {
         }
     }
     
+    private String validateVoucherSourceForTransfer() throws SQLException {
+        boolean voucherTableExists = false;
+        try (ResultSet tables = con_source.getMetaData().getTables(null, null, "vouchers", null)) {
+            voucherTableExists = tables.next();
+        }
+        if (!voucherTableExists) {
+            return null;
+        }
+
+        Set<String> normalizedNumbers = new HashSet<>();
+        try (Statement checkStatement = con_source.createStatement();
+                ResultSet voucherRows = checkStatement.executeQuery(
+                        "SELECT VOUCHER_NUMBER FROM vouchers")) {
+            while (voucherRows.next()) {
+                String value = voucherRows.getString(1);
+                String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+                if (normalized.isEmpty()) {
+                    return AppLocal.getIntString("message.transfer.voucherblank");
+                }
+                if (!normalizedNumbers.add(normalized)) {
+                    return AppLocal.getIntString("message.transfer.voucherduplicate") + " " + normalized;
+                }
+            }
+        }
+        return null;
+    }
+
     public void doTransfer() throws SQLException {
 
         webPBar.setString ( "Starting..." );
@@ -495,6 +525,16 @@ public final class Transfer extends JPanel implements JPanelView {
         if (getSource()) {          
             txtOut.setVisible(true);
             txtOut.append("Transfer Started..." + "\n");
+
+            String voucherPreflightError = validateVoucherSourceForTransfer();
+            if (voucherPreflightError != null) {
+                txtOut.append(voucherPreflightError + "\n");
+                JOptionPane.showMessageDialog(this, voucherPreflightError,
+                        AppLocal.getIntString("message.transfermessage"),
+                        JOptionPane.WARNING_MESSAGE);
+                webPBar.setVisible(false);
+                return;
+            }
                     
             if (createTargetDB()) {
                 jbtnTransfer.setEnabled(false);

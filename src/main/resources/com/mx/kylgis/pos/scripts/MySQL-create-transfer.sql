@@ -665,9 +665,11 @@ CREATE TABLE IF NOT EXISTS `uom` (
 /* Header line. Object: vouchers. Script date: 30/09/2015 09:33:33. */
 CREATE TABLE IF NOT EXISTS `vouchers` (
    `id` VARCHAR(100) NOT NULL,
-   `voucher_number` VARCHAR(100) DEFAULT NULL,
+   `voucher_number` VARCHAR(100) NOT NULL,
    `customer` VARCHAR(100) DEFAULT NULL,
    `amount` DOUBLE DEFAULT NULL,
    `status` CHAR(1) DEFAULT 'A',
+   `expires_at` DATETIME DEFAULT NULL,
+   UNIQUE INDEX `vouchers_number_uq` (`voucher_number`),
   PRIMARY KEY ( `id` )
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Compact;
