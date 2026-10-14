@@ -34,6 +34,7 @@ public class ScaleTorreyMetrologyLatam implements Scale {
     private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x50};
 
     private final String portName;
+    private final byte[] weightRequest;
     private SerialPort serialPort;
     private InputStream input;
     private OutputStream output;
@@ -42,7 +43,15 @@ public class ScaleTorreyMetrologyLatam implements Scale {
      * @param portName serial device, for example /dev/ttyUSB0
      */
     public ScaleTorreyMetrologyLatam(String portName) {
+        this(portName, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleTorreyMetrologyLatam(String portName, byte[] weightRequest) {
         this.portName = portName;
+        if (weightRequest == null || weightRequest.length == 0) {
+            throw new IllegalArgumentException("weightRequest is required");
+        }
+        this.weightRequest = weightRequest.clone();
     }
 
     @Override
@@ -50,7 +59,7 @@ public class ScaleTorreyMetrologyLatam implements Scale {
         ensureOpen();
         try {
             discardPendingInput();
-            output.write(DEFAULT_WEIGHT_REQUEST);
+            output.write(weightRequest);
             output.flush();
             return readResponse();
         } catch (IOException ex) {

@@ -30,7 +30,10 @@ import java.util.TooManyListenersException;
  */
 public class ScaleComm implements Scale, SerialPortEventListener {
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x05};
+
     private String m_sPortScale;
+    private final byte[] m_weightRequest;
     private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;      
     private OutputStream m_out;
@@ -45,7 +48,12 @@ public class ScaleComm implements Scale, SerialPortEventListener {
     /** Creates a new instance of ScaleComm
      * @param sPortPrinter */
     public ScaleComm(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleComm(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -75,7 +83,7 @@ public class ScaleComm implements Scale, SerialPortEventListener {
             
             // Ya estamos en SCALE_READY
             m_dWeightBuffer = 0.0;
-            write(new byte[] {0x05});
+            write(m_weightRequest);
             flush();             
             
             // Esperamos un ratito

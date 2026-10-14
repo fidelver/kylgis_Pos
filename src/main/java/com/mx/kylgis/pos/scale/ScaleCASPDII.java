@@ -29,7 +29,10 @@ public class ScaleCASPDII implements Scale, SerialPortEventListener {
     private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x57};
+
     private final String m_sPortScale;
+    private final byte[] m_weightRequest;
     private OutputStream m_out;
     private InputStream m_in;
 
@@ -44,7 +47,12 @@ public class ScaleCASPDII implements Scale, SerialPortEventListener {
     /** Creates a new instance of ScaleComm
      * @param sPortPrinter */
     public ScaleCASPDII(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleCASPDII(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -70,7 +78,7 @@ public class ScaleCASPDII implements Scale, SerialPortEventListener {
             
             m_dWeightBuffer = 0.0;
             m_dWeightDecimals = 1.0;
-            write(new byte[] {0x57});
+            write(m_weightRequest);
             flush();             
             
             try {

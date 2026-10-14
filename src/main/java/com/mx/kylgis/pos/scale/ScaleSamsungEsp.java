@@ -33,7 +33,10 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
     private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x24};
+
     private String m_sPortScale;
+    private final byte[] m_weightRequest;
     private OutputStream m_out;
     private InputStream m_in;
 
@@ -48,7 +51,12 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
     /** Creates a new instance of ScaleComm
      * @param sPortPrinter */
     public ScaleSamsungEsp(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleSamsungEsp(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -80,7 +88,7 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
             // Ya estamos en SCALE_READY
             m_dWeightBuffer = 0.0;
             m_dWeightDecimals = 1.0;
-            write(new byte[] {0x24}); // $
+            write(m_weightRequest);
             flush();             
             
             // Esperamos un ratito

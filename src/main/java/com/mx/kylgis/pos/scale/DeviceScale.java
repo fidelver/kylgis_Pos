@@ -56,25 +56,41 @@ public class DeviceScale {
         }
         switch (sScaleType) {
             case "acompc100":
-                m_scale = new ScaleAcomPC100(sScaleParam1);
+                m_scale = new ScaleAcomPC100(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57, 0x0D}));
                 break;
             case "averyberkel6720":
-                m_scale = new ScaleAvery(sScaleParam1);
+                m_scale = new ScaleAvery(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57, 0x0D}));
                 break;                
             case "casiopd1":
-                m_scale = new ScaleCasioPD1(sScaleParam1);
+                m_scale = new ScaleCasioPD1(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57, 0x0D}));
                 break;
             case "dialog1":
-                m_scale = new ScaleComm(sScaleParam1);
+                m_scale = new ScaleComm(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x05}));
                 break;
             case "samsungesp":
-                m_scale = new ScaleSamsungEsp(sScaleParam1);
+                m_scale = new ScaleSamsungEsp(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x24}));
                 break;
             case "caspdii":
-                m_scale = new ScaleCASPDII(sScaleParam1);
+                m_scale = new ScaleCASPDII(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57}));
                 break;
             case "torreymetrologylatam":
-                m_scale = new ScaleTorreyMetrologyLatam(sScaleParam1);
+                m_scale = new ScaleTorreyMetrologyLatam(
+                        sScaleParam1,
+                        ScaleRequestCommand.resolve(
+                                props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x50}));
                 break;
             case "fake":
                 // a fake scale for debugging purposes

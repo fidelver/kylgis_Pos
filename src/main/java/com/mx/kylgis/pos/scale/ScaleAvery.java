@@ -29,7 +29,10 @@ public class ScaleAvery implements Scale, SerialPortEventListener {
     private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x57, 0x0D};
+
     private String m_sPortScale;
+    private final byte[] m_weightRequest;
     private OutputStream m_out;
     private InputStream m_in;
 
@@ -43,7 +46,12 @@ public class ScaleAvery implements Scale, SerialPortEventListener {
     private int m_iStatusScale;
         
     public ScaleAvery(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleAvery(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -71,9 +79,8 @@ public class ScaleAvery implements Scale, SerialPortEventListener {
             m_dWeightDecimals = 1.0;
             
             // Send command to get data from scale
-            write(new byte[] {0x0057});
+            write(m_weightRequest);
             flush();
-            write(new byte[] {0x000D});
                         try {
                 wait(1000);
             } catch (InterruptedException e) {

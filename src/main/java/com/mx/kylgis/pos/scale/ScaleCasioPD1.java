@@ -33,7 +33,10 @@ public class ScaleCasioPD1 implements Scale, SerialPortEventListener {
     private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x57, 0x0D};
+
     private String m_sPortScale;
+    private final byte[] m_weightRequest;
     private OutputStream m_out;
     private InputStream m_in;
 
@@ -49,7 +52,12 @@ public class ScaleCasioPD1 implements Scale, SerialPortEventListener {
     /** Creates a new instance of ScaleComm
      * @param sPortPrinter */
     public ScaleCasioPD1(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleCasioPD1(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -80,9 +88,8 @@ public class ScaleCasioPD1 implements Scale, SerialPortEventListener {
             
             m_dWeightBuffer = 0.0;
             m_dWeightDecimals = 1.0;
-            write(new byte[] {0x0057});
+            write(m_weightRequest);
             flush();
-            write(new byte[] {0x000D});
             
             // Esperamos un ratito
             try {

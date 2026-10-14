@@ -24,6 +24,8 @@ import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.hardware.PeripheralPortCatalog;
+import com.mx.kylgis.pos.scale.ScaleRequestCommand;
+import com.mx.kylgis.pos.scale.config.ScaleRequestSelectorPanel;
 import com.mx.kylgis.pos.util.ReportUtils;
 import com.mx.kylgis.pos.util.StringParser;
 import java.awt.CardLayout;
@@ -49,6 +51,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
     private javax.swing.JCheckBox digitalMirrorCheck;
     private javax.swing.JTextField digitalMirrorPath;
     private javax.swing.JButton digitalMirrorBrowse;
+    private ScaleRequestSelectorPanel scaleRequestSelector;
     
     private final ParametersConfig printer1printerparams;
     private final ParametersConfig printer2printerparams;
@@ -132,6 +135,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         
         jcboMachineScale.addActionListener(dirty);
         jcboSerialScale.addActionListener(dirty);
+        initScaleRequestControls();
 
         jcboMachineScanner.addActionListener(dirty);
         jcboSerialScanner.addActionListener(dirty);
@@ -261,6 +265,19 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         for (String name : printernames) {
             cboPrinters.addItem(name);
         }
+    }
+
+    private void initScaleRequestControls() {
+        scaleRequestSelector = new ScaleRequestSelectorPanel();
+        scaleRequestSelector.addActionListener(dirty);
+        scaleRequestSelector.addDocumentListener(dirty);
+
+        jPanel17.removeAll();
+        jPanel17.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 1));
+        jPanel17.add(jlblPrinterPort4);
+        jPanel17.add(jcboSerialScale);
+        jPanel17.add(scaleRequestSelector);
+        jPanel17.setPreferredSize(new java.awt.Dimension(400, 30));
     }
 
     private void initReceiptMirrorControls() {
@@ -647,6 +664,8 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 "mtind221".equals(sparam)) {
             jcboSerialScale.setSelectedItem(p.nextToken(','));
         }
+        scaleRequestSelector.setConfiguredCommand(
+                config.getProperty(ScaleRequestCommand.PROPERTY));
 
         p = new StringParser(config.getProperty("machine.scanner"));
         sparam = p.nextToken(':');
@@ -877,6 +896,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         } else {
             config.setProperty("machine.scale", sMachineScale);
         }
+
+        config.setProperty(ScaleRequestCommand.PROPERTY,
+                scaleRequestSelector.getConfiguredCommand());
 
         // El scanner
         String sMachineScanner = comboValue(jcboMachineScanner.getSelectedItem());
