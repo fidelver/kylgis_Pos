@@ -85,6 +85,11 @@ public class DeviceScale {
                         ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
                                 new byte[]{0x57}));
                 break;
+            case "mtind221":
+                m_scale = new ScaleMTIND221(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x50}));
+                break;
             case "torreymetrologylatam":
                 m_scale = new ScaleTorreyMetrologyLatam(
                         sScaleParam1,

@@ -20,9 +20,10 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scale;
 
-import gnu.io.*;
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import java.io.*;
-import java.util.TooManyListenersException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,12 +31,14 @@ import java.util.logging.Logger;
  *
  * @author Nicholas Fritz - changes by JG
  */
-public class ScaleMTIND221 implements Scale, SerialPortEventListener {
+public class ScaleMTIND221 implements Scale, SerialPortDataListener {
     
-    private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x50};
+
     private final String m_sPortScale;
+    private final byte[] m_weightRequest;
     private OutputStream m_out;
     private InputStream m_in;
 
@@ -50,7 +53,12 @@ public class ScaleMTIND221 implements Scale, SerialPortEventListener {
     /** Creates a new instance of ScaleComm
      * @param sPortPrinter */
     public ScaleMTIND221(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleMTIND221(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -82,11 +90,7 @@ public class ScaleMTIND221 implements Scale, SerialPortEventListener {
             
             m_dWeightBuffer = 0.0;
             m_dWeightDecimals = 1.0;
-            try {
-                write(new byte[] {0x50}); // P
-            } catch (TooManyListenersException ex) {
-                Logger.getLogger(ScaleMTIND221.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            write(m_weightRequest);
             flush();             
             
             try {
@@ -117,81 +121,69 @@ public class ScaleMTIND221 implements Scale, SerialPortEventListener {
         }        
     }
     
-    private void write(byte[] data) throws TooManyListenersException {
-        try {  
+    private void write(byte[] data) {
+        try {
             if (m_out == null) {
-                m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale); // Tomamos el puerto                   
-                m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 2000); // Abrimos el puerto       
-
-                m_out = m_CommPortPrinter.getOutputStream(); // Tomamos el chorro de escritura   
+                m_CommPortPrinter = SerialPort.getCommPort(m_sPortScale);
+                m_CommPortPrinter.setComPortParameters(9600, 8,
+                        SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
+                if (!m_CommPortPrinter.openPort(2000)) {
+                    return;
+                }
+                m_out = m_CommPortPrinter.getOutputStream();
                 m_in = m_CommPortPrinter.getInputStream();
-                
-                m_CommPortPrinter.addEventListener(this);
-                m_CommPortPrinter.notifyOnDataAvailable(true);
-                
-                m_CommPortPrinter.setSerialPortParams(9600, 8, 1, 0); // Configuramos el puerto
+                m_CommPortPrinter.addDataListener(this);
             }
             m_out.write(data);
-        } catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException | IOException e) {
-        }        
+        } catch (IOException e) {
+        }
     }
-    
+
     /**
      *
      * @param e
      */
     @Override
+    public int getListeningEvents() {
+        return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+    }
+
+    @Override
     public void serialEvent(SerialPortEvent e) {
+        if (e.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+            return;
+        }
+        try {
+            while (m_in.available() > 0) {
+                int b = m_in.read();
 
-	// Determine type of event.
-	switch (e.getEventType()) {
-            case SerialPortEvent.BI:
-            case SerialPortEvent.OE:
-            case SerialPortEvent.FE:
-            case SerialPortEvent.PE:
-            case SerialPortEvent.CD:
-            case SerialPortEvent.CTS:
-            case SerialPortEvent.DSR:
-            case SerialPortEvent.RI:
-            case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-                break;
-            case SerialPortEvent.DATA_AVAILABLE:
-                try {
-                    while (m_in.available() > 0) {
-                        int b = m_in.read();
-
-                        if (b == 0x000D) { // CR ASCII
-                            // Fin de lectura
-                            synchronized (this) {
-                                m_iStatusScale = SCALE_READY;
-                                notifyAll();
-                            }
-                        } else if (((b > 0x002F) && (b < 0x003A)) || (b == 0x002E)){
-                            synchronized(this) {
-                                if (m_iStatusScale == SCALE_READY) {
-                                    m_dWeightBuffer = 0.0; // se supone que esto debe estar ya garantizado
-                                    m_dWeightDecimals = 1.0;
-                                    m_iStatusScale = SCALE_READING;
-                                }
-                                if (b == 0x002E) {
-                                    m_iStatusScale = SCALE_READINGDECIMALS;
-                                } else {
-                                    m_dWeightBuffer = m_dWeightBuffer * 10.0 + b - 0x0030;
-                                    if (m_iStatusScale == SCALE_READINGDECIMALS) {
-                                        m_dWeightDecimals *= 10.0;
-                                    }
-                                }
-                            }
-                        } else {
-                            // caracteres invalidos, reseteamos.
-                            //m_dWeightBuffer = 0.0; // se supone que esto debe estar ya garantizado
+                if (b == 0x000D) {
+                    synchronized (this) {
+                        m_iStatusScale = SCALE_READY;
+                        notifyAll();
+                    }
+                } else if (((b > 0x002F) && (b < 0x003A)) || (b == 0x002E)) {
+                    synchronized (this) {
+                        if (m_iStatusScale == SCALE_READY) {
+                            m_dWeightBuffer = 0.0;
                             m_dWeightDecimals = 1.0;
-                            m_iStatusScale = SCALE_READY;
+                            m_iStatusScale = SCALE_READING;
+                        }
+                        if (b == 0x002E) {
+                            m_iStatusScale = SCALE_READINGDECIMALS;
+                        } else {
+                            m_dWeightBuffer = m_dWeightBuffer * 10.0 + b - 0x0030;
+                            if (m_iStatusScale == SCALE_READINGDECIMALS) {
+                                m_dWeightDecimals *= 10.0;
+                            }
                         }
                     }
-
-                } catch (IOException eIO) {}
-                break;
+                } else {
+                    m_dWeightDecimals = 1.0;
+                    m_iStatusScale = SCALE_READY;
+                }
+            }
+        } catch (IOException eIO) {
         }
-    }       
+    }
 }

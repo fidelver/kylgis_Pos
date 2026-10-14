@@ -20,21 +20,21 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scale;
 
-import gnu.io.*;
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import java.io.*;
-import java.util.TooManyListenersException;
 
 /**
  *
  * @author JG uniCenta
  */
-public class ScaleComm implements Scale, SerialPortEventListener {
+public class ScaleComm implements Scale, SerialPortDataListener {
     
     private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x05};
 
     private String m_sPortScale;
     private final byte[] m_weightRequest;
-    private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;      
     private OutputStream m_out;
     private InputStream m_in;
@@ -115,22 +115,26 @@ public class ScaleComm implements Scale, SerialPortEventListener {
     private void write(byte[] data) {
         try {  
             if (m_out == null) {
-                m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale); // Tomamos el puerto                   
-                m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 2000); // Abrimos el puerto       
+                m_CommPortPrinter = SerialPort.getCommPort(m_sPortScale);
 
-                m_out = m_CommPortPrinter.getOutputStream(); // Tomamos el chorro de escritura   
+                m_CommPortPrinter.setComPortParameters(4800, 8,
+
+                        SerialPort.ONE_STOP_BIT, SerialPort.ODD_PARITY);
+
+                if (!m_CommPortPrinter.openPort(2000)) {
+
+                    return;
+
+                }
+
+                m_out = m_CommPortPrinter.getOutputStream();
+
                 m_in = m_CommPortPrinter.getInputStream();
-                
-                m_CommPortPrinter.addEventListener(this);
-                m_CommPortPrinter.notifyOnDataAvailable(true);
-                
-                m_CommPortPrinter.setSerialPortParams(4800, 
-                        SerialPort.DATABITS_8, 
-                        SerialPort.STOPBITS_1, 
-                        SerialPort.PARITY_ODD); // Configuramos el puerto
+
+                m_CommPortPrinter.addDataListener(this); // Configuramos el puerto
             }
             m_out.write(data);
-        } catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException | TooManyListenersException | IOException e) {
+        } catch (IOException e) {
         }        
     }
     
@@ -139,21 +143,15 @@ public class ScaleComm implements Scale, SerialPortEventListener {
      * @param e
      */
     @Override
-    public void serialEvent(SerialPortEvent e) {
+    public int getListeningEvents() {
+        return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+    }
 
-	// Determine type of event.
-	switch (e.getEventType()) {
-            case SerialPortEvent.BI:
-            case SerialPortEvent.OE:
-            case SerialPortEvent.FE:
-            case SerialPortEvent.PE:
-            case SerialPortEvent.CD:
-            case SerialPortEvent.CTS:
-            case SerialPortEvent.DSR:
-            case SerialPortEvent.RI:
-            case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-                break;
-            case SerialPortEvent.DATA_AVAILABLE:
+    @Override
+    public void serialEvent(SerialPortEvent e) {
+        if (e.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+            return;
+        }
                 try {
                     while (m_in.available() > 0) {
                         int b = m_in.read();
@@ -179,9 +177,7 @@ public class ScaleComm implements Scale, SerialPortEventListener {
                         }
                     }
 
-                } catch (IOException eIO) {}
-                break;
+        } catch (IOException eIO) {
         }
-
-    }       
+    } 
 }

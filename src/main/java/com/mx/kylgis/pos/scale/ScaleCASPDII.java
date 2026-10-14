@@ -20,13 +20,13 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scale;
 
-import gnu.io.*;
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import java.io.*;
-import java.util.TooManyListenersException;
 
-public class ScaleCASPDII implements Scale, SerialPortEventListener {
+public class ScaleCASPDII implements Scale, SerialPortDataListener {
     
-    private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
     private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x57};
@@ -110,44 +110,39 @@ public class ScaleCASPDII implements Scale, SerialPortEventListener {
     private void write(byte[] data) {
         try {  
             if (m_out == null) {
-                m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale);                  
-                m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 1000);
+                m_CommPortPrinter = SerialPort.getCommPort(m_sPortScale);
+
+                m_CommPortPrinter.setComPortParameters(9600, 7,
+
+                        SerialPort.ONE_STOP_BIT, SerialPort.EVEN_PARITY);
+
+                if (!m_CommPortPrinter.openPort(1000)) {
+
+                    return;
+
+                }
 
                 m_out = m_CommPortPrinter.getOutputStream();
+
                 m_in = m_CommPortPrinter.getInputStream();
-                
-                m_CommPortPrinter.addEventListener(this);
-                m_CommPortPrinter.notifyOnDataAvailable(true);
-                
-                m_CommPortPrinter.setSerialPortParams(9600, 
-                        SerialPort.DATABITS_7, 
-                        SerialPort.STOPBITS_1, 
-                        SerialPort.PARITY_EVEN);
+
+                m_CommPortPrinter.addDataListener(this);
             }
             m_out.write(data);
-        } catch (NoSuchPortException | 
-                PortInUseException | 
-                UnsupportedCommOperationException | 
-                TooManyListenersException | 
-            IOException e) {
+        } catch (IOException e) {
         }        
     }
     
     @Override
-    public void serialEvent(SerialPortEvent e) {
+    public int getListeningEvents() {
+        return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+    }
 
-	switch (e.getEventType()) {
-            case SerialPortEvent.BI:
-            case SerialPortEvent.OE:
-            case SerialPortEvent.FE:
-            case SerialPortEvent.PE:
-            case SerialPortEvent.CD:
-            case SerialPortEvent.CTS:
-            case SerialPortEvent.DSR:
-            case SerialPortEvent.RI:
-            case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-                break;
-            case SerialPortEvent.DATA_AVAILABLE:
+    @Override
+    public void serialEvent(SerialPortEvent e) {
+        if (e.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+            return;
+        }
                 try {
                     while (m_in.available() > 0) {
                         int b = m_in.read();
@@ -181,7 +176,5 @@ public class ScaleCASPDII implements Scale, SerialPortEventListener {
                     }
 
                 } catch (IOException eIO) {}
-                break;
-        }
     }       
 }
