@@ -252,6 +252,8 @@ public final class DatabaseUpgradeService {
                 PreparedStatement preferExisting = connection.prepareStatement(
                         "UPDATE product_suppliers SET is_preferred = ?, active = ? "
                         + "WHERE product_id = ? AND supplier_id = ?");
+                PreparedStatement relationExists = connection.prepareStatement(
+                        "SELECT 1 FROM product_suppliers WHERE product_id = ? AND supplier_id = ?");
                 PreparedStatement insertMissing = connection.prepareStatement(
                         "INSERT INTO product_suppliers "
                         + "(product_id, supplier_id, is_preferred, active) VALUES (?, ?, ?, ?)") ) {
@@ -268,11 +270,17 @@ public final class DatabaseUpgradeService {
                 preferExisting.setString(3, productId);
                 preferExisting.setString(4, supplierId);
                 if (preferExisting.executeUpdate() == 0) {
-                    insertMissing.setString(1, productId);
-                    insertMissing.setString(2, supplierId);
-                    insertMissing.setBoolean(3, true);
-                    insertMissing.setBoolean(4, true);
-                    insertMissing.executeUpdate();
+                    relationExists.setString(1, productId);
+                    relationExists.setString(2, supplierId);
+                    try (ResultSet existing = relationExists.executeQuery()) {
+                        if (!existing.next()) {
+                            insertMissing.setString(1, productId);
+                            insertMissing.setString(2, supplierId);
+                            insertMissing.setBoolean(3, true);
+                            insertMissing.setBoolean(4, true);
+                            insertMissing.executeUpdate();
+                        }
+                    }
                 }
             }
         }
