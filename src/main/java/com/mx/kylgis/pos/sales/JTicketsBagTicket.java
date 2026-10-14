@@ -160,7 +160,9 @@ public class JTicketsBagTicket extends JTicketsBag {
                     m_dlSales.deleteEditedTicket(m_ticketCopy,
                             m_App.getInventoryLocation(),
                             replacementTicket.getId(),
-                            replacementTicket.getProperty(VoucherEditContext.AUTH_USER_ID));
+                            replacementTicket.getProperty(VoucherEditContext.OPERATOR_ID),
+                            replacementTicket.getProperty(VoucherEditContext.AUTH_USER_ID),
+                            replacementTicket.getProperty(VoucherEditContext.AUTH_AT));
                 } else {
                     m_dlSales.deleteTicket(m_ticketCopy, m_App.getInventoryLocation());
                 }
@@ -555,7 +557,8 @@ public class JTicketsBagTicket extends JTicketsBag {
         TicketInfo editedTicket = m_ticket.copyTicket();
         editedTicket.setProperty(VoucherEditContext.SOURCE_RECEIPT_ID, m_ticket.getId());
         if (voucherAuthorizer != null) {
-            VoucherEditContext.stamp(editedTicket, m_ticket, voucherAuthorizer);
+            VoucherEditContext.stamp(editedTicket, m_ticket, voucherAuthorizer,
+                    m_App.getAppUserView().getUser());
         }
         m_panelticketedit.setActiveTicket(editedTicket, null);
         

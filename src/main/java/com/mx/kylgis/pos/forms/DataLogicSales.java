@@ -40,6 +40,7 @@ import com.mx.kylgis.pos.voucher.VoucherInfo;
 import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -1873,16 +1874,19 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @throws BasicException
      */
     public final void deleteTicket(final TicketInfo ticket, final String location) throws BasicException {
-        deleteTicketInternal(ticket, location, null, null, false);
+        deleteTicketInternal(ticket, location, null, null, null, null, false);
     }
 
     public final void deleteEditedTicket(final TicketInfo sourceTicket, final String location,
-            final String replacementReceiptId, final String authorizationUserId) throws BasicException {
-        deleteTicketInternal(sourceTicket, location, replacementReceiptId, authorizationUserId, true);
+            final String replacementReceiptId, final String operatorUserId,
+            final String authorizationUserId, final String authorizationAt) throws BasicException {
+        deleteTicketInternal(sourceTicket, location, replacementReceiptId, operatorUserId,
+                authorizationUserId, authorizationAt, true);
     }
 
     private void deleteTicketInternal(final TicketInfo ticket, final String location,
-            final String replacementReceiptId, final String authorizationUserId,
+            final String replacementReceiptId, final String operatorUserId,
+            final String authorizationUserId, final String authorizationAt,
             final boolean reactivateUnusedVouchers) throws BasicException {
 
         Transaction t;
@@ -1892,12 +1896,23 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
                 Set<String> sourceVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                 Set<String> replacementVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                Date voucherAuthorizationTime = null;
                 if (reactivateUnusedVouchers) {
+                    if (!lockSourceNormalReceiptForVoucherEdit(ticket.getId())) {
+                        throw new BasicException("The source sale is no longer available for voucher edit finalization.");
+                    }
                     sourceVoucherNumbers.addAll(getVoucherPaymentsForReceipt(ticket.getId()));
+                    if (sourceVoucherNumbers.isEmpty()) {
+                        throw new BasicException("The source sale no longer contains the vouchers expected by this authorized edit.");
+                    }
                     if (!sourceVoucherNumbers.isEmpty()) {
                         if (!isAuthorizedVoucherEditUser(authorizationUserId)) {
                             throw new BasicException("Administrator or Manager authorization is required to reactivate vouchers from an edited sale.");
                         }
+                        if (!isVisibleVoucherEditOperator(operatorUserId)) {
+                            throw new BasicException("Voucher edit audit requires a valid visible POS operator.");
+                        }
+                        voucherAuthorizationTime = parseVoucherAuthorizationTime(authorizationAt);
                         if (replacementReceiptId == null || replacementReceiptId.isBlank()
                                 || !receiptExists(replacementReceiptId)) {
                             throw new BasicException("Replacement receipt is missing while finalizing voucher reactivation.");
@@ -1982,13 +1997,19 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
                 if (reactivateUnusedVouchers) {
                     for (String voucherNumber : sourceVoucherNumbers) {
+                        if (replacementVoucherNumbers.contains(voucherNumber)) {
+                            insertVoucherEditAudit(voucherNumber, ticket.getId(), replacementReceiptId,
+                                    operatorUserId, authorizationUserId, voucherAuthorizationTime,
+                                    "EDIT_REUSED");
+                        }
                         if (!replacementVoucherNumbers.contains(voucherNumber)) {
                             int affected = reactivateVoucherAfterEdit(voucherNumber, ticket.getCustomerId());
                             if (affected != 1) {
-                                throw new BasicException("Unable to reactivate voucher from edited sale: " + voucherNumber);
+                                throw new BasicException("Unable to reactivate voucher from edited sale.");
                             }
-                            logger.info("Voucher reactivated after authorized sale edit; sourceReceipt="
-                                    + ticket.getId() + " authorizedBy=" + authorizationUserId);
+                            insertVoucherEditAudit(voucherNumber, ticket.getId(), replacementReceiptId,
+                                    operatorUserId, authorizationUserId, voucherAuthorizationTime,
+                                    "EDIT_REACTIVATED");
                         }
                     }
                 }
@@ -2780,6 +2801,70 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 SerializerWriteString.INSTANCE,
                 SerializerReadInteger.INSTANCE).find(userId);
         return count != null && count == 1;
+    }
+
+    private boolean lockSourceNormalReceiptForVoucherEdit(String sourceReceiptId) throws BasicException {
+        if (sourceReceiptId == null || sourceReceiptId.isBlank()) {
+            return false;
+        }
+        String lockedId = (String) new PreparedSentence(s,
+                "SELECT ID FROM tickets WHERE ID = ? AND TICKETTYPE = 0 FOR UPDATE",
+                SerializerWriteString.INSTANCE,
+                SerializerReadString.INSTANCE).find(sourceReceiptId);
+        return sourceReceiptId.equals(lockedId);
+    }
+
+    private boolean isVisibleVoucherEditOperator(String userId) throws BasicException {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM people WHERE ID = ? AND VISIBLE = " + s.DB.TRUE(),
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(userId);
+        return count != null && count == 1;
+    }
+
+    private Date parseVoucherAuthorizationTime(String value) throws BasicException {
+        if (value == null || value.isBlank()) {
+            throw new BasicException("Voucher edit audit is missing its authorization timestamp.");
+        }
+        try {
+            return Date.from(Instant.parse(value));
+        } catch (RuntimeException ex) {
+            throw new BasicException("Voucher edit audit has an invalid authorization timestamp.", ex);
+        }
+    }
+
+    private void insertVoucherEditAudit(final String voucherNumber,
+            final String originalReceiptId, final String newReceiptId,
+            final String operatorUserId, final String authorizationUserId,
+            final Date authorizationTime, final String reason) throws BasicException {
+        if (voucherNumber == null || voucherNumber.isBlank()
+                || originalReceiptId == null || originalReceiptId.isBlank()
+                || newReceiptId == null || newReceiptId.isBlank()
+                || operatorUserId == null || operatorUserId.isBlank()
+                || authorizationUserId == null || authorizationUserId.isBlank()
+                || authorizationTime == null || reason == null || reason.isBlank()) {
+            throw new BasicException("Incomplete voucher edit audit context.");
+        }
+        new PreparedSentence(s,
+                "INSERT INTO voucher_reactivation_audit "
+                + "(ID, VOUCHER_NUMBER, ORIGINAL_RECEIPT, NEW_RECEIPT, OPERATOR_ID, "
+                + "AUTHORIZED_BY, AUTHORIZED_AT, REASON) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                SerializerWriteParams.INSTANCE).exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, UUID.randomUUID().toString());
+                        setString(2, voucherNumber);
+                        setString(3, originalReceiptId);
+                        setString(4, newReceiptId);
+                        setString(5, operatorUserId);
+                        setString(6, authorizationUserId);
+                        setTimestamp(7, authorizationTime);
+                        setString(8, reason);
+                    }
+                });
     }
 
     private boolean isReusableVoucherFromSourceReceipt(String sourceReceiptId,

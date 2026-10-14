@@ -19,6 +19,7 @@ public final class VoucherEditContext {
     public static final String AUTH_USER_ID = "kylgis.edit.voucher.authorizedById";
     public static final String AUTH_USER_NAME = "kylgis.edit.voucher.authorizedByName";
     public static final String AUTH_USER_ROLE = "kylgis.edit.voucher.authorizedByRole";
+    public static final String OPERATOR_ID = "kylgis.edit.voucher.operatorId";
     public static final String AUTH_AT = "kylgis.edit.voucher.authorizedAt";
 
     private VoucherEditContext() {
@@ -48,11 +49,13 @@ public final class VoucherEditContext {
         return "0".equals(roleId) || "1".equals(roleId);
     }
 
-    public static void stamp(TicketInfo editedTicket, TicketInfo sourceTicket, AppUser authorizer) {
+    public static void stamp(TicketInfo editedTicket, TicketInfo sourceTicket,
+            AppUser authorizer, AppUser operator) {
         editedTicket.setProperty(SOURCE_RECEIPT_ID, sourceTicket.getId());
         editedTicket.setProperty(AUTH_USER_ID, authorizer.getId());
         editedTicket.setProperty(AUTH_USER_NAME, authorizer.getName());
         editedTicket.setProperty(AUTH_USER_ROLE, authorizer.getRole());
+        editedTicket.setProperty(OPERATOR_ID, operator == null ? "" : operator.getId());
         editedTicket.setProperty(AUTH_AT, Instant.now().toString());
     }
 }
