@@ -274,6 +274,12 @@ public class StockManagement extends JPanel implements JPanelView {
     private void incProduct(ProductInfoExt product, double units) {
 
         MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
+        if (reason == MovementReason.IN_PURCHASE
+                && m_SuppliersModel.getSelectedItem() == null
+                && product.getSupplierID() != null
+                && !product.getSupplierID().trim().isEmpty()) {
+            m_SuppliersModel.setSelectedKey(product.getSupplierID());
+        }
         addLine(product, units, reason.isInput() 
                 ? product.getPriceBuy()
                 : product.getPriceSell());
