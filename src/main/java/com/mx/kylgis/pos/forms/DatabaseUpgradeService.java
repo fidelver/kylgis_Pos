@@ -213,20 +213,18 @@ public final class DatabaseUpgradeService {
             }
         }
 
+        validateCompositePrimaryKey(meta, "product_suppliers", "product_id", "supplier_id");
+        validateCascadeForeignKey(meta, "product_suppliers", "product_id", "products", "id");
+        validateCascadeForeignKey(meta, "product_suppliers", "supplier_id", "suppliers", "id");
+        validatePreferredSupplierUniqueness(connection);
+
         if (!indexExists(meta, "product_suppliers", "product_suppliers_supplier_inx")) {
             execute(connection, "CREATE INDEX product_suppliers_supplier_inx "
                     + "ON product_suppliers (supplier_id)");
         }
 
-        String preferred = isPostgreSql(meta) ? "TRUE" : "b'1'";
-        String active = isPostgreSql(meta) ? "TRUE" : "b'1'";
-        execute(connection, "INSERT INTO product_suppliers "
-                + "(product_id, supplier_id, is_preferred, active) "
-                + "SELECT p.id, p.supplier, " + preferred + ", " + active + " "
-                + "FROM products p JOIN suppliers s ON s.id = p.supplier "
-                + "WHERE p.supplier IS NOT NULL AND TRIM(p.supplier) <> '' "
-                + "AND NOT EXISTS (SELECT 1 FROM product_suppliers ps "
-                + "WHERE ps.product_id = p.id AND ps.supplier_id = p.supplier)");
+        backfillLegacyProductSuppliers(connection);
+        validatePreferredSupplierUniqueness(connection);
     }
 
     private static void validateLegacyProductSuppliers(Connection connection) throws SQLException {
@@ -239,6 +237,114 @@ public final class DatabaseUpgradeService {
             if (rows.next()) {
                 throw new SQLException("Product supplier migration blocked: product "
                         + rows.getString(1) + " references unknown supplier " + rows.getString(2));
+            }
+        }
+    }
+
+    private static void backfillLegacyProductSuppliers(Connection connection) throws SQLException {
+        String selectSql = "SELECT p.id, p.supplier FROM products p "
+                + "JOIN suppliers s ON s.id = p.supplier "
+                + "WHERE p.supplier IS NOT NULL AND TRIM(p.supplier) <> ''";
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(selectSql);
+                PreparedStatement clearPreferred = connection.prepareStatement(
+                        "UPDATE product_suppliers SET is_preferred = ? WHERE product_id = ?");
+                PreparedStatement preferExisting = connection.prepareStatement(
+                        "UPDATE product_suppliers SET is_preferred = ?, active = ? "
+                        + "WHERE product_id = ? AND supplier_id = ?");
+                PreparedStatement insertMissing = connection.prepareStatement(
+                        "INSERT INTO product_suppliers "
+                        + "(product_id, supplier_id, is_preferred, active) VALUES (?, ?, ?, ?)") ) {
+            while (rows.next()) {
+                String productId = rows.getString(1);
+                String supplierId = rows.getString(2);
+
+                clearPreferred.setBoolean(1, false);
+                clearPreferred.setString(2, productId);
+                clearPreferred.executeUpdate();
+
+                preferExisting.setBoolean(1, true);
+                preferExisting.setBoolean(2, true);
+                preferExisting.setString(3, productId);
+                preferExisting.setString(4, supplierId);
+                if (preferExisting.executeUpdate() == 0) {
+                    insertMissing.setString(1, productId);
+                    insertMissing.setString(2, supplierId);
+                    insertMissing.setBoolean(3, true);
+                    insertMissing.setBoolean(4, true);
+                    insertMissing.executeUpdate();
+                }
+            }
+        }
+    }
+
+    private static void validateCompositePrimaryKey(DatabaseMetaData meta, String table,
+            String firstColumn, String secondColumn) throws SQLException {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+        Set<String> columns = new HashSet<>();
+        try (ResultSet rows = meta.getPrimaryKeys(currentCatalog(meta), currentSchema(meta), actualTable)) {
+            while (rows.next()) {
+                String column = rows.getString("COLUMN_NAME");
+                if (column != null) {
+                    columns.add(column.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        if (columns.size() != 2
+                || !columns.contains(firstColumn.toLowerCase(Locale.ROOT))
+                || !columns.contains(secondColumn.toLowerCase(Locale.ROOT))) {
+            throw new SQLException("Product suppliers table has an invalid primary key.");
+        }
+    }
+
+    private static void validateCascadeForeignKey(DatabaseMetaData meta, String table,
+            String foreignColumn, String referencedTable, String referencedColumn)
+            throws SQLException {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+        boolean relationshipFound = false;
+        try (ResultSet rows = meta.getImportedKeys(currentCatalog(meta), currentSchema(meta), actualTable)) {
+            while (rows.next()) {
+                String fkColumn = rows.getString("FKCOLUMN_NAME");
+                String pkTable = rows.getString("PKTABLE_NAME");
+                String pkColumn = rows.getString("PKCOLUMN_NAME");
+                if (foreignColumn.equalsIgnoreCase(fkColumn)
+                        && referencedTable.equalsIgnoreCase(pkTable)
+                        && referencedColumn.equalsIgnoreCase(pkColumn)) {
+                    relationshipFound = true;
+                    if (rows.getShort("DELETE_RULE") != DatabaseMetaData.importedKeyCascade) {
+                        throw new SQLException("Foreign key " + table + "." + foreignColumn
+                                + " must use ON DELETE CASCADE.");
+                    }
+                    return;
+                }
+            }
+        }
+        if (!relationshipFound) {
+            throw new SQLException("Missing foreign key " + table + "." + foreignColumn
+                    + " -> " + referencedTable + "." + referencedColumn);
+        }
+    }
+
+    private static void validatePreferredSupplierUniqueness(Connection connection)
+            throws SQLException {
+        Set<String> preferredProducts = new HashSet<>();
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(
+                        "SELECT product_id, is_preferred, active FROM product_suppliers")) {
+            while (rows.next()) {
+                if (rows.getBoolean(2) && rows.getBoolean(3)) {
+                    String productId = rows.getString(1);
+                    if (!preferredProducts.add(productId)) {
+                        throw new SQLException("Product supplier migration blocked: product "
+                                + productId + " has more than one preferred active supplier.");
+                    }
+                }
             }
         }
     }
