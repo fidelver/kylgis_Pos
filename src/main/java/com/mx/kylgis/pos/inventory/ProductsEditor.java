@@ -33,6 +33,8 @@ import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.sales.TaxesLogic;
 import com.mx.kylgis.pos.suppliers.DataLogicSuppliers;
 import com.mx.kylgis.pos.suppliers.JDialogNewSupplier;
+import com.mx.kylgis.pos.suppliers.ProductSupplierInfo;
+import com.mx.kylgis.pos.suppliers.SupplierInfo;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -136,6 +138,8 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
             m_dlSuppliers = (DataLogicSuppliers) app.getBean("com.mx.kylgis.pos.suppliers.DataLogicSuppliers");
             
         initComponents();
+        jLabel17.setText(AppLocal.getIntString("label.productsupplier.preferredfield"));
+        jBtnSupplier.setToolTipText(AppLocal.getIntString("menu.productsuppliers.manage"));
         
         loadimage = dlSales.getProductImage(); // JG 3 feb 16 speedup
 
@@ -2209,18 +2213,97 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     }//GEN-LAST:event_jBtnStyleActionPerformed
 
     private void jBtnSupplierActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jBtnSupplierActionPerformed
+        showProductSupplierMenu();
+  
+    }//GEN-LAST:event_jBtnSupplierActionPerformed
+
+    private void showProductSupplierMenu() {
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        javax.swing.JMenuItem manage = new javax.swing.JMenuItem(
+                AppLocal.getIntString("menu.productsuppliers.manage"));
+        manage.addActionListener(e -> openProductSuppliersDialog());
+        menu.add(manage);
+
+        javax.swing.JMenuItem create = new javax.swing.JMenuItem(
+                AppLocal.getIntString("menu.productsuppliers.new"));
+        create.addActionListener(e -> openNewSupplierDialog());
+        menu.add(create);
+        menu.show(jBtnSupplier, 0, jBtnSupplier.getHeight());
+    }
+
+    private void openNewSupplierDialog() {
         JDialogNewSupplier dialog = JDialogNewSupplier.getDialog(this, appView);
         dialog.setVisible(true);
-  
-        if (dialog.getSelectedSupplier()!=null){
+
+        if (dialog.getSelectedSupplier() != null) {
             try {
+                Object preferred = m_SuppliersModel.getSelectedKey();
                 m_SuppliersModel = new ComboBoxValModel(m_sentsuppliers.list());
                 m_jSupplier.setModel(m_SuppliersModel);
+                if (preferred != null) {
+                    m_SuppliersModel.setSelectedKey(preferred);
+                }
             } catch (BasicException ex) {
                 Logger.getLogger(ProductsEditor.class.getName()).log(Level.SEVERE, null, ex);
+                JOptionPane.showMessageDialog(this, ex.getMessage(),
+                        AppLocal.getIntString("dialog.productsuppliers.title"),
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
-    }//GEN-LAST:event_jBtnSupplierActionPerformed
+    }
+
+    private void openProductSuppliersDialog() {
+        if (m_oId == null) {
+            showSaveProductFirstMessage();
+            return;
+        }
+
+        String productId = m_oId.toString();
+        try {
+            if (dlSales.getProductInfo(productId) == null) {
+                showSaveProductFirstMessage();
+                return;
+            }
+
+            List<SupplierInfo> suppliers = new ArrayList<>();
+            for (Object item : m_sentsuppliers.list()) {
+                if (item instanceof SupplierInfo) {
+                    suppliers.add((SupplierInfo) item);
+                }
+            }
+
+            if (JDialogProductSuppliers.showDialog(this, m_dlSuppliers,
+                    productId, suppliers)) {
+                refreshPreferredSupplier(productId);
+            }
+        } catch (BasicException ex) {
+            Logger.getLogger(ProductsEditor.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    AppLocal.getIntString("dialog.productsuppliers.title"),
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void refreshPreferredSupplier(String productId) throws BasicException {
+        String preferredId = null;
+        for (ProductSupplierInfo association : m_dlSuppliers.getProductSuppliers(productId)) {
+            if (association.isPreferred() && association.isActive()) {
+                preferredId = association.getSupplierId();
+                break;
+            }
+        }
+
+        m_SuppliersModel = new ComboBoxValModel(m_sentsuppliers.list());
+        m_jSupplier.setModel(m_SuppliersModel);
+        m_SuppliersModel.setSelectedKey(preferredId);
+    }
+
+    private void showSaveProductFirstMessage() {
+        JOptionPane.showMessageDialog(this,
+                AppLocal.getIntString("message.productsuppliers.savefirst"),
+                AppLocal.getIntString("dialog.productsuppliers.title"),
+                JOptionPane.INFORMATION_MESSAGE);
+    }
 
     private void colourChooserActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_colourChooserActionPerformed
         // TODO add your handling code here:
