@@ -302,16 +302,19 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                     // Purchase metadata such as last_cost/last_purchase is learned by
                     // inventory transactions and must never be overwritten by a dialog
                     // that may have been open while purchases were being received.
-                    try (PreparedStatement delete = connection.prepareStatement(
-                            "DELETE FROM product_suppliers WHERE product_id = ? AND supplier_id = ?")) {
+                    try (PreparedStatement deactivate = connection.prepareStatement(
+                            "UPDATE product_suppliers SET is_preferred = ?, active = ? "
+                            + "WHERE product_id = ? AND supplier_id = ?")) {
                         for (String currentId : currentIds) {
                             if (!uniqueIds.contains(currentId)) {
-                                delete.setString(1, productId);
-                                delete.setString(2, currentId);
-                                delete.addBatch();
+                                deactivate.setBoolean(1, false);
+                                deactivate.setBoolean(2, false);
+                                deactivate.setString(3, productId);
+                                deactivate.setString(4, currentId);
+                                deactivate.addBatch();
                             }
                         }
-                        delete.executeBatch();
+                        deactivate.executeBatch();
                     }
 
                     String updateSql = "UPDATE product_suppliers SET is_preferred = ?, active = ? "

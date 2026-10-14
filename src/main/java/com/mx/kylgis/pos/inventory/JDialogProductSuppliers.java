@@ -139,9 +139,9 @@ public final class JDialogProductSuppliers extends JDialog {
         private SupplierRow(SupplierInfo supplier, ProductSupplierInfo existing) {
             this.supplier = supplier;
             this.existing = existing;
-            this.associated = existing != null;
-            this.preferred = existing != null && existing.isPreferred();
-            this.active = existing == null || existing.isActive();
+            this.associated = existing != null && existing.isActive();
+            this.preferred = existing != null && existing.isActive() && existing.isPreferred();
+            this.active = existing != null && existing.isActive();
         }
     }
 
