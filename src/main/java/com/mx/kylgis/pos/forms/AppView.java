@@ -38,6 +38,7 @@ public interface AppView {
     public Session getSession();
     public AppProperties getProperties();
     public OperationalHealth getOperationalHealth();
+    public void refreshOperationalHealthIndicators();
 
     /**
      *

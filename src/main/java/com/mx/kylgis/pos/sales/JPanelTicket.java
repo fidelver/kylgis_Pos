@@ -1930,8 +1930,9 @@ System.out.println("PanelContainer : Focus Lost");
     
     private void printTicket(String sresourcename, TicketInfo ticket, Object ticketext) {
 
-        if (!m_App.getOperationalHealth().isCapabilityAvailable(OperationalHealth.CAP_PRINT_RECEIPT)) {
-            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(OperationalHealth.CAP_PRINT_RECEIPT);
+        String printCapability = OperationalHealth.capabilityForPrinterResource(sresourcename);
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(printCapability)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(printCapability);
             new MessageInf(MessageInf.SGN_WARNING,
                     reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
             return;
@@ -1968,9 +1969,20 @@ System.out.println("PanelContainer : Focus Lost");
                 
                 m_TTP.printTicket(script.eval(sresource).toString(), ticket);
 
-            } catch (    ScriptException | TicketPrinterException e) {
-                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e);
-                msg.show(JPanelTicket.this);
+            } catch (ScriptException e) {
+                m_App.getOperationalHealth().report(OperationalHealth.Category.RESOURCES,
+                        "runtime.resource." + sresourcename, OperationalHealth.Severity.AMBER,
+                        "Error procesando plantilla " + sresourcename, printCapability);
+                m_App.refreshOperationalHealthIndicators();
+                new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e)
+                        .show(JPanelTicket.this);
+            } catch (TicketPrinterException e) {
+                m_App.getOperationalHealth().report(OperationalHealth.Category.PERIPHERALS,
+                        "runtime.printer." + sresourcename, OperationalHealth.Severity.AMBER,
+                        "No se pudo completar la impresión de " + sresourcename, printCapability);
+                m_App.refreshOperationalHealthIndicators();
+                new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e)
+                        .show(JPanelTicket.this);
             }
         }
     }
@@ -2023,10 +2035,18 @@ System.out.println("PanelContainer : Focus Lost");
 
             m_TTP.printCurrentTicket(script.eval(sresource).toString(), m_oTicket);
             Notify(AppLocal.getIntString("notify.printed"));
-        } catch (ScriptException | TicketPrinterException e) {
-            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
-                    AppLocal.getIntString("message.cannotprintticket"), e);
-            msg.show(this);
+        } catch (ScriptException e) {
+            m_App.getOperationalHealth().report(OperationalHealth.Category.RESOURCES,
+                    "runtime.resource." + resource, OperationalHealth.Severity.AMBER,
+                    "Error procesando plantilla " + resource, OperationalHealth.CAP_PRINT_PREVIEW);
+            m_App.refreshOperationalHealthIndicators();
+            new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e).show(this);
+        } catch (TicketPrinterException e) {
+            m_App.getOperationalHealth().report(OperationalHealth.Category.PERIPHERALS,
+                    "runtime.printer." + resource, OperationalHealth.Severity.AMBER,
+                    "No se pudo completar la previsualización", OperationalHealth.CAP_PRINT_PREVIEW);
+            m_App.refreshOperationalHealthIndicators();
+            new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e).show(this);
         }
     }
 

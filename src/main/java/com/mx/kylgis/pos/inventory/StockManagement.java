@@ -776,6 +776,16 @@ public class StockManagement extends JPanel implements JPanelView {
                 m_TTP.printTicket(script.eval(sresource).toString());
 
             } catch (    ScriptException | TicketPrinterException e) {
+                OperationalHealth.Category category = e instanceof ScriptException
+                        ? OperationalHealth.Category.RESOURCES : OperationalHealth.Category.PERIPHERALS;
+                String code = e instanceof ScriptException
+                        ? "runtime.resource.Printer.Inventory" : "runtime.printer.Printer.Inventory";
+                String detail = e instanceof ScriptException
+                        ? "Error procesando plantilla Printer.Inventory"
+                        : "No se pudo imprimir el comprobante de inventario";
+                m_App.getOperationalHealth().report(category, code, OperationalHealth.Severity.AMBER,
+                        detail, OperationalHealth.CAP_PRINT_INVENTORY);
+                m_App.refreshOperationalHealthIndicators();
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
                         AppLocal.getIntString("message.cannotprintticket"), e);
                 msg.show(this);

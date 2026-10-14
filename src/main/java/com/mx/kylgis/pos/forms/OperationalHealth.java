@@ -47,9 +47,14 @@ public final class OperationalHealth {
 
     public static final String CAP_STARTUP = "startup";
     public static final String CAP_PRINT_RECEIPT = "print.receipt";
+    public static final String CAP_PRINT_RECEIPT_ALT = "print.receipt.alt";
+    public static final String CAP_PRINT_TOTAL = "print.total";
+    public static final String CAP_PRINT_LINE = "print.line";
+    public static final String CAP_PRINT_REPRINT = "print.reprint";
     public static final String CAP_PRINT_INVENTORY = "print.inventory";
     public static final String CAP_PRINT_PREVIEW = "print.preview";
     public static final String CAP_PRINT_CASH = "print.cash";
+    public static final String CAP_PRINT_CUSTOMER = "print.customer";
     public static final String CAP_SCALE = "scale";
     public static final String CAP_SCANNER = "scanner";
     public static final String CAP_DISPLAY = "display";
@@ -126,6 +131,39 @@ public final class OperationalHealth {
             }
         }
         return true;
+    }
+
+    public static String capabilityForPrinterResource(String resourceName) {
+        if (resourceName == null) {
+            return CAP_PRINT_RECEIPT;
+        }
+        switch (resourceName) {
+            case "Printer.Ticket":
+                return CAP_PRINT_RECEIPT;
+            case "Printer.Ticket2":
+                return CAP_PRINT_RECEIPT_ALT;
+            case "Printer.TicketTotal":
+                return CAP_PRINT_TOTAL;
+            case "Printer.TicketLine":
+                return CAP_PRINT_LINE;
+            case "Printer.ReprintTicket":
+            case "Printer.ReprintLastTicket":
+                return CAP_PRINT_REPRINT;
+            case "Printer.TicketPreview":
+            case "Printer.TicketPreview2":
+            case "Printer.CloseCash.Preview":
+                return CAP_PRINT_PREVIEW;
+            case "Printer.Inventory":
+                return CAP_PRINT_INVENTORY;
+            case "Printer.CloseCash":
+            case "Printer.PartialCash":
+                return CAP_PRINT_CASH;
+            case "Printer.CustomerPaid":
+            case "Printer.CustomerPaid2":
+                return CAP_PRINT_CUSTOMER;
+            default:
+                return CAP_PRINT_RECEIPT;
+        }
     }
 
     public synchronized String getCapabilityBlockReason(String capability) {

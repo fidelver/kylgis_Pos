@@ -678,19 +678,19 @@ public class JRootApp extends JPanel implements AppView {
     private void diagnoseResources() {
         m_health.clear(OperationalHealth.Category.RESOURCES);
         checkPrinterResource("Printer.Ticket", OperationalHealth.CAP_PRINT_RECEIPT);
-        checkPrinterResource("Printer.Ticket2", OperationalHealth.CAP_PRINT_RECEIPT);
-        checkPrinterResource("Printer.TicketTotal", OperationalHealth.CAP_PRINT_RECEIPT);
-        checkPrinterResource("Printer.TicketLine", OperationalHealth.CAP_PRINT_RECEIPT);
-        checkPrinterResource("Printer.CustomerPaid", OperationalHealth.CAP_PRINT_RECEIPT);
-        checkPrinterResource("Printer.CustomerPaid2", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.Ticket2", OperationalHealth.CAP_PRINT_RECEIPT_ALT);
+        checkPrinterResource("Printer.TicketTotal", OperationalHealth.CAP_PRINT_TOTAL);
+        checkPrinterResource("Printer.TicketLine", OperationalHealth.CAP_PRINT_LINE);
+        checkPrinterResource("Printer.CustomerPaid", OperationalHealth.CAP_PRINT_CUSTOMER);
+        checkPrinterResource("Printer.CustomerPaid2", OperationalHealth.CAP_PRINT_CUSTOMER);
         checkPrinterResource("Printer.TicketPreview", OperationalHealth.CAP_PRINT_PREVIEW);
         checkPrinterResource("Printer.TicketPreview2", OperationalHealth.CAP_PRINT_PREVIEW);
         checkPrinterResource("Printer.Inventory", OperationalHealth.CAP_PRINT_INVENTORY);
         checkPrinterResource("Printer.CloseCash", OperationalHealth.CAP_PRINT_CASH);
         checkPrinterResource("Printer.PartialCash", OperationalHealth.CAP_PRINT_CASH);
         checkPrinterResource("Printer.CloseCash.Preview", OperationalHealth.CAP_PRINT_PREVIEW);
-        checkPrinterResource("Printer.ReprintTicket", OperationalHealth.CAP_PRINT_RECEIPT);
-        checkPrinterResource("Printer.ReprintLastTicket", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.ReprintTicket", OperationalHealth.CAP_PRINT_REPRINT);
+        checkPrinterResource("Printer.ReprintLastTicket", OperationalHealth.CAP_PRINT_REPRINT);
         checkPrinterResource("Printer.Start", null);
     }
 
@@ -890,6 +890,11 @@ public class JRootApp extends JPanel implements AppView {
     @Override
     public OperationalHealth getOperationalHealth() {
         return m_health;
+    }
+
+    @Override
+    public void refreshOperationalHealthIndicators() {
+        refreshHealthBar();
     }
     
     @Override
