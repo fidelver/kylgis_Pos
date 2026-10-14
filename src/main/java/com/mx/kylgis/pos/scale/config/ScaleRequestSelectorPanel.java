@@ -29,9 +29,11 @@ public final class ScaleRequestSelectorPanel extends JPanel {
         command.addItem("ASCII:P");
         command.addItem("ASCII:W");
         command.addItem("HEX:57 0D");
+        command.addItem("ASCII:S");
+        command.addItem("ASCII:SI");
         command.addItem("ASCII:$");
         command.addItem("HEX:05");
-        command.setToolTipText("AUTO o comando editable: ASCII:P / HEX:50 0D (1 a 8 bytes)");
+        command.setToolTipText("AUTO conserva el driver; ejemplos: Torrey P, CAS W/W+CR, Mettler S/SI, Samsung $, ENQ HEX:05");
         add(command);
         setPreferredSize(new Dimension(220, 30));
     }

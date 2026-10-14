@@ -3,18 +3,15 @@
 package com.mx.kylgis.pos.hardware;
 
 import com.mx.kylgis.pos.forms.AppProperties;
-import com.mx.kylgis.pos.scale.service.ScaleServiceConfig;
 import java.util.Locale;
 
 /**
- * Preflight for hardware that still depends on legacy RXTX native binaries.
+ * Compatibility facade for historical native-hardware preflight checks.
  *
- * Serial printers and customer displays no longer belong to this gate: their
- * serial transport uses jSerialComm and can load a native implementation for
- * the current supported platform/architecture from the dependency JAR itself.
- * Scale implementations remain on RXTX until their dedicated drivers are
- * migrated and therefore still require this compatibility check. ScanPal uses
- * jSerialComm and is portable across the architectures supported by that JAR.
+ * Serial printers, customer displays, scanners and scale drivers now use
+ * jSerialComm, whose native transport is provided for the supported platforms
+ * by the dependency JAR. RXTX architecture gates are therefore no longer
+ * applicable to local POS hardware or hardware-service nodes.
  */
 public final class NativeHardwareSupport {
 
@@ -35,15 +32,7 @@ public final class NativeHardwareSupport {
     }
 
     static void validatePos(AppProperties properties, String osName, String arch) {
-        if (properties == null || isRxtxSupported(osName, arch)) return;
-
-        String scale = properties.getProperty("machine.scale");
-        if (ScaleServiceConfig.getServiceId(properties) == null
-                && HardwareOwnership.canOpen(properties, "scale") && usesSerialScale(scale)) {
-            throw unsupported("scale", scale, osName, arch,
-                    "Configure device.scale.service para usar un servicio de báscula remoto");
-        }
-
+        // Intentionally no-op: all local serial hardware supported here uses jSerialComm.
     }
 
     /**
@@ -54,14 +43,12 @@ public final class NativeHardwareSupport {
         // Intentionally no-op: local serial displays use jSerialComm.
     }
 
+    /**
+     * Kept as a stable service API. Scale transports now use jSerialComm and
+     * no longer require an RXTX architecture gate.
+     */
     public static void validateScaleService(AppProperties properties, String serviceId) {
-        if (isRxtxSupportedCurrentPlatform()) return;
-        String scale = properties == null ? null : properties.getProperty("machine.scale");
-        if (usesSerialScale(scale)) {
-            throw unsupported("scale", scale,
-                    System.getProperty("os.name", ""), System.getProperty("os.arch", ""),
-                    "El servicio " + serviceId + " debe ejecutarse en un nodo con driver RXTX compatible");
-        }
+        // Intentionally no-op: local scale transport uses jSerialComm.
     }
 
     /**
@@ -90,26 +77,6 @@ public final class NativeHardwareSupport {
             return cpu.matches("(x86|i[3-6]86|x86_64|amd64)");
         }
         return false;
-    }
-
-    private static boolean usesSerialScale(String configured) {
-        if (configured == null) return false;
-        String value = configured.trim().toLowerCase(Locale.ENGLISH);
-        if (value.isEmpty() || value.startsWith("not defined") || value.startsWith("screen")) return false;
-        return value.indexOf(':') > 0;
-    }
-
-    private static IllegalStateException unsupported(String deviceId,
-            String configured, String osName, String arch, String remediation) {
-        return new IllegalStateException("Hardware serie local " + deviceId
-                + " requiere RXTX, pero KylGis no incluye un binario nativo para "
-                + platform(osName, arch) + ". Configuración: " + configured
-                + ". " + remediation + ".");
-    }
-
-    private static String platform(String osName, String arch) {
-        return (osName == null ? "unknown" : osName.trim()) + "/"
-                + (arch == null ? "unknown" : arch.trim());
     }
 
     private static String normalize(String value) {
