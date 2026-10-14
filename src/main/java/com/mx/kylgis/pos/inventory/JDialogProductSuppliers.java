@@ -14,9 +14,11 @@ import java.awt.FlowLayout;
 import java.awt.Window;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -99,7 +101,8 @@ public final class JDialogProductSuppliers extends JDialog {
 
     private void saveChanges() {
         try {
-            logic.replaceProductSuppliers(productId, model.toAssociations());
+            logic.replaceProductSuppliers(productId, model.toAssociations(),
+                    model.getOriginalSupplierIds());
             saved = true;
             dispose();
         } catch (BasicException ex) {
@@ -136,6 +139,7 @@ public final class JDialogProductSuppliers extends JDialog {
 
         private final String productId;
         private final List<SupplierRow> rows = new ArrayList<>();
+        private final Set<String> originalSupplierIds = new HashSet<>();
 
         private SupplierTableModel(String productId, List<SupplierInfo> choices,
                 List<ProductSupplierInfo> current) {
@@ -144,6 +148,7 @@ public final class JDialogProductSuppliers extends JDialog {
             if (current != null) {
                 for (ProductSupplierInfo association : current) {
                     associations.put(association.getSupplierId(), association);
+                    originalSupplierIds.add(association.getSupplierId());
                 }
             }
 
@@ -250,6 +255,10 @@ public final class JDialogProductSuppliers extends JDialog {
                 }
             }
             fireTableRowsUpdated(rowIndex, rowIndex);
+        }
+
+        private Set<String> getOriginalSupplierIds() {
+            return new HashSet<>(originalSupplierIds);
         }
 
         private List<ProductSupplierInfo> toAssociations() {

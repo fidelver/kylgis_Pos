@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
@@ -2645,6 +2646,18 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
         try {
             Connection connection = s.getConnection();
+            // Use the product row as the serialization point shared with the
+            // product-supplier editor. Without this lock, a concurrent editor
+            // save could delete an association learned by this purchase.
+            try (PreparedStatement lockProduct = connection.prepareStatement(
+                    "SELECT id FROM products WHERE id = ? FOR UPDATE")) {
+                lockProduct.setString(1, productId);
+                try (ResultSet product = lockProduct.executeQuery()) {
+                    if (!product.next()) {
+                        throw new SQLException("Unknown product while learning supplier: " + productId);
+                    }
+                }
+            }
             int updated;
             try (PreparedStatement statement = connection.prepareStatement(
                     "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "

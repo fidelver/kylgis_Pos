@@ -245,13 +245,16 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
      * changed here because it records the supplier actually used per movement.
      */
     public void replaceProductSuppliers(final String productId,
-            List<ProductSupplierInfo> associations) throws BasicException {
+            List<ProductSupplierInfo> associations,
+            Set<String> expectedSupplierIds) throws BasicException {
         if (productId == null || productId.isBlank()) {
             throw new BasicException("Product supplier update requires a product id.");
         }
 
         final List<ProductSupplierInfo> requested = associations == null
                 ? new ArrayList<>() : new ArrayList<>(associations);
+        final Set<String> expectedIds = expectedSupplierIds == null
+                ? null : new HashSet<>(expectedSupplierIds);
         final Set<String> uniqueIds = new HashSet<>();
         String explicitPreferred = null;
         String firstActive = null;
@@ -288,6 +291,11 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                 try {
                     Connection connection = s.getConnection();
                     verifyProductExists(connection, productId);
+                    if (expectedIds != null
+                            && !expectedIds.equals(loadProductSupplierIds(connection, productId))) {
+                        throw new BasicException(AppLocal.getIntString(
+                                "message.productsuppliers.concurrentchange"));
+                    }
                     verifySuppliersExist(connection, uniqueIds);
 
                     try (PreparedStatement delete = connection.prepareStatement(
@@ -353,8 +361,11 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
 
     private static void verifyProductExists(Connection connection, String productId)
             throws SQLException {
+        // Serialize supplier-list replacement with product edits and purchase
+        // learning. The product row is the common lock for every operation that
+        // can change products.supplier or product_suppliers for this product.
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT id FROM products WHERE id = ?")) {
+                "SELECT id FROM products WHERE id = ? FOR UPDATE")) {
             statement.setString(1, productId);
             try (ResultSet rows = statement.executeQuery()) {
                 if (!rows.next()) {
@@ -362,6 +373,21 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                 }
             }
         }
+    }
+
+    private static Set<String> loadProductSupplierIds(Connection connection, String productId)
+            throws SQLException {
+        Set<String> supplierIds = new HashSet<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT supplier_id FROM product_suppliers WHERE product_id = ?")) {
+            statement.setString(1, productId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    supplierIds.add(rows.getString(1));
+                }
+            }
+        }
+        return supplierIds;
     }
 
     private static void verifySuppliersExist(Connection connection, Set<String> supplierIds)
