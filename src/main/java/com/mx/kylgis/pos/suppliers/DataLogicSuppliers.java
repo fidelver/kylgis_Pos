@@ -291,26 +291,47 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                 try {
                     Connection connection = s.getConnection();
                     verifyProductExists(connection, productId);
-                    if (expectedIds != null
-                            && !expectedIds.equals(loadProductSupplierIds(connection, productId))) {
+                    Set<String> currentIds = loadProductSupplierIds(connection, productId);
+                    if (expectedIds != null && !expectedIds.equals(currentIds)) {
                         throw new BasicException(AppLocal.getIntString(
                                 "message.productsuppliers.concurrentchange"));
                     }
                     verifySuppliersExist(connection, uniqueIds);
 
+                    // Apply only relationship-state changes to rows that already exist.
+                    // Purchase metadata such as last_cost/last_purchase is learned by
+                    // inventory transactions and must never be overwritten by a dialog
+                    // that may have been open while purchases were being received.
                     try (PreparedStatement delete = connection.prepareStatement(
-                            "DELETE FROM product_suppliers WHERE product_id = ?")) {
-                        delete.setString(1, productId);
-                        delete.executeUpdate();
+                            "DELETE FROM product_suppliers WHERE product_id = ? AND supplier_id = ?")) {
+                        for (String currentId : currentIds) {
+                            if (!uniqueIds.contains(currentId)) {
+                                delete.setString(1, productId);
+                                delete.setString(2, currentId);
+                                delete.addBatch();
+                            }
+                        }
+                        delete.executeBatch();
                     }
 
+                    String updateSql = "UPDATE product_suppliers SET is_preferred = ?, active = ? "
+                            + "WHERE product_id = ? AND supplier_id = ?";
                     String insertSql = "INSERT INTO product_suppliers "
                             + "(product_id, supplier_id, is_preferred, active, supplier_sku, "
                             + "purchase_uom, last_cost, priority, last_purchase) "
                             + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                    try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
+                    try (PreparedStatement update = connection.prepareStatement(updateSql);
+                            PreparedStatement insert = connection.prepareStatement(insertSql)) {
                         for (ProductSupplierInfo association : requested) {
                             String supplierId = association.getSupplierId().trim();
+                            update.setBoolean(1, supplierId.equals(preferredSupplier));
+                            update.setBoolean(2, association.isActive());
+                            update.setString(3, productId);
+                            update.setString(4, supplierId);
+                            if (update.executeUpdate() != 0) {
+                                continue;
+                            }
+
                             insert.setString(1, productId);
                             insert.setString(2, supplierId);
                             insert.setBoolean(3, supplierId.equals(preferredSupplier));
@@ -332,10 +353,7 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                             } else {
                                 insert.setTimestamp(9, association.getLastPurchase());
                             }
-                            insert.addBatch();
-                        }
-                        if (!requested.isEmpty()) {
-                            insert.executeBatch();
+                            insert.executeUpdate();
                         }
                     }
 
