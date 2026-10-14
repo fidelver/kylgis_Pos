@@ -484,23 +484,8 @@ public class JRootApp extends JPanel implements AppView {
             
         new javax.swing.Timer(250, new PrintTimeAction()).start();
         
-        String sWareHouse;
+        updateOperationIndicator();
 
-        try {
-            sWareHouse = m_dlSystem.findLocationName(m_sInventoryLocation);
-        } catch (BasicException e) {
-            sWareHouse = null;
-        }        
-        
-        String url;
-        try {
-            url = session.getURL();
-        } catch (SQLException e) {
-            url = "";
-        }        
-            m_jHost.setText("<html>" + m_props.getHost() + " - " + sWareHouse + "<br>" + url);
-        
-        
         String newLogo = m_props.getProperty("start.logo");
         if (newLogo != null) {
            if ("".equals(newLogo)){
@@ -549,6 +534,68 @@ public class JRootApp extends JPanel implements AppView {
         return true;
     }
    
+    private void updateOperationIndicator() {
+        String hostName = safeStatusText(m_props == null ? null : m_props.getHost(), "POS");
+        String dbLastOctet = getDatabaseIpv4LastOctet();
+
+        StringBuilder text = new StringBuilder("<html><b>● Operativo</b> · Host: ")
+                .append(escapeHtml(hostName));
+        if (dbLastOctet != null) {
+            text.append(" · DB: …").append(escapeHtml(dbLastOctet));
+        }
+        text.append("</html>");
+
+        m_jHost.setIcon(null);
+        m_jHost.setForeground(new java.awt.Color(0, 128, 0));
+        m_jHost.setText(text.toString());
+        m_jHost.setToolTipText("Conexión operativa");
+    }
+
+    private String getDatabaseIpv4LastOctet() {
+        if (session == null) {
+            return null;
+        }
+        try {
+            String jdbcUrl = session.getURL();
+            if (jdbcUrl == null || !jdbcUrl.startsWith("jdbc:")) {
+                return null;
+            }
+            java.net.URI uri = new java.net.URI(jdbcUrl.substring("jdbc:".length()));
+            String host = uri.getHost();
+            if (host == null) {
+                return null;
+            }
+            String[] octets = host.split("\\.");
+            if (octets.length != 4) {
+                return null;
+            }
+            for (String octet : octets) {
+                int value = Integer.parseInt(octet);
+                if (value < 0 || value > 255) {
+                    return null;
+                }
+            }
+            return octets[3];
+        } catch (SQLException | java.net.URISyntaxException | NumberFormatException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(
+                    Level.FINE, "Unable to derive redacted database endpoint for status bar.", ex);
+            return null;
+        }
+    }
+
+    private static String safeStatusText(String value, String fallback) {
+        String normalized = value == null ? "" : value.trim();
+        return normalized.isEmpty() ? fallback : normalized;
+    }
+
+    private static String escapeHtml(String value) {
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
     private String readDataBaseVersion() {
         try {
             return m_dlSystem.findVersion();
