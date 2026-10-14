@@ -918,8 +918,7 @@ public class StockManagement extends JPanel implements JPanelView {
     }
 
     private void incProduct(double dPor, ProductInfoExt prod) {
-        
-        addLine(prod, dPor, prod.getPriceBuy());      
+        incProduct(prod, dPor);
     }
     
     private void stateToZero(){
