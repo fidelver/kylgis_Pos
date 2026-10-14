@@ -682,8 +682,11 @@ public class StockManagement extends JPanel implements JPanelView {
 
             Date d = (Date) Formats.TIMESTAMP.parseValue(m_jdate.getText());
             MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
-            SupplierInfo selectedSupplier = (SupplierInfo) m_SuppliersModel.getSelectedItem();
-            if (requiresSupplier(reason) && selectedSupplier == null) {
+            boolean supplierRequired = requiresSupplier(reason);
+            SupplierInfo selectedSupplier = supplierRequired
+                    ? (SupplierInfo) m_SuppliersModel.getSelectedItem() : null;
+            String supplierDocument = supplierRequired ? m_jSupplierDoc.getText() : null;
+            if (supplierRequired && selectedSupplier == null) {
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
                         AppLocal.getIntString("message.inventory.supplierrequired"));
                 msg.show(this);
@@ -695,26 +698,26 @@ public class StockManagement extends JPanel implements JPanelView {
                         d, MovementReason.OUT_MOVEMENT,
                         (LocationInfo) m_LocationsModel.getSelectedItem(),
                         m_App.getAppUserView().getUser().getName(),
-                        (SupplierInfo) m_SuppliersModel.getSelectedItem(),
+                        selectedSupplier,
                         m_invlines.getLines(),
-                        m_jSupplierDoc.getText()                        
+                        supplierDocument                        
                     ));
                 saveData(new InventoryRecord(
                         d, MovementReason.IN_MOVEMENT,
                         (LocationInfo) m_LocationsModelDes.getSelectedItem(),
                         m_App.getAppUserView().getUser().getName(),
-                        (SupplierInfo) m_SuppliersModel.getSelectedItem(),
+                        selectedSupplier,
                         m_invlines.getLines(),
-                        m_jSupplierDoc.getText()                        
+                        supplierDocument                        
                     ));                
             } else {  
                 saveData(new InventoryRecord(
                         d, reason,
                         (LocationInfo) m_LocationsModel.getSelectedItem(),
                         m_App.getAppUserView().getUser().getName(),
-                        (SupplierInfo) m_SuppliersModel.getSelectedItem(),
+                        selectedSupplier,
                         m_invlines.getLines(),
-                        m_jSupplierDoc.getText()
+                        supplierDocument
                     ));
             }
             
