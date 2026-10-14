@@ -108,6 +108,8 @@ public class JRootApp extends JPanel implements AppView {
     private DeviceScanner m_Scanner;
     private DeviceTicket m_TP;   
     private TicketParser m_TTP;
+    private javax.swing.Timer m_healthMonitorTimer;
+    private volatile boolean m_healthProbeRunning;
     private final OperationalHealth m_health = new OperationalHealth();
     private final JLabel m_healthPeripherals = new JLabel();
     private final JLabel m_healthResources = new JLabel();
@@ -508,6 +510,7 @@ public class JRootApp extends JPanel implements AppView {
         new javax.swing.Timer(250, new PrintTimeAction()).start();
         
         updateOperationIndicator();
+        startHealthMonitor();
 
         String newLogo = m_props.getProperty("start.logo");
         if (newLogo != null) {
@@ -643,7 +646,8 @@ public class JRootApp extends JPanel implements AppView {
                 continue;
             }
             boolean unavailable = m_TP == null
-                    || m_TP.getDevicePrinter(Integer.toString(i)) instanceof com.mx.kylgis.pos.printer.DevicePrinterNull;
+                    || m_TP.getDevicePrinter(Integer.toString(i)) instanceof com.mx.kylgis.pos.printer.DevicePrinterNull
+                    || configuredEndpointUnavailable(configured);
             if (unavailable) {
                 String capability = Integer.toString(i).equals(receiptIndex)
                         ? OperationalHealth.CAP_PRINT_RECEIPT : null;
@@ -654,7 +658,8 @@ public class JRootApp extends JPanel implements AppView {
         }
 
         String scale = normalizedConfig(m_props.getProperty("machine.scale"));
-        if (isConfiguredDevice(scale) && (m_Scale == null || !m_Scale.existsScale())) {
+        if (isConfiguredDevice(scale) && (m_Scale == null || !m_Scale.existsScale()
+                || configuredEndpointUnavailable(scale))) {
             m_health.report(OperationalHealth.Category.PERIPHERALS, "scale",
                     OperationalHealth.Severity.AMBER,
                     "Báscula configurada pero no disponible", OperationalHealth.CAP_SCALE);
@@ -679,6 +684,98 @@ public class JRootApp extends JPanel implements AppView {
             m_health.report(OperationalHealth.Category.PERIPHERALS, "ibutton",
                     OperationalHealth.Severity.AMBER,
                     "iButton configurado pero no disponible", OperationalHealth.CAP_IBUTTON);
+        }
+    }
+
+    private void startHealthMonitor() {
+        if (m_healthMonitorTimer != null) {
+            m_healthMonitorTimer.stop();
+        }
+        m_healthMonitorTimer = new javax.swing.Timer(5000, evt -> refreshPeripheralHealthAsync());
+        m_healthMonitorTimer.setInitialDelay(5000);
+        m_healthMonitorTimer.start();
+    }
+
+    private void refreshPeripheralHealthAsync() {
+        if (m_healthProbeRunning || m_props == null) {
+            return;
+        }
+        m_healthProbeRunning = true;
+        new javax.swing.SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                diagnosePeripherals();
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                m_healthProbeRunning = false;
+                refreshHealthBar();
+            }
+        }.execute();
+    }
+
+    private boolean configuredEndpointUnavailable(String configured) {
+        String endpoint = extractDevicePath(configured);
+        if (endpoint == null) {
+            return false;
+        }
+        java.nio.file.Path path = java.nio.file.Paths.get(endpoint);
+        if (!java.nio.file.Files.exists(path)
+                || !java.nio.file.Files.isReadable(path)
+                || !java.nio.file.Files.isWritable(path)) {
+            return true;
+        }
+        if (endpoint.matches("/dev/rfcomm\\d+")) {
+            return !isRfcommConnected(endpoint);
+        }
+        return false;
+    }
+
+    private static String extractDevicePath(String configured) {
+        if (configured == null) {
+            return null;
+        }
+        int start = configured.indexOf("/dev/");
+        if (start < 0) {
+            return null;
+        }
+        int end = start;
+        while (end < configured.length()) {
+            char ch = configured.charAt(end);
+            if (Character.isWhitespace(ch) || ch == ',' || ch == ';') {
+                break;
+            }
+            end++;
+        }
+        return end > start ? configured.substring(start, end) : null;
+    }
+
+    private boolean isRfcommConnected(String endpoint) {
+        String index = endpoint.substring("/dev/rfcomm".length());
+        Process process = null;
+        try {
+            process = new ProcessBuilder("rfcomm", "show", index)
+                    .redirectErrorStream(true).start();
+            if (!process.waitFor(1200, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                return false;
+            }
+            String output = new String(process.getInputStream().readAllBytes(),
+                    java.nio.charset.StandardCharsets.UTF_8).toLowerCase(java.util.Locale.ROOT);
+            return process.exitValue() == 0 && output.contains("connected");
+        } catch (IOException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                    "No se pudo consultar estado RFCOMM de " + endpoint, ex);
+            return true;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return false;
+        } finally {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
         }
     }
 
@@ -784,6 +881,9 @@ public class JRootApp extends JPanel implements AppView {
     public void tryToClose() {   
         
         if (closeAppView()) {
+                if (m_healthMonitorTimer != null) {
+                    m_healthMonitorTimer.stop();
+                }
                 m_TP.getDeviceDisplay().clearVisor();
                 m_TP.close();
                 shutdownIButtonMonitor();
