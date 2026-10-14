@@ -31,8 +31,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -247,6 +249,27 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
     public void replaceProductSuppliers(final String productId,
             List<ProductSupplierInfo> associations,
             Set<String> expectedSupplierIds) throws BasicException {
+        replaceProductSuppliersInternal(productId, associations, expectedSupplierIds, null);
+    }
+
+    /**
+     * Replaces supplier associations only if relationship state is unchanged
+     * since the editor loaded it. Purchase metadata is deliberately excluded
+     * from the optimistic snapshot so receiving stock does not create a false
+     * conflict while the supplier dialog is open.
+     */
+    public void replaceProductSuppliers(final String productId,
+            List<ProductSupplierInfo> associations,
+            List<ProductSupplierInfo> expectedAssociations) throws BasicException {
+        Map<String, String> expectedState = relationshipState(expectedAssociations);
+        replaceProductSuppliersInternal(productId, associations,
+                expectedState == null ? null : expectedState.keySet(), expectedState);
+    }
+
+    private void replaceProductSuppliersInternal(final String productId,
+            List<ProductSupplierInfo> associations,
+            Set<String> expectedSupplierIds,
+            Map<String, String> expectedRelationshipState) throws BasicException {
         if (productId == null || productId.isBlank()) {
             throw new BasicException("Product supplier update requires a product id.");
         }
@@ -255,6 +278,8 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                 ? new ArrayList<>() : new ArrayList<>(associations);
         final Set<String> expectedIds = expectedSupplierIds == null
                 ? null : new HashSet<>(expectedSupplierIds);
+        final Map<String, String> expectedState = expectedRelationshipState == null
+                ? null : new HashMap<>(expectedRelationshipState);
         final Set<String> uniqueIds = new HashSet<>();
         String explicitPreferred = null;
         String firstActive = null;
@@ -293,6 +318,11 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                     verifyProductExists(connection, productId);
                     Set<String> currentIds = loadProductSupplierIds(connection, productId);
                     if (expectedIds != null && !expectedIds.equals(currentIds)) {
+                        throw new BasicException(AppLocal.getIntString(
+                                "message.productsuppliers.concurrentchange"));
+                    }
+                    if (expectedState != null
+                            && !expectedState.equals(loadProductSupplierState(connection, productId))) {
                         throw new BasicException(AppLocal.getIntString(
                                 "message.productsuppliers.concurrentchange"));
                     }
@@ -395,6 +425,48 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                 }
             }
         }
+    }
+
+    private static Map<String, String> relationshipState(
+            List<ProductSupplierInfo> associations) throws BasicException {
+        if (associations == null) {
+            return null;
+        }
+        Map<String, String> state = new HashMap<>();
+        for (ProductSupplierInfo association : associations) {
+            if (association == null || association.getSupplierId() == null
+                    || association.getSupplierId().isBlank()) {
+                throw new BasicException("Expected product supplier snapshot contains an empty supplier id.");
+            }
+            String supplierId = association.getSupplierId().trim();
+            String previous = state.put(supplierId,
+                    relationshipState(association.isPreferred(), association.isActive()));
+            if (previous != null) {
+                throw new BasicException("Expected product supplier snapshot contains a duplicate supplier: "
+                        + supplierId);
+            }
+        }
+        return state;
+    }
+
+    private static Map<String, String> loadProductSupplierState(Connection connection,
+            String productId) throws SQLException {
+        Map<String, String> state = new HashMap<>();
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT supplier_id, is_preferred, active FROM product_suppliers WHERE product_id = ?")) {
+            statement.setString(1, productId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    state.put(rows.getString(1), relationshipState(
+                            rows.getBoolean(2), rows.getBoolean(3)));
+                }
+            }
+        }
+        return state;
+    }
+
+    private static String relationshipState(boolean preferred, boolean active) {
+        return (preferred ? "1" : "0") + (active ? "1" : "0");
     }
 
     private static Set<String> loadProductSupplierIds(Connection connection, String productId)
