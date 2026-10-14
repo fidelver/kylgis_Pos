@@ -324,11 +324,12 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                             PreparedStatement insert = connection.prepareStatement(insertSql)) {
                         for (ProductSupplierInfo association : requested) {
                             String supplierId = association.getSupplierId().trim();
-                            update.setBoolean(1, supplierId.equals(preferredSupplier));
-                            update.setBoolean(2, association.isActive());
-                            update.setString(3, productId);
-                            update.setString(4, supplierId);
-                            if (update.executeUpdate() != 0) {
+                            if (currentIds.contains(supplierId)) {
+                                update.setBoolean(1, supplierId.equals(preferredSupplier));
+                                update.setBoolean(2, association.isActive());
+                                update.setString(3, productId);
+                                update.setString(4, supplierId);
+                                update.executeUpdate();
                                 continue;
                             }
 

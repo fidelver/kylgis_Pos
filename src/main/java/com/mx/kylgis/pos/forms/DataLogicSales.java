@@ -2658,23 +2658,32 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     }
                 }
             }
-            int updated;
+            boolean associationExists;
             try (PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "
-                    + "WHERE product_id = ? AND supplier_id = ?")) {
-                statement.setBoolean(1, true);
-                if (lastCost == null) {
-                    statement.setNull(2, java.sql.Types.DOUBLE);
-                } else {
-                    statement.setDouble(2, lastCost);
+                    "SELECT 1 FROM product_suppliers WHERE product_id = ? AND supplier_id = ?")) {
+                statement.setString(1, productId);
+                statement.setString(2, supplierId);
+                try (ResultSet rows = statement.executeQuery()) {
+                    associationExists = rows.next();
                 }
-                statement.setTimestamp(3, lastPurchase);
-                statement.setString(4, productId);
-                statement.setString(5, supplierId);
-                updated = statement.executeUpdate();
             }
 
-            if (updated == 0) {
+            if (associationExists) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "
+                        + "WHERE product_id = ? AND supplier_id = ?")) {
+                    statement.setBoolean(1, true);
+                    if (lastCost == null) {
+                        statement.setNull(2, java.sql.Types.DOUBLE);
+                    } else {
+                        statement.setDouble(2, lastCost);
+                    }
+                    statement.setTimestamp(3, lastPurchase);
+                    statement.setString(4, productId);
+                    statement.setString(5, supplierId);
+                    statement.executeUpdate();
+                }
+            } else {
                 try (PreparedStatement statement = connection.prepareStatement(
                         "INSERT INTO product_suppliers "
                         + "(product_id, supplier_id, is_preferred, active, last_cost, last_purchase) "
@@ -2690,27 +2699,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     }
                     statement.setTimestamp(6, lastPurchase);
                     statement.executeUpdate();
-                } catch (SQLException concurrentInsert) {
-                    // Another terminal may have created the same N:M row after
-                    // our first UPDATE. Retry as UPDATE before treating it as a
-                    // real failure; a non-duplicate problem will still fail.
-                    try (PreparedStatement retry = connection.prepareStatement(
-                            "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "
-                            + "WHERE product_id = ? AND supplier_id = ?")) {
-                        retry.setBoolean(1, true);
-                        if (lastCost == null) {
-                            retry.setNull(2, java.sql.Types.DOUBLE);
-                        } else {
-                            retry.setDouble(2, lastCost);
-                        }
-                        retry.setTimestamp(3, lastPurchase);
-                        retry.setString(4, productId);
-                        retry.setString(5, supplierId);
-                        if (retry.executeUpdate() != 1) {
-                            throw concurrentInsert;
-                        }
-                    }
                 }
+
             }
 
             // Learn new suppliers without replacing an existing preference.
