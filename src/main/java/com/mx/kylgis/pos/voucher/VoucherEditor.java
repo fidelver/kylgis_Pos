@@ -83,6 +83,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     @Override
     public void writeValueEOF() {
         id = null;
+        customerInfo = null;
         expiresAt = null;
         updateExpiryControls(false);
         m_jNumber.setText(null);
@@ -100,6 +101,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
     @Override
     public void writeValueInsert() {
         id = UUID.randomUUID().toString();
+        customerInfo = null;
         expiresAt = null;
         updateExpiryControls(true);
         m_jNumber.setText(VoucherCodeGenerator.generate());
@@ -198,7 +200,10 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
 
     @Override
     public Object createValue() throws BasicException {
-        
+        if (customerInfo == null) {
+            throw new BasicException("Voucher requires a selected customer.");
+        }
+
         Object[] attr = new Object[6];
 
         attr[0] = id;
@@ -513,6 +518,14 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
                     "Unable to verify voucher-number uniqueness", ex);
             JOptionPane.showMessageDialog(this,
                     AppLocal.getIntString("message.vouchercheckfailed"),
+                    AppLocal.getIntString("Check"),
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        if (customerInfo == null) {
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.emptycustomer"),
                     AppLocal.getIntString("Check"),
                     JOptionPane.WARNING_MESSAGE);
             return false;
