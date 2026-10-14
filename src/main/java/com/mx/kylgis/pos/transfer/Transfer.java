@@ -465,6 +465,7 @@ public final class Transfer extends JPanel implements JPanelView {
             stmt.addBatch("DELETE FROM stocklevel;");
             stmt.addBatch("DELETE FROM suppliers;");
             stmt.addBatch("DELETE FROM uom;");
+            stmt.addBatch("DELETE FROM voucher_reactivation_audit;");
             stmt.addBatch("DELETE FROM vouchers;");  
             
             stmt.addBatch("SET autocommit=0;");
@@ -511,6 +512,40 @@ public final class Transfer extends JPanel implements JPanelView {
             }
         }
         return null;
+    }
+
+    private void transferVoucherAuditIfPresent() throws SQLException {
+        boolean auditTableExists;
+        try (ResultSet tables = con_source.getMetaData()
+                .getTables(null, null, "voucher_reactivation_audit", null)) {
+            auditTableExists = tables.next();
+        }
+        if (!auditTableExists) {
+            txtOut.append("Voucher authorization audit... not present in source\n");
+            return;
+        }
+
+        SQL = "SELECT id, voucher_number, original_receipt, new_receipt, operator_id, "
+                + "authorized_by, authorized_at, reason FROM voucher_reactivation_audit";
+        try (Statement auditStatement = con_source.createStatement();
+                ResultSet auditRows = auditStatement.executeQuery(SQL);
+                PreparedStatement auditInsert = con_target.prepareStatement(
+                        "INSERT INTO voucher_reactivation_audit "
+                        + "(id, voucher_number, original_receipt, new_receipt, operator_id, "
+                        + "authorized_by, authorized_at, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+            while (auditRows.next()) {
+                auditInsert.setString(1, auditRows.getString("id"));
+                auditInsert.setString(2, auditRows.getString("voucher_number"));
+                auditInsert.setString(3, auditRows.getString("original_receipt"));
+                auditInsert.setString(4, auditRows.getString("new_receipt"));
+                auditInsert.setString(5, auditRows.getString("operator_id"));
+                auditInsert.setString(6, auditRows.getString("authorized_by"));
+                auditInsert.setTimestamp(7, auditRows.getTimestamp("authorized_at"));
+                auditInsert.setString(8, auditRows.getString("reason"));
+                auditInsert.executeUpdate();
+            }
+        }
+        txtOut.append("Voucher authorization audit\n");
     }
 
     public void doTransfer() throws SQLException {
@@ -2100,6 +2135,7 @@ public final class Transfer extends JPanel implements JPanelView {
                     rs.close();                                
 
                     try {                  
+                        transferVoucherAuditIfPresent();
                         this.con_target.setAutoCommit(true);
                     } catch (SQLException ex) {
                         Logger.getLogger(Transfer.class.getName()).log(Level.SEVERE, null, ex);
