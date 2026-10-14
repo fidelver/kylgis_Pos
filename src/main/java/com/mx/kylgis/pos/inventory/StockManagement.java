@@ -41,20 +41,30 @@ import com.mx.kylgis.pos.scripting.ScriptEngine;
 import com.mx.kylgis.pos.scripting.ScriptException;
 import com.mx.kylgis.pos.scripting.ScriptFactory;
 import com.mx.kylgis.pos.suppliers.DataLogicSuppliers;
+import com.mx.kylgis.pos.suppliers.JDialogNewSupplier;
+import com.mx.kylgis.pos.suppliers.ProductSupplierInfo;
 import com.mx.kylgis.pos.suppliers.SupplierInfo;
 import com.mx.kylgis.pos.ticket.ProductInfoExt;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.table.AbstractTableModel;
@@ -83,7 +93,11 @@ public class StockManagement extends JPanel implements JPanelView {
     private ComboBoxValModel m_LocationsModelDes;     
 
     private final SentenceList m_sentsuppliers;
-    private ComboBoxValModel m_SuppliersModel;       
+    private ComboBoxValModel m_SuppliersModel;
+    private final List<SupplierInfo> m_AllSuppliers = new ArrayList<>();
+    private final Set<String> m_AssociatedSupplierIds = new HashSet<>();
+    private String m_PreferredSupplierId;
+       
     
     private final JInventoryLines m_invlines;
     
@@ -126,6 +140,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
 
         initComponents();
+        installSupplierRenderer();
         
         user = m_App.getAppUserView().getUser().getName();
 
@@ -203,9 +218,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_LocationsModelDes = new ComboBoxValModel(l);
         m_jLocationDes.setModel(m_LocationsModelDes);
         
-        java.util.List sl = m_sentsuppliers.list();
-        m_SuppliersModel = new ComboBoxValModel(sl);
-        m_jSupplier.setModel(m_SuppliersModel);
+        loadSupplierCatalog(null);
 
         stateToInsert();
         
@@ -225,7 +238,8 @@ public class StockManagement extends JPanel implements JPanelView {
 //        m_LocationsModel.setSelectedFirst();
         m_LocationsModelDes.setSelectedKey(m_App.getInventoryLocation());         
         m_jcodebar.setText(null);
-        m_SuppliersModel.setSelectedKey(null);            
+        resetSupplierContext();
+        applyBaseSupplierModel(null);            
         m_jSupplierDoc.setText(null);         
         m_invlines.clear();
         resetTranxTable();
@@ -275,15 +289,135 @@ public class StockManagement extends JPanel implements JPanelView {
         return reason == MovementReason.IN_PURCHASE || reason == MovementReason.OUT_REFUND;
     }
 
+    private void installSupplierRenderer() {
+        m_jSupplier.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                if (value instanceof SupplierInfo) {
+                    SupplierInfo supplier = (SupplierInfo) value;
+                    String supplierId = supplier.getID();
+                    if (supplierId != null && supplierId.equals(m_PreferredSupplierId)) {
+                        label.setText(supplier.toString() + " — "
+                                + AppLocal.getIntString("label.productsupplier.preferred"));
+                    } else if (supplierId != null && m_AssociatedSupplierIds.contains(supplierId)) {
+                        label.setText(supplier.toString() + " — "
+                                + AppLocal.getIntString("label.productsupplier.associated"));
+                    }
+                }
+                return label;
+            }
+        });
+    }
+
+    private void loadSupplierCatalog(Object selectedKey) throws BasicException {
+        m_AllSuppliers.clear();
+        for (Object item : m_sentsuppliers.list()) {
+            if (item instanceof SupplierInfo) {
+                m_AllSuppliers.add((SupplierInfo) item);
+            }
+        }
+        resetSupplierContext();
+        applyBaseSupplierModel(selectedKey);
+    }
+
+    private void applyBaseSupplierModel(Object selectedKey) {
+        m_SuppliersModel = new ComboBoxValModel(new ArrayList<>(m_AllSuppliers));
+        m_jSupplier.setModel(m_SuppliersModel);
+        m_SuppliersModel.setSelectedKey(selectedKey);
+    }
+
+    private void resetSupplierContext() {
+        m_AssociatedSupplierIds.clear();
+        m_PreferredSupplierId = null;
+
+        if (m_jSupplier != null) {
+            m_jSupplier.repaint();
+        }
+    }
+
+    private void prioritizeSuppliersForProduct(ProductInfoExt product, MovementReason reason) {
+        if (product == null || !requiresSupplier(reason)
+                || m_SuppliersModel.getSelectedItem() != null) {
+            return;
+        }
+
+        try {
+
+            m_AssociatedSupplierIds.clear();
+            m_PreferredSupplierId = null;
+
+            Map<String, SupplierInfo> remaining = new LinkedHashMap<>();
+            for (SupplierInfo supplier : m_AllSuppliers) {
+                if (supplier.getID() != null) {
+                    remaining.put(supplier.getID(), supplier);
+                }
+            }
+
+            List<SupplierInfo> ordered = new ArrayList<>();
+            String suggestedSupplierId = null;
+            for (ProductSupplierInfo association
+                    : m_dlSuppliers.getProductSuppliers(product.getID())) {
+                if (!association.isActive()) {
+                    continue;
+                }
+                String supplierId = association.getSupplierId();
+                SupplierInfo supplier = remaining.remove(supplierId);
+                if (supplier == null) {
+                    continue;
+                }
+                ordered.add(supplier);
+                m_AssociatedSupplierIds.add(supplierId);
+                if (association.isPreferred()) {
+                    m_PreferredSupplierId = supplierId;
+                    suggestedSupplierId = supplierId;
+                } else if (suggestedSupplierId == null) {
+                    suggestedSupplierId = supplierId;
+                }
+            }
+            ordered.addAll(remaining.values());
+
+            m_SuppliersModel = new ComboBoxValModel(ordered);
+            m_jSupplier.setModel(m_SuppliersModel);
+            if (suggestedSupplierId == null && product.getSupplierID() != null
+                    && !product.getSupplierID().trim().isEmpty()) {
+                suggestedSupplierId = product.getSupplierID().trim();
+            }
+            m_SuppliersModel.setSelectedKey(suggestedSupplierId);
+            m_jSupplier.repaint();
+        } catch (BasicException ex) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING,
+                    "Unable to prioritize associated suppliers for inventory receipt.", ex);
+            if (product.getSupplierID() != null && !product.getSupplierID().trim().isEmpty()) {
+                m_SuppliersModel.setSelectedKey(product.getSupplierID().trim());
+            }
+        }
+    }
+
+    private void createInventorySupplier() {
+        JDialogNewSupplier dialog = JDialogNewSupplier.getDialog(this, m_App);
+        dialog.setVisible(true);
+        SupplierInfo created = dialog.getSelectedSupplier();
+        if (created == null) {
+            return;
+        }
+
+        try {
+            loadSupplierCatalog(created.getID());
+        } catch (BasicException ex) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    AppLocal.getIntString("menu.productsuppliers.new"),
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void incProduct(ProductInfoExt product, double units) {
 
         MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
-        if (requiresSupplier(reason)
-                && m_SuppliersModel.getSelectedItem() == null
-                && product.getSupplierID() != null
-                && !product.getSupplierID().trim().isEmpty()) {
-            m_SuppliersModel.setSelectedKey(product.getSupplierID());
-        }
+        prioritizeSuppliersForProduct(product, reason);
         addLine(product, units, reason.isInput() 
                 ? product.getPriceBuy()
                 : product.getPriceSell());
@@ -817,6 +951,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_jLocationDes = new javax.swing.JComboBox();
         jLabel10 = new javax.swing.JLabel();
         m_jSupplier = new javax.swing.JComboBox();
+        m_jSupplierNew = new javax.swing.JButton();
         jLabel9 = new javax.swing.JLabel();
         m_jSupplierDoc = new javax.swing.JTextField();
         jPanel5 = new javax.swing.JPanel();
@@ -923,7 +1058,19 @@ public class StockManagement extends JPanel implements JPanelView {
                 m_jSupplierActionPerformed(evt);
             }
         });
-        jPanel8.add(m_jSupplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 140, 270, -1));
+        jPanel8.add(m_jSupplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 140, 225, -1));
+
+        m_jSupplierNew.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
+        m_jSupplierNew.setText("+");
+        m_jSupplierNew.setToolTipText(AppLocal.getIntString("menu.productsuppliers.new")); // NOI18N
+        m_jSupplierNew.setFocusable(false);
+        m_jSupplierNew.setRequestFocusEnabled(false);
+        m_jSupplierNew.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jSupplierNewActionPerformed(evt);
+            }
+        });
+        jPanel8.add(m_jSupplierNew, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 140, 40, 30));
 
         jLabel9.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel9.setText(AppLocal.getIntString("label.supplierdocment")); // NOI18N
@@ -1246,6 +1393,10 @@ public class StockManagement extends JPanel implements JPanelView {
 */        
     }//GEN-LAST:event_m_jSupplierActionPerformed
 
+    private void m_jSupplierNewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jSupplierNewActionPerformed
+        createInventorySupplier();
+    }//GEN-LAST:event_m_jSupplierNewActionPerformed
+
     private void m_jBtnShowStockActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jBtnShowStockActionPerformed
 
         showStockTable();
@@ -1383,6 +1534,7 @@ public class StockManagement extends JPanel implements JPanelView {
     private javax.swing.JComboBox m_jLocation;
     private javax.swing.JComboBox m_jLocationDes;
     private javax.swing.JComboBox m_jSupplier;
+    private javax.swing.JButton m_jSupplierNew;
     private javax.swing.JTextField m_jSupplierDoc;
     private javax.swing.JButton m_jbtndate;
     private javax.swing.JLabel m_jcodebar;
