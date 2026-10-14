@@ -21,8 +21,9 @@
 package com.mx.kylgis.pos.panels;
 
 import com.mx.kylgis.pos.basic.BasicException;
-import com.mx.kylgis.pos.data.user.ListProvider;
 import com.mx.kylgis.pos.data.user.ListProviderCreator;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.ticket.ProductFilterSales;
@@ -38,8 +39,11 @@ import javax.swing.JFrame;
 public class JProductFinder extends javax.swing.JDialog {
 
     private ProductInfoExt m_ReturnProduct;
-    private ListProvider lpr;
+    private ListProviderCreator lpr;
     private ProductFilterSales productFilter;
+    private DataLogicSales.ProductSearchContext searchContext;
+    private javax.swing.SwingWorker<java.util.List, Void> searchWorker;
+    private int searchGeneration;
     public final static int PRODUCT_ALL = 0;
     public final static int PRODUCT_NORMAL = 1;
     public final static int PRODUCT_AUXILIAR = 2;
@@ -60,18 +64,30 @@ public class JProductFinder extends javax.swing.JDialog {
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         jScrollPane1.getHorizontalScrollBar().setPreferredSize(new Dimension(35, 35));        
 
-        productFilter = new ProductFilterSales(dlSales, m_jKeys);
+        final DataLogicSales searchSales;
+        try {
+            searchContext = dlSales.openProductSearchContext();
+            searchSales = searchContext.getSales();
+        } catch (BasicException ex) {
+            new com.mx.kylgis.pos.data.gui.MessageInf(ex).show(this);
+            dispose();
+            return null;
+        }
+
+        // All Product Finder reads use the isolated read-only session.
+        productFilter = new ProductFilterSales(searchSales, m_jKeys);
         productFilter.activate();
         m_jProductSelect.add(productFilter, BorderLayout.CENTER);
+
         switch (productsType) {
             case PRODUCT_NORMAL:
-                lpr = new ListProviderCreator(dlSales.getProductListNormal(), productFilter);
+                lpr = new ListProviderCreator(searchSales.getProductListNormal(), productFilter);
                 break;
             case PRODUCT_AUXILIAR:               
-                lpr = new ListProviderCreator(dlSales.getProductListAuxiliar(), productFilter);
+                lpr = new ListProviderCreator(searchSales.getProductListAuxiliar(), productFilter);
                 break;
             default: // PRODUCT_ALL
-                lpr = new ListProviderCreator(dlSales.getProductList(), productFilter);
+                lpr = new ListProviderCreator(searchSales.getProductList(), productFilter);
                 break;
                 
         }
@@ -199,6 +215,7 @@ public class JProductFinder extends javax.swing.JDialog {
             @Override
             public void windowClosing(java.awt.event.WindowEvent event) {
                 m_ReturnProduct = null;
+                cancelActiveSearch();
             }
         });
     }
@@ -253,7 +270,80 @@ public class JProductFinder extends javax.swing.JDialog {
 
     private void cancelAndClose() {
         m_ReturnProduct = null;
+        cancelActiveSearch();
         dispose();
+    }
+
+    private void cancelActiveSearch() {
+        searchGeneration++;
+        if (searchWorker != null && !searchWorker.isDone()) {
+            searchWorker.cancel(true);
+        }
+        searchWorker = null;
+        if (jButton3 != null) {
+            jButton3.setEnabled(true);
+        }
+        setCursor(Cursor.getDefaultCursor());
+    }
+
+    @Override
+    public void dispose() {
+        cancelActiveSearch();
+        if (searchContext != null) {
+            searchContext.close();
+            searchContext = null;
+        }
+        super.dispose();
+    }
+
+    private void startSearch() {
+        final Object capturedParameters;
+        try {
+            // ProductFilterSales reads Swing controls, so capture on the EDT.
+            capturedParameters = lpr.createParameters();
+        } catch (BasicException ex) {
+            new com.mx.kylgis.pos.data.gui.MessageInf(ex).show(this);
+            return;
+        }
+
+        clearSearchResults();
+        final int generation = ++searchGeneration;
+        jButton3.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        searchWorker = new javax.swing.SwingWorker<java.util.List, Void>() {
+            @Override
+            protected java.util.List doInBackground() throws Exception {
+                return lpr.loadData(capturedParameters);
+            }
+
+            @Override
+            protected void done() {
+                if (generation != searchGeneration) {
+                    return;
+                }
+                try {
+                    if (!isCancelled()) {
+                        jListProducts.setModel(new MyListData(get()));
+                        // Results stay unselected until explicit navigation/click.
+                    }
+                } catch (CancellationException ex) {
+                    // Closing the dialog or superseding a query is not an error.
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException ex) {
+                    Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+                    new com.mx.kylgis.pos.data.gui.MessageInf(cause).show(JProductFinder.this);
+                } finally {
+                    if (generation == searchGeneration) {
+                        searchWorker = null;
+                        jButton3.setEnabled(true);
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }
+        };
+        searchWorker.execute();
     }
 
     private static class MyListData extends javax.swing.AbstractListModel {
@@ -468,14 +558,7 @@ public class JProductFinder extends javax.swing.JDialog {
     }//GEN-LAST:event_jListProductsValueChanged
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        clearSearchResults();
-
-        try {
-            jListProducts.setModel(new MyListData(lpr.loadData()));
-            // Results remain unselected until the user explicitly navigates or clicks.
-        } catch (BasicException e) {
-            new com.mx.kylgis.pos.data.gui.MessageInf(e).show(this);
-        }
+        startSearch();
         
     }//GEN-LAST:event_jButton3ActionPerformed
 

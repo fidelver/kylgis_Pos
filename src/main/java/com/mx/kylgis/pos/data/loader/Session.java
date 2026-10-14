@@ -41,6 +41,7 @@ public final class Session {
     private final String m_surl;
     private final String m_sappuser;
     private final String m_spassword;
+    private final boolean m_readOnly;
     
     private Connection m_c;
     private boolean m_bInTransaction;
@@ -57,9 +58,14 @@ public final class Session {
      * @param password
      * @throws java.sql.SQLException */
     public Session(String url, String user, String password) throws SQLException {
+        this(url, user, password, false);
+    }
+
+    private Session(String url, String user, String password, boolean readOnly) throws SQLException {
         m_surl = url;
         m_sappuser = user;
         m_spassword = password;
+        m_readOnly = readOnly;
         
         m_c = null;
         m_bInTransaction = false;
@@ -83,6 +89,9 @@ public final class Session {
         m_c = (m_sappuser == null && m_spassword == null)
         ? DriverManager.getConnection(m_surl)
         : DriverManager.getConnection(m_surl, m_sappuser, m_spassword);         
+        if (m_readOnly) {
+            m_c.setReadOnly(true);
+        }
         m_c.setAutoCommit(true);
         m_bInTransaction = false;
         markConnectionValidation();
@@ -190,6 +199,14 @@ public final class Session {
      */
     public boolean isTransaction() {
         return m_bInTransaction;
+    }
+
+    /**
+     * Opens an independent connection using the same JDBC credentials and
+     * database dialect, marked read-only before it is exposed to callers.
+     */
+    public Session forkReadOnly() throws SQLException {
+        return new Session(m_surl, m_sappuser, m_spassword, true);
     }
 
     private void discardConnectionAfterTransactionFailure() {

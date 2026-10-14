@@ -40,6 +40,7 @@ import com.mx.kylgis.pos.voucher.VoucherInfo;
 import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -214,6 +215,40 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         ); 
     }
     
+    /**
+     * Creates an isolated read-only data-logic instance for background product
+     * searches. Its JDBC connection is never shared with the POS session.
+     */
+    public final ProductSearchContext openProductSearchContext() throws BasicException {
+        try {
+            Session searchSession = s.forkReadOnly();
+            DataLogicSales searchSales = new DataLogicSales();
+            searchSales.init(searchSession);
+            return new ProductSearchContext(searchSession, searchSales);
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to open read-only product search session.", ex);
+        }
+    }
+
+    public static final class ProductSearchContext implements AutoCloseable {
+        private final Session session;
+        private final DataLogicSales sales;
+
+        private ProductSearchContext(Session session, DataLogicSales sales) {
+            this.session = session;
+            this.sales = sales;
+        }
+
+        public DataLogicSales getSales() {
+            return sales;
+        }
+
+        @Override
+        public void close() {
+            session.close();
+        }
+    }
+
 // Import Creates
     public final void createCategory(Object[] category) throws BasicException {
         m_createCat.exec(category);

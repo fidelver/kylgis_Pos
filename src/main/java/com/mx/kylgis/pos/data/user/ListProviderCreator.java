@@ -67,8 +67,24 @@ public class ListProviderCreator implements ListProvider {
      */
     @Override
     public List loadData() throws BasicException {       
-        params = (prov == null) ? null : prov.createValue();
+        params = createParameters();
         return refreshData();
+    }
+    
+    /**
+     * Captures provider values on the caller thread. Swing callers can invoke
+     * this on the EDT before executing the database query in a worker thread.
+     */
+    public Object createParameters() throws BasicException {
+        return (prov == null) ? null : prov.createValue();
+    }
+
+    /**
+     * Loads data from an immutable parameter snapshot without changing the
+     * provider's legacy refresh state.
+     */
+    public List loadData(Object capturedParameters) throws BasicException {
+        return sent.list(capturedParameters);
     }
     
     /**
