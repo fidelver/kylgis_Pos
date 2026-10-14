@@ -133,8 +133,13 @@ public class JCalendarDialog extends javax.swing.JDialog {
         
         myMsg.getRootPane().setDefaultButton(myMsg.jcmdOK);        
         
+        // Realize and lay out the complete dialog while it is still hidden. This
+        // avoids briefly painting an empty shell before calendar/time controls
+        // receive their first layout under Wayland/XWayland.
+        myMsg.pack();
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         myMsg.setBounds((screenSize.width - dialogwidth) / 2, (screenSize.height - 359) / 2, dialogwidth, 359);
+        myMsg.validate();
         
         //myMsg.show();
         myMsg.m_date = null;

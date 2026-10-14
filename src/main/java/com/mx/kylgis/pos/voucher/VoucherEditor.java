@@ -455,9 +455,18 @@ private void jButtonPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
     }//GEN-LAST:event_jCBCustomerActionPerformed
 
     private void m_jBtnExpiresAtActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jBtnExpiresAtActionPerformed
-        Date selected = expiresAt == null ? new Date() : expiresAt;
+        Date selected = expiresAt == null
+                ? new Date(System.currentTimeMillis() + 5 * 60 * 1000L)
+                : expiresAt;
         selected = JCalendarDialog.showCalendarTime(this, selected);
         if (selected != null) {
+            if (!selected.after(new Date())) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucherexpiryfuture"),
+                        AppLocal.getIntString("Check"),
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             expiresAt = selected;
             jChkNoExpiry.setSelected(false);
             updateExpiryControls(true);
