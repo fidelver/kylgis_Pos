@@ -757,6 +757,13 @@ public class StockManagement extends JPanel implements JPanelView {
     
     private void printTicket(InventoryRecord invrec) {
 
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(OperationalHealth.CAP_PRINT_INVENTORY)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(OperationalHealth.CAP_PRINT_INVENTORY);
+            new MessageInf(MessageInf.SGN_WARNING,
+                    reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
+            return;
+        }
+
         String sresource = m_dlSystem.getResourceAsXML("Printer.Inventory");
         if (sresource == null) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 

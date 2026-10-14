@@ -1930,6 +1930,13 @@ System.out.println("PanelContainer : Focus Lost");
     
     private void printTicket(String sresourcename, TicketInfo ticket, Object ticketext) {
 
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(OperationalHealth.CAP_PRINT_RECEIPT)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(OperationalHealth.CAP_PRINT_RECEIPT);
+            new MessageInf(MessageInf.SGN_WARNING,
+                    reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
+            return;
+        }
+
         String sresource = dlSystem.getResourceAsXML(sresourcename);
         if (sresource == null) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"));
@@ -1974,6 +1981,12 @@ System.out.println("PanelContainer : Focus Lost");
      * authoritative; if that printer has configured mirrors, they are used.
      */
     private void previewTicket(String resource) {
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(OperationalHealth.CAP_PRINT_PREVIEW)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(OperationalHealth.CAP_PRINT_PREVIEW);
+            new MessageInf(MessageInf.SGN_WARNING,
+                    reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
+            return;
+        }
         if (resource == null || m_oTicket == null) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotexecute"));
             msg.show(this);

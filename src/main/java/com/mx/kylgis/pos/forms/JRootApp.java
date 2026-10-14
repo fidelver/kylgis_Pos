@@ -108,6 +108,9 @@ public class JRootApp extends JPanel implements AppView {
     private DeviceScanner m_Scanner;
     private DeviceTicket m_TP;   
     private TicketParser m_TTP;
+    private final OperationalHealth m_health = new OperationalHealth();
+    private final JLabel m_healthPeripherals = new JLabel();
+    private final JLabel m_healthResources = new JLabel();
     
     private final Map<String, BeanFactory> m_aBeanFactories;
     
@@ -195,10 +198,23 @@ public class JRootApp extends JPanel implements AppView {
         
         initComponents ();            
         configureTopBranding();
+        configureHealthBar();
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(30, 30));
         serverMonitor.setVisible(false);
         webMemoryBar1.setShowMaximumMemory ( true );
     }
+    private void configureHealthBar() {
+        java.awt.Font font = new java.awt.Font("Arial", java.awt.Font.BOLD, 11);
+        m_jHost.setFont(font);
+        m_healthPeripherals.setFont(font);
+        m_healthResources.setFont(font);
+        m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        panelTask.add(m_healthPeripherals, 1);
+        panelTask.add(m_healthResources, 2);
+        refreshHealthBar();
+    }
+
     private void configureTopBranding() {
         java.net.URL logoUrl = getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png");
         if (logoUrl != null) {
@@ -532,30 +548,177 @@ public class JRootApp extends JPanel implements AppView {
         String ibutton = m_props.getProperty("machine.iButton");        
         if(ibutton.equals("true")) {
             initIButtonMonitor();
+            updateOperationIndicator();
         }    
         return true;
     }
    
     private void updateOperationIndicator() {
-        setOperationIndicator("Operativo", new java.awt.Color(0, 128, 0),
-                getDatabaseIpv4LastOctet());
+        m_health.clear(OperationalHealth.Category.DATABASE);
+        diagnosePeripherals();
+        diagnoseResources();
+        refreshHealthBar();
     }
 
     private void setOperationIndicator(String state, java.awt.Color color, String dbLastOctet) {
-        String hostName = safeStatusText(m_props == null ? null : m_props.getHost(), "POS");
+        m_health.clear(OperationalHealth.Category.DATABASE);
+        OperationalHealth.Severity severity = "Sin conexión".equals(state)
+                ? OperationalHealth.Severity.RED : OperationalHealth.Severity.AMBER;
+        m_health.report(OperationalHealth.Category.DATABASE, "database.startup",
+                severity, state, OperationalHealth.CAP_STARTUP);
+        refreshHealthBar();
+    }
+
+    private void refreshHealthBar() {
+        updateHealthLabel(m_jHost, OperationalHealth.Category.DATABASE,
+                "Host: " + escapeHtml(safeStatusText(m_props == null ? null : m_props.getHost(), "POS"))
+                + databaseSuffix());
+        updateHealthLabel(m_healthPeripherals, OperationalHealth.Category.PERIPHERALS, null);
+        updateHealthLabel(m_healthResources, OperationalHealth.Category.RESOURCES, null);
+    }
+
+    private String databaseSuffix() {
+        String lastOctet = getDatabaseIpv4LastOctet();
+        return lastOctet == null ? "" : " · DB: …" + escapeHtml(lastOctet);
+    }
+
+    private void updateHealthLabel(JLabel label, OperationalHealth.Category category, String suffix) {
+        OperationalHealth.Severity severity = m_health.getSeverity(category);
+        String state;
+        java.awt.Color color;
+        switch (severity) {
+            case RED:
+                state = "Corrección necesaria";
+                color = new java.awt.Color(176, 0, 32);
+                break;
+            case AMBER:
+                state = "Atención";
+                color = new java.awt.Color(184, 134, 11);
+                break;
+            default:
+                state = "OK";
+                color = new java.awt.Color(0, 128, 0);
+                break;
+        }
         StringBuilder text = new StringBuilder("<html><b>● ")
-                .append(escapeHtml(state))
-                .append("</b> · Host: ")
-                .append(escapeHtml(hostName));
-        if (dbLastOctet != null) {
-            text.append(" · DB: …").append(escapeHtml(dbLastOctet));
+                .append(escapeHtml(category.getLabel()))
+                .append(": ").append(escapeHtml(state)).append("</b>");
+        if (suffix != null && !suffix.isEmpty()) {
+            text.append(" · ").append(suffix);
         }
         text.append("</html>");
+        label.setIcon(null);
+        label.setForeground(color);
+        label.setText(text.toString());
+        label.setToolTipText(buildHealthTooltip(category));
+    }
 
-        m_jHost.setIcon(null);
-        m_jHost.setForeground(color);
-        m_jHost.setText(text.toString());
-        m_jHost.setToolTipText(state);
+    private String buildHealthTooltip(OperationalHealth.Category category) {
+        java.util.List<OperationalHealth.Issue> issues = m_health.getIssues(category);
+        if (issues.isEmpty()) {
+            return category.getLabel() + ": sin incidencias detectadas";
+        }
+        StringBuilder tooltip = new StringBuilder("<html>");
+        for (OperationalHealth.Issue issue : issues) {
+            tooltip.append("• ").append(escapeHtml(issue.getMessage())).append("<br>");
+        }
+        return tooltip.append("</html>").toString();
+    }
+
+    private void diagnosePeripherals() {
+        m_health.clear(OperationalHealth.Category.PERIPHERALS);
+
+        String receiptIndex = m_TP == null ? "1" : m_TP.getReceiptPrinterIndex();
+        for (int i = 1; i <= 6; i++) {
+            String key = i == 1 ? "machine.printer" : "machine.printer." + i;
+            String configured = normalizedConfig(m_props.getProperty(key));
+            if (!isConfiguredDevice(configured)) {
+                continue;
+            }
+            boolean unavailable = m_TP == null
+                    || m_TP.getDevicePrinter(Integer.toString(i)) instanceof com.mx.kylgis.pos.printer.DevicePrinterNull;
+            if (unavailable) {
+                String capability = Integer.toString(i).equals(receiptIndex)
+                        ? OperationalHealth.CAP_PRINT_RECEIPT : null;
+                m_health.report(OperationalHealth.Category.PERIPHERALS,
+                        "printer." + i, OperationalHealth.Severity.AMBER,
+                        "Impresora " + i + " configurada pero no disponible", capability);
+            }
+        }
+
+        String scale = normalizedConfig(m_props.getProperty("machine.scale"));
+        if (isConfiguredDevice(scale) && (m_Scale == null || !m_Scale.existsScale())) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "scale",
+                    OperationalHealth.Severity.AMBER,
+                    "Báscula configurada pero no disponible", OperationalHealth.CAP_SCALE);
+        }
+
+        String scanner = normalizedConfig(m_props.getProperty("machine.scanner"));
+        if (isConfiguredDevice(scanner) && m_Scanner == null) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "scanner",
+                    OperationalHealth.Severity.AMBER,
+                    "Escáner configurado pero no disponible", OperationalHealth.CAP_SCANNER);
+        }
+
+        String display = normalizedConfig(m_props.getProperty("machine.display"));
+        if (isConfiguredDevice(display) && (m_TP == null
+                || m_TP.getDeviceDisplay() instanceof com.mx.kylgis.pos.printer.DeviceDisplayNull)) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "display",
+                    OperationalHealth.Severity.AMBER,
+                    "Display configurado pero no disponible", OperationalHealth.CAP_DISPLAY);
+        }
+
+        if (Boolean.parseBoolean(m_props.getProperty("machine.iButton")) && m_iButtonMonitor == null) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "ibutton",
+                    OperationalHealth.Severity.AMBER,
+                    "iButton configurado pero no disponible", OperationalHealth.CAP_IBUTTON);
+        }
+    }
+
+    private void diagnoseResources() {
+        m_health.clear(OperationalHealth.Category.RESOURCES);
+        checkPrinterResource("Printer.Ticket", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.Ticket2", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.TicketTotal", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.TicketLine", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.CustomerPaid", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.CustomerPaid2", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.TicketPreview", OperationalHealth.CAP_PRINT_PREVIEW);
+        checkPrinterResource("Printer.TicketPreview2", OperationalHealth.CAP_PRINT_PREVIEW);
+        checkPrinterResource("Printer.Inventory", OperationalHealth.CAP_PRINT_INVENTORY);
+        checkPrinterResource("Printer.CloseCash", OperationalHealth.CAP_PRINT_CASH);
+        checkPrinterResource("Printer.PartialCash", OperationalHealth.CAP_PRINT_CASH);
+        checkPrinterResource("Printer.CloseCash.Preview", OperationalHealth.CAP_PRINT_PREVIEW);
+        checkPrinterResource("Printer.ReprintTicket", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.ReprintLastTicket", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.Start", null);
+    }
+
+    private void checkPrinterResource(String name, String capability) {
+        String template = m_dlSystem == null ? null : m_dlSystem.getResourceAsXML(name);
+        if (template == null || template.trim().isEmpty()) {
+            m_health.report(OperationalHealth.Category.RESOURCES, name,
+                    OperationalHealth.Severity.AMBER,
+                    "Plantilla ausente: " + name, capability);
+            return;
+        }
+        try {
+            com.mx.kylgis.pos.printer.TicketTemplateValidator.validateForSave(name, template);
+        } catch (BasicException ex) {
+            m_health.report(OperationalHealth.Category.RESOURCES, name,
+                    OperationalHealth.Severity.AMBER,
+                    "Plantilla inválida: " + name, capability);
+        }
+    }
+
+    private static String normalizedConfig(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static boolean isConfiguredDevice(String value) {
+        return value != null && !value.isEmpty()
+                && !"Not defined".equalsIgnoreCase(value)
+                && !"none".equalsIgnoreCase(value);
     }
 
     private String getDatabaseIpv4LastOctet() {
@@ -722,6 +885,11 @@ public class JRootApp extends JPanel implements AppView {
     @Override
     public AppProperties getProperties() {
         return m_props;
+    }
+
+    @Override
+    public OperationalHealth getOperationalHealth() {
+        return m_health;
     }
     
     @Override
