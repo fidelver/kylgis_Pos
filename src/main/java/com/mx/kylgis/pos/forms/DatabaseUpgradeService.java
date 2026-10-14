@@ -25,12 +25,15 @@ public final class DatabaseUpgradeService {
 
     public static final String VERSION_1_0 = "1.0";
     public static final String VERSION_1_1 = "1.1";
+    public static final String VERSION_1_2 = "1.2";
 
     private DatabaseUpgradeService() {
     }
 
     public static boolean supports(String fromVersion, String toVersion) {
-        return VERSION_1_0.equals(fromVersion) && VERSION_1_1.equals(toVersion);
+        return (VERSION_1_0.equals(fromVersion) && VERSION_1_1.equals(toVersion))
+                || (VERSION_1_1.equals(fromVersion) && VERSION_1_2.equals(toVersion))
+                || (VERSION_1_0.equals(fromVersion) && VERSION_1_2.equals(toVersion));
     }
 
     public static void upgrade(Session session, AppProperties properties,
@@ -44,16 +47,23 @@ public final class DatabaseUpgradeService {
             Connection connection = session.getConnection();
             DatabaseMetaData meta = connection.getMetaData();
             if (!isSupportedDatabase(meta)) {
-                throw new SQLException("Unsupported database engine for KylGis 1.0 -> 1.1 migration: "
+                throw new SQLException("Unsupported database engine for KylGis migration: "
                         + meta.getDatabaseProductName());
             }
-            if (!tableExists(meta, "vouchers")) {
-                throw new SQLException("Required vouchers table does not exist.");
+            if (VERSION_1_0.equals(fromVersion)) {
+                if (!tableExists(meta, "vouchers")) {
+                    throw new SQLException("Required vouchers table does not exist.");
+                }
+                validateVoucherNumbers(connection);
+                ensureVoucherLifecycle(connection, meta);
+                ensureVoucherAudit(connection, connection.getMetaData());
+                meta = connection.getMetaData();
             }
 
-            validateVoucherNumbers(connection);
-            ensureVoucherLifecycle(connection, meta);
-            ensureVoucherAudit(connection, connection.getMetaData());
+            if (VERSION_1_2.equals(toVersion)) {
+                ensureProductSuppliers(connection, meta);
+            }
+
             updateApplicationVersion(connection, properties, toVersion);
         } catch (SQLException ex) {
             throw new BasicException("KylGis database upgrade failed.", ex);
@@ -145,6 +155,91 @@ public final class DatabaseUpgradeService {
         if (!indexExists(connection.getMetaData(), "voucher_reactivation_audit", "voucher_reactivation_authorized_inx")) {
             execute(connection, "CREATE INDEX voucher_reactivation_authorized_inx "
                     + "ON voucher_reactivation_audit (authorized_by, authorized_at)");
+        }
+    }
+
+    private static void ensureProductSuppliers(Connection connection, DatabaseMetaData meta)
+            throws SQLException {
+        if (!tableExists(meta, "products") || !tableExists(meta, "suppliers")) {
+            throw new SQLException("Required products/suppliers tables do not exist.");
+        }
+
+        validateLegacyProductSuppliers(connection);
+
+        if (!tableExists(meta, "product_suppliers")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE product_suppliers ("
+                        + "product_id VARCHAR NOT NULL, "
+                        + "supplier_id VARCHAR NOT NULL, "
+                        + "is_preferred BOOLEAN NOT NULL DEFAULT FALSE, "
+                        + "active BOOLEAN NOT NULL DEFAULT TRUE, "
+                        + "supplier_sku VARCHAR NULL, "
+                        + "purchase_uom VARCHAR NULL, "
+                        + "last_cost DOUBLE PRECISION NULL, "
+                        + "priority INTEGER NULL, "
+                        + "last_purchase TIMESTAMP NULL, "
+                        + "PRIMARY KEY (product_id, supplier_id), "
+                        + "CONSTRAINT product_suppliers_product_fk FOREIGN KEY (product_id) "
+                        + "REFERENCES products (id) ON DELETE CASCADE, "
+                        + "CONSTRAINT product_suppliers_supplier_fk FOREIGN KEY (supplier_id) "
+                        + "REFERENCES suppliers (id) ON DELETE CASCADE)");
+            } else {
+                execute(connection, "CREATE TABLE product_suppliers ("
+                        + "product_id VARCHAR(255) NOT NULL, "
+                        + "supplier_id VARCHAR(255) NOT NULL, "
+                        + "is_preferred BIT(1) NOT NULL DEFAULT b'0', "
+                        + "active BIT(1) NOT NULL DEFAULT b'1', "
+                        + "supplier_sku VARCHAR(255) NULL, "
+                        + "purchase_uom VARCHAR(255) NULL, "
+                        + "last_cost DOUBLE NULL, "
+                        + "priority INT NULL, "
+                        + "last_purchase DATETIME NULL, "
+                        + "PRIMARY KEY (product_id, supplier_id), "
+                        + "KEY product_suppliers_supplier_inx (supplier_id), "
+                        + "CONSTRAINT product_suppliers_product_fk FOREIGN KEY (product_id) "
+                        + "REFERENCES products (id) ON DELETE CASCADE, "
+                        + "CONSTRAINT product_suppliers_supplier_fk FOREIGN KEY (supplier_id) "
+                        + "REFERENCES suppliers (id) ON DELETE CASCADE) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+
+        String[] required = {"product_id", "supplier_id", "is_preferred", "active",
+            "supplier_sku", "purchase_uom", "last_cost", "priority", "last_purchase"};
+        for (String column : required) {
+            if (!columnExists(meta, "product_suppliers", column)) {
+                throw new SQLException("Product suppliers table is incomplete: missing " + column);
+            }
+        }
+
+        if (!indexExists(meta, "product_suppliers", "product_suppliers_supplier_inx")) {
+            execute(connection, "CREATE INDEX product_suppliers_supplier_inx "
+                    + "ON product_suppliers (supplier_id)");
+        }
+
+        String preferred = isPostgreSql(meta) ? "TRUE" : "b'1'";
+        String active = isPostgreSql(meta) ? "TRUE" : "b'1'";
+        execute(connection, "INSERT INTO product_suppliers "
+                + "(product_id, supplier_id, is_preferred, active) "
+                + "SELECT p.id, p.supplier, " + preferred + ", " + active + " "
+                + "FROM products p JOIN suppliers s ON s.id = p.supplier "
+                + "WHERE p.supplier IS NOT NULL AND TRIM(p.supplier) <> '' "
+                + "AND NOT EXISTS (SELECT 1 FROM product_suppliers ps "
+                + "WHERE ps.product_id = p.id AND ps.supplier_id = p.supplier)");
+    }
+
+    private static void validateLegacyProductSuppliers(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(
+                        "SELECT p.id, p.supplier FROM products p "
+                        + "LEFT JOIN suppliers s ON s.id = p.supplier "
+                        + "WHERE p.supplier IS NOT NULL AND TRIM(p.supplier) <> '' "
+                        + "AND s.id IS NULL")) {
+            if (rows.next()) {
+                throw new SQLException("Product supplier migration blocked: product "
+                        + rows.getString(1) + " references unknown supplier " + rows.getString(2));
+            }
         }
     }
 

@@ -457,6 +457,7 @@ public final class Transfer extends JPanel implements JPanelView {
             stmt.addBatch("DELETE FROM payments;");
             stmt.addBatch("DELETE FROM products_cat;");
             stmt.addBatch("DELETE FROM products_com;");
+            stmt.addBatch("DELETE FROM product_suppliers;");
             stmt.addBatch("DELETE FROM products;");
             stmt.addBatch("DELETE FROM receipts;");
             stmt.addBatch("DELETE FROM roles WHERE NOT ID = '0';");
@@ -1770,6 +1771,33 @@ public final class Transfer extends JPanel implements JPanelView {
                         txtOut.append("Added Supplier... KylGis POS" + "\n");
                     }
                     rs.close();                                
+
+                    Dbtname="product_suppliers";
+                    rs = con_source.getMetaData().getTables(null, null, Dbtname, null);
+                    if (rs.next()) {
+                        rs.close();
+                        txtOut.append("Product_Suppliers" + "\n");
+                        SQL = "SELECT * FROM product_suppliers";
+                        rs = stmt_source.executeQuery(SQL);
+                        while (rs.next()) {
+                            SQL = "INSERT INTO product_suppliers("
+                                    + "PRODUCT_ID, SUPPLIER_ID, IS_PREFERRED, ACTIVE, "
+                                    + "SUPPLIER_SKU, PURCHASE_UOM, LAST_COST, PRIORITY, LAST_PURCHASE) "
+                                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            pstmt = con_target.prepareStatement(SQL);
+                            pstmt.setString(1, rs.getString("PRODUCT_ID"));
+                            pstmt.setString(2, rs.getString("SUPPLIER_ID"));
+                            pstmt.setBoolean(3, rs.getBoolean("IS_PREFERRED"));
+                            pstmt.setBoolean(4, rs.getBoolean("ACTIVE"));
+                            pstmt.setString(5, rs.getString("SUPPLIER_SKU"));
+                            pstmt.setString(6, rs.getString("PURCHASE_UOM"));
+                            pstmt.setObject(7, rs.getObject("LAST_COST"));
+                            pstmt.setObject(8, rs.getObject("PRIORITY"));
+                            pstmt.setTimestamp(9, rs.getTimestamp("LAST_PURCHASE"));
+                            pstmt.executeUpdate();
+                        }
+                    }
+                    rs.close();
 
                     Dbtname="taxcategories";
                     rs = con_source.getMetaData().getTables(null,null,Dbtname,null);

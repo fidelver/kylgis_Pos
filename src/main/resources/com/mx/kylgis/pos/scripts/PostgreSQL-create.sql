@@ -714,6 +714,25 @@ CREATE TABLE suppliers (
 CREATE UNIQUE INDEX SUPPLIERS_SKEY_INX ON suppliers(searchkey);
 CREATE INDEX SUPPLIERS_NAME_INX ON suppliers(name);
 
+/* KylGis 1.2: N:M product to supplier associations. */
+CREATE TABLE product_suppliers (
+    product_id VARCHAR NOT NULL,
+    supplier_id VARCHAR NOT NULL,
+    is_preferred BOOLEAN NOT NULL DEFAULT FALSE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    supplier_sku VARCHAR DEFAULT NULL,
+    purchase_uom VARCHAR DEFAULT NULL,
+    last_cost DOUBLE PRECISION DEFAULT NULL,
+    priority INTEGER DEFAULT NULL,
+    last_purchase TIMESTAMP DEFAULT NULL,
+    PRIMARY KEY (product_id, supplier_id),
+    CONSTRAINT product_suppliers_product_fk FOREIGN KEY (product_id)
+        REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT product_suppliers_supplier_fk FOREIGN KEY (supplier_id)
+        REFERENCES suppliers(id) ON DELETE CASCADE
+);
+CREATE INDEX product_suppliers_supplier_inx ON product_suppliers(supplier_id);
+
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE uom (
     id VARCHAR NOT NULL,

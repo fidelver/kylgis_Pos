@@ -47,6 +47,7 @@ delete FROM lineremoved;
 delete FROM payments;
 delete FROM products_cat;
 delete FROM products_com;
+delete FROM product_suppliers;
 delete FROM products;
 delete FROM receipts;
 delete FROM roles;

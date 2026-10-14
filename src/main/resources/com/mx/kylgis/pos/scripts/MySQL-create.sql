@@ -534,6 +534,21 @@ CREATE TABLE `suppliers` (
 	UNIQUE INDEX `suppliers_skey_inx` ( `searchkey` )
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 
+/* KylGis 1.2: N:M product to supplier associations. */
+CREATE TABLE `product_suppliers` (
+	`product_id` varchar(255) NOT NULL,
+	`supplier_id` varchar(255) NOT NULL,
+	`is_preferred` bit(1) NOT NULL default b'0',
+	`active` bit(1) NOT NULL default b'1',
+	`supplier_sku` varchar(255) default NULL,
+	`purchase_uom` varchar(255) default NULL,
+	`last_cost` double default NULL,
+	`priority` int(11) default NULL,
+	`last_purchase` datetime default NULL,
+	PRIMARY KEY (`product_id`, `supplier_id`),
+	KEY `product_suppliers_supplier_inx` (`supplier_id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
 /* Header line. Object: taxcategories. Script date: 23/01/2018 08:00:00 */
 CREATE TABLE `taxcategories` (
 	`id` varchar(255) NOT NULL,

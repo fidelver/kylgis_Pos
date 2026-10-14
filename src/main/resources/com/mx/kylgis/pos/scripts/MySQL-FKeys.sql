@@ -84,6 +84,12 @@ ALTER TABLE `products` ADD CONSTRAINT `products_fk_1`
 ALTER TABLE `products` ADD CONSTRAINT `products_taxcat_fk`
 	FOREIGN KEY ( `taxcat` ) REFERENCES `taxcategories` ( `id` );
 
+-- KylGis 1.2 product/supplier N:M foreign keys
+ALTER TABLE `product_suppliers` ADD CONSTRAINT `product_suppliers_product_fk`
+	FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+ALTER TABLE `product_suppliers` ADD CONSTRAINT `product_suppliers_supplier_fk`
+	FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE CASCADE;
+
 -- Update foreign keys of product_bundle
 ALTER TABLE `products_bundle` ADD CONSTRAINT `products_bundle_fk_1` 
         FOREIGN KEY ( `product` ) REFERENCES `products`( `id` );
