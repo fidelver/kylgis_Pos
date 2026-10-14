@@ -41,6 +41,9 @@ import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -2605,6 +2608,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             + "VALUES (?, ?, ?, ?)"
                     , new SerializerWriteBasicExt(stockdiaryDatas, new int[] {3, 4, 5, 6})).exec(params);
                 }
+                learnSupplierFromPurchase((Object[]) params);
                 return new PreparedSentence(s
                     , "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, "
                             + "ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, "
@@ -2621,6 +2625,101 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      *
      * @return
      */
+    private void learnSupplierFromPurchase(Object[] params) throws BasicException {
+        if (params == null || params.length < 10 || !(params[2] instanceof Number)
+                || ((Number) params[2]).intValue() != 1) {
+            return;
+        }
+
+        String productId = params[4] == null ? null : params[4].toString().trim();
+        String supplierId = params[9] == null ? null : params[9].toString().trim();
+        if (productId == null || productId.isEmpty()
+                || supplierId == null || supplierId.isEmpty()) {
+            return;
+        }
+
+        Double lastCost = params[7] instanceof Number
+                ? ((Number) params[7]).doubleValue() : null;
+        Timestamp lastPurchase = params[1] instanceof java.util.Date
+                ? new Timestamp(((java.util.Date) params[1]).getTime()) : null;
+
+        try {
+            Connection connection = s.getConnection();
+            int updated;
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "
+                    + "WHERE product_id = ? AND supplier_id = ?")) {
+                statement.setBoolean(1, true);
+                if (lastCost == null) {
+                    statement.setNull(2, java.sql.Types.DOUBLE);
+                } else {
+                    statement.setDouble(2, lastCost);
+                }
+                statement.setTimestamp(3, lastPurchase);
+                statement.setString(4, productId);
+                statement.setString(5, supplierId);
+                updated = statement.executeUpdate();
+            }
+
+            if (updated == 0) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO product_suppliers "
+                        + "(product_id, supplier_id, is_preferred, active, last_cost, last_purchase) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)")) {
+                    statement.setString(1, productId);
+                    statement.setString(2, supplierId);
+                    statement.setBoolean(3, false);
+                    statement.setBoolean(4, true);
+                    if (lastCost == null) {
+                        statement.setNull(5, java.sql.Types.DOUBLE);
+                    } else {
+                        statement.setDouble(5, lastCost);
+                    }
+                    statement.setTimestamp(6, lastPurchase);
+                    statement.executeUpdate();
+                }
+            }
+
+            // Learn new suppliers without replacing an existing preference.
+            // This conditional update serializes concurrent first purchases.
+            int becamePreferred;
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE products SET supplier = ? WHERE id = ? "
+                    + "AND (supplier IS NULL OR TRIM(supplier) = '')")) {
+                statement.setString(1, supplierId);
+                statement.setString(2, productId);
+                becamePreferred = statement.executeUpdate();
+            }
+
+            if (becamePreferred == 1) {
+                try (PreparedStatement clear = connection.prepareStatement(
+                        "UPDATE product_suppliers SET is_preferred = ? WHERE product_id = ?");
+                        PreparedStatement prefer = connection.prepareStatement(
+                                "UPDATE product_suppliers SET is_preferred = ?, active = ? "
+                                + "WHERE product_id = ? AND supplier_id = ?")) {
+                    clear.setBoolean(1, false);
+                    clear.setString(2, productId);
+                    clear.executeUpdate();
+
+                    prefer.setBoolean(1, true);
+                    prefer.setBoolean(2, true);
+                    prefer.setString(3, productId);
+                    prefer.setString(4, supplierId);
+                    if (prefer.executeUpdate() != 1) {
+                        throw new SQLException("Purchase supplier association was not updated exactly once.");
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to learn product supplier from purchase.", ex);
+        }
+    }
+
+    /**
+     *
+     * @return
+     */
+
     public final SentenceExec getStockDiaryDelete() {
         return new SentenceExecTransaction(s) {
         @Override
