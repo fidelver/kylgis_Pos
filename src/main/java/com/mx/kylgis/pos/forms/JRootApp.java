@@ -301,7 +301,8 @@ public class JRootApp extends JPanel implements AppView {
     public boolean initApp(AppProperties props) {
         
         m_props = props;
-        m_jPanelDown.setVisible(!(Boolean.valueOf(m_props.getProperty("till.hideinfo"))));            
+        m_jPanelDown.setVisible(!(Boolean.valueOf(m_props.getProperty("till.hideinfo"))));
+        setOperationIndicator("Inicializando", new java.awt.Color(184, 134, 11), null);
 
         applyComponentOrientation(ComponentOrientation.getOrientation(Locale.getDefault()));
         
@@ -309,6 +310,7 @@ public class JRootApp extends JPanel implements AppView {
             session = AppViewConnection.createSession(m_props);
             
         } catch (BasicException e) {
+            setOperationIndicator("Sin conexión", new java.awt.Color(176, 0, 32), null);
             JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_DANGER, e.getMessage(), e));
             return false;
         }
@@ -535,10 +537,15 @@ public class JRootApp extends JPanel implements AppView {
     }
    
     private void updateOperationIndicator() {
-        String hostName = safeStatusText(m_props == null ? null : m_props.getHost(), "POS");
-        String dbLastOctet = getDatabaseIpv4LastOctet();
+        setOperationIndicator("Operativo", new java.awt.Color(0, 128, 0),
+                getDatabaseIpv4LastOctet());
+    }
 
-        StringBuilder text = new StringBuilder("<html><b>● Operativo</b> · Host: ")
+    private void setOperationIndicator(String state, java.awt.Color color, String dbLastOctet) {
+        String hostName = safeStatusText(m_props == null ? null : m_props.getHost(), "POS");
+        StringBuilder text = new StringBuilder("<html><b>● ")
+                .append(escapeHtml(state))
+                .append("</b> · Host: ")
                 .append(escapeHtml(hostName));
         if (dbLastOctet != null) {
             text.append(" · DB: …").append(escapeHtml(dbLastOctet));
@@ -546,9 +553,9 @@ public class JRootApp extends JPanel implements AppView {
         text.append("</html>");
 
         m_jHost.setIcon(null);
-        m_jHost.setForeground(new java.awt.Color(0, 128, 0));
+        m_jHost.setForeground(color);
         m_jHost.setText(text.toString());
-        m_jHost.setToolTipText("Conexión operativa");
+        m_jHost.setToolTipText(state);
     }
 
     private String getDatabaseIpv4LastOctet() {
