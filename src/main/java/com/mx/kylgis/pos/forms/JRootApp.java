@@ -323,7 +323,30 @@ public class JRootApp extends JPanel implements AppView {
  * 
 */
         String sDBVersion = readDataBaseVersion();        
-        if (!AppLocal.APP_VERSION.equals(sDBVersion)) {
+        String targetDBVersion = ApplicationIdentity.getVersion();
+        if (!targetDBVersion.equals(sDBVersion)
+                && DatabaseUpgradeService.supports(sDBVersion, targetDBVersion)) {
+            if (JOptionPane.showConfirmDialog(this,
+                    AppLocal.getIntString("message.kylgisdbupgrade", sDBVersion, targetDBVersion),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.OK_OPTION,
+                    JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+                session.close();
+                return false;
+            }
+            try {
+                DatabaseUpgradeService.upgrade(session, m_props, sDBVersion, targetDBVersion);
+                sDBVersion = targetDBVersion;
+            } catch (BasicException e) {
+                JMessageDialog.showMessage(this,
+                        new MessageInf(MessageInf.SGN_DANGER,
+                        AppLocal.getIntString("database.scripterror"), e));
+                session.close();
+                return false;
+            }
+        }
+
+        if (!targetDBVersion.equals(sDBVersion)) {
             String sScript = sDBVersion == null 
             ? m_dlSystem.getInitScript() + "-create.sql"
             : m_dlSystem.getInitScript() + "-upgrade_master.sql";                    
