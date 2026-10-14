@@ -2329,6 +2329,42 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @return
      */
     
+    /**
+     * Keeps products.supplier and the N:M association table synchronized without
+     * removing secondary suppliers. During the compatibility phase, the legacy
+     * supplier combo changes only the preferred association.
+     */
+    private void syncPreferredProductSupplier(Object params) throws BasicException {
+        Object[] values = (Object[]) params;
+        String supplierId = values[27] == null ? null : values[27].toString().trim();
+
+        new PreparedSentence(s,
+                "UPDATE product_suppliers SET is_preferred = " + s.DB.FALSE()
+                + " WHERE product_id = ?",
+                new SerializerWriteBasicExt(productsRow.getDatas(), new int[]{0}))
+                .exec(params);
+
+        if (supplierId == null || supplierId.isEmpty()) {
+            return;
+        }
+
+        int updated = new PreparedSentence(s,
+                "UPDATE product_suppliers SET is_preferred = " + s.DB.TRUE()
+                + ", active = " + s.DB.TRUE()
+                + " WHERE product_id = ? AND supplier_id = ?",
+                new SerializerWriteBasicExt(productsRow.getDatas(), new int[]{0, 27}))
+                .exec(params);
+
+        if (updated == 0) {
+            new PreparedSentence(s,
+                    "INSERT INTO product_suppliers "
+                    + "(product_id, supplier_id, is_preferred, active) VALUES (?, ?, "
+                    + s.DB.TRUE() + ", " + s.DB.TRUE() + ")",
+                    new SerializerWriteBasicExt(productsRow.getDatas(), new int[]{0, 27}))
+                    .exec(params);
+        }
+    }
+
     public final SentenceExec getProductCatInsert() {
 	return new SentenceExecTransaction(s) {
         @Override
@@ -2381,6 +2417,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     25, 26, 27, 28, 29}))
                     
                     .exec(params);
+
+                if (i > 0) {
+                    syncPreferredProductSupplier(params);
+                }
 
                 if (i > 0 && ((Boolean)values[30])) {
                     return new PreparedSentence(s
@@ -2447,6 +2487,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             26, 27, 28, 29, 0}))
                         .exec(params);
             	if (i > 0) {
+                    syncPreferredProductSupplier(params);
                     if (((Boolean)values[30])) {
 			if (new PreparedSentence(s
                                 , "UPDATE products_cat SET CATORDER = ? WHERE PRODUCT = ?"
