@@ -225,7 +225,7 @@ public class StockManagement extends JPanel implements JPanelView {
 //        m_LocationsModel.setSelectedFirst();
         m_LocationsModelDes.setSelectedKey(m_App.getInventoryLocation());         
         m_jcodebar.setText(null);
-        m_SuppliersModel.setSelectedFirst();            
+        m_SuppliersModel.setSelectedKey(null);            
         m_jSupplierDoc.setText(null);         
         m_invlines.clear();
         resetTranxTable();
@@ -271,10 +271,14 @@ public class StockManagement extends JPanel implements JPanelView {
         }        
     }
     
+    private static boolean requiresSupplier(MovementReason reason) {
+        return reason == MovementReason.IN_PURCHASE || reason == MovementReason.OUT_REFUND;
+    }
+
     private void incProduct(ProductInfoExt product, double units) {
 
         MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
-        if (reason == MovementReason.IN_PURCHASE
+        if (requiresSupplier(reason)
                 && m_SuppliersModel.getSelectedItem() == null
                 && product.getSupplierID() != null
                 && !product.getSupplierID().trim().isEmpty()) {
@@ -544,6 +548,13 @@ public class StockManagement extends JPanel implements JPanelView {
 
             Date d = (Date) Formats.TIMESTAMP.parseValue(m_jdate.getText());
             MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
+            SupplierInfo selectedSupplier = (SupplierInfo) m_SuppliersModel.getSelectedItem();
+            if (requiresSupplier(reason) && selectedSupplier == null) {
+                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
+                        AppLocal.getIntString("message.inventory.supplierrequired"));
+                msg.show(this);
+                return;
+            }
 
             if (reason == MovementReason.OUT_CROSSING) {
                 saveData(new InventoryRecord(
@@ -598,7 +609,7 @@ public class StockManagement extends JPanel implements JPanelView {
                 rec.getReason().samesignum(inv.getMultiply()),
                 inv.getPrice(),
                 rec.getUser(),
-                rec.getSupplier().getID(),
+                rec.getSupplier() == null ? null : rec.getSupplier().getID(),
                 rec.getSupplierDoc()
             });
         }
@@ -1200,9 +1211,8 @@ public class StockManagement extends JPanel implements JPanelView {
 
         incProductByCode(m_jcodebar.getText());
         m_jcodebar.setText(null);
-        if (m_jSupplier.getSelectedItem() != null) {
-//            saveData();
-        } else {
+        MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
+        if (requiresSupplier(reason) && m_jSupplier.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(null,
                     AppLocal.getIntString("message.supplierinvalid"),
                     AppLocal.getIntString("message.title.supplierinvalid"),
