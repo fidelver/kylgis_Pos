@@ -1650,6 +1650,36 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @param location
      * @throws BasicException
      */
+    private TicketInfo loadNormalTicketByReceiptId(final String receiptId) throws BasicException {
+        TicketInfo ticket = (TicketInfo) new PreparedSentence(s,
+                "SELECT T.ID, T.TICKETTYPE, T.TICKETID, R.DATENEW, R.MONEY, R.ATTRIBUTES, "
+                + "P.ID, P.NAME, T.CUSTOMER, T.STATUS "
+                + "FROM receipts R JOIN tickets T ON R.ID = T.ID "
+                + "LEFT OUTER JOIN people P ON T.PERSON = P.ID "
+                + "WHERE T.ID = ? AND T.TICKETTYPE = 0",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(TicketInfo.class)).find(receiptId);
+
+        if (ticket != null) {
+            String customerId = ticket.getCustomerId();
+            ticket.setCustomer(customerId == null ? null : loadCustomerExt(customerId));
+            ticket.setLines(new PreparedSentence(s,
+                    "SELECT L.TICKET, L.LINE, L.PRODUCT, L.ATTRIBUTESETINSTANCE_ID, "
+                    + "L.UNITS, L.PRICE, T.ID, T.NAME, T.CATEGORY, T.CUSTCATEGORY, "
+                    + "T.PARENTID, T.RATE, T.RATECASCADE, T.RATEORDER, L.ATTRIBUTES "
+                    + "FROM ticketlines L, taxes T "
+                    + "WHERE L.TAXID = T.ID AND L.TICKET = ? ORDER BY L.LINE",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadClass(TicketLineInfo.class)).list(ticket.getId()));
+            ticket.setPayments(new PreparedSentence(s,
+                    "SELECT PAYMENT, TOTAL, TRANSID, TENDERED, CARDNAME, VOUCHER "
+                    + "FROM payments WHERE RECEIPT = ?",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadClass(PaymentInfoTicket.class)).list(ticket.getId()));
+        }
+        return ticket;
+    }
+
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
 
     Transaction t;
@@ -1677,19 +1707,31 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
         String sourceReceiptId = ticket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID);
         String authorizationUserId = ticket.getProperty(VoucherEditContext.AUTH_USER_ID);
+        String operatorUserId = ticket.getProperty(VoucherEditContext.OPERATOR_ID);
+        String authorizationAt = ticket.getProperty(VoucherEditContext.AUTH_AT);
         boolean editedNormalSale = ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL && ticket.getOldTicket();
         int sourceVoucherCount = 0;
         boolean voucherEditAuthorized = false;
+        TicketInfo sourceVoucherEditTicket = null;
 
         if (editedNormalSale) {
-            if (sourceReceiptId == null || sourceReceiptId.isBlank() || !sourceNormalReceiptExists(sourceReceiptId)) {
-                throw new BasicException("Edited sale is missing a valid source receipt context.");
+            if (sourceReceiptId == null || sourceReceiptId.isBlank()
+                    || !lockSourceNormalReceiptForVoucherEdit(sourceReceiptId)) {
+                throw new BasicException("Edited sale is missing or has already finalized its source receipt context.");
             }
             sourceVoucherCount = countVoucherPayments(sourceReceiptId);
             if (sourceVoucherCount > 0) {
                 voucherEditAuthorized = isAuthorizedVoucherEditUser(authorizationUserId);
                 if (!voucherEditAuthorized) {
                     throw new BasicException("Administrator or Manager authorization is required to edit a sale that consumed vouchers.");
+                }
+                if (!isVisibleVoucherEditOperator(operatorUserId)) {
+                    throw new BasicException("Voucher edit audit requires a valid visible POS operator.");
+                }
+                parseVoucherAuthorizationTime(authorizationAt);
+                sourceVoucherEditTicket = loadNormalTicketByReceiptId(sourceReceiptId);
+                if (sourceVoucherEditTicket == null) {
+                    throw new BasicException("Unable to load the locked source sale for atomic voucher edit finalization.");
                 }
             }
         }
@@ -1841,6 +1883,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
         }
 
+                if (sourceVoucherEditTicket != null) {
+                    finalizeVoucherEditedSaleAtomic(sourceVoucherEditTicket, ticket, location,
+                            operatorUserId, authorizationUserId, authorizationAt);
+                }
+
                 SentenceExec taxlinesinsert = new PreparedSentence(s
                     , "INSERT INTO taxlines (ID, RECEIPT, TAXID, BASE, AMOUNT)  "
                     + "VALUES (?, ?, ?, ?, ?)"
@@ -1873,11 +1920,130 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @param location
      * @throws BasicException
      */
+    private void finalizeVoucherEditedSaleAtomic(final TicketInfo sourceTicket,
+            final TicketInfo replacementTicket, final String location,
+            final String operatorUserId, final String authorizationUserId,
+            final String authorizationAt) throws BasicException {
+
+        if (!lockSourceNormalReceiptForVoucherEdit(sourceTicket.getId())) {
+            throw new BasicException("The source sale is no longer available for atomic voucher edit finalization.");
+        }
+
+        Set<String> sourceVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        sourceVoucherNumbers.addAll(getVoucherPaymentsForReceipt(sourceTicket.getId()));
+        if (sourceVoucherNumbers.isEmpty()) {
+            throw new BasicException("The source sale no longer contains the vouchers expected by this authorized edit.");
+        }
+        if (!isAuthorizedVoucherEditUser(authorizationUserId)) {
+            throw new BasicException("Administrator or Manager authorization is required to reactivate vouchers from an edited sale.");
+        }
+        if (!isVisibleVoucherEditOperator(operatorUserId)) {
+            throw new BasicException("Voucher edit audit requires a valid visible POS operator.");
+        }
+        Date voucherAuthorizationTime = parseVoucherAuthorizationTime(authorizationAt);
+        if (replacementTicket == null || replacementTicket.getId() == null
+                || replacementTicket.getId().isBlank() || !receiptExists(replacementTicket.getId())) {
+            throw new BasicException("Replacement receipt is missing while finalizing voucher reactivation.");
+        }
+
+        Set<String> replacementVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        replacementVoucherNumbers.addAll(getVoucherPaymentsForReceipt(replacementTicket.getId()));
+
+        Date reversalTime = new Date();
+        for (int i = 0; i < sourceTicket.getLinesCount(); i++) {
+            if (sourceTicket.getLine(i).getProductID() != null) {
+                getStockDiaryInsert().exec(new Object[]{
+                    UUID.randomUUID().toString(),
+                    reversalTime,
+                    sourceTicket.getLine(i).getMultiply() >= 0.0
+                            ? MovementReason.IN_REFUND.getKey()
+                            : MovementReason.OUT_SALE.getKey(),
+                    location,
+                    sourceTicket.getLine(i).getProductID(),
+                    sourceTicket.getLine(i).getProductAttSetInstId(),
+                    sourceTicket.getLine(i).getMultiply(),
+                    sourceTicket.getLine(i).getPrice(),
+                    sourceTicket.getUser().getName()
+                });
+            }
+
+            List<ProductsBundleInfo> bundle = getProductsBundle((String) sourceTicket.getLine(i).getProductID());
+            if (bundle.size() > 0) {
+                for (ProductsBundleInfo bundleComponent : bundle) {
+                    ProductInfoExt bundleProduct = getProductInfo(bundleComponent.getProductBundleId());
+                    getStockDiaryInsert().exec(new Object[]{
+                        UUID.randomUUID().toString(),
+                        reversalTime,
+                        sourceTicket.getLine(i).getMultiply() * bundleComponent.getQuantity() >= 0.0
+                                ? MovementReason.IN_REFUND.getKey()
+                                : MovementReason.OUT_SALE.getKey(),
+                        location,
+                        bundleComponent.getProductBundleId(),
+                        null,
+                        sourceTicket.getLine(i).getMultiply() * bundleComponent.getQuantity(),
+                        bundleProduct.getPriceSell(),
+                        sourceTicket.getUser().getName()
+                    });
+                }
+            }
+        }
+
+        CustomerInfoExt currentDebtCustomer = null;
+        for (PaymentInfo payment : sourceTicket.getPayments()) {
+            if ("debt".equals(payment.getName()) || "debtpaid".equals(payment.getName())) {
+                if (sourceTicket.getCustomerId() == null) {
+                    throw new BasicException("Edited source sale has debt movements without a customer.");
+                }
+                if (currentDebtCustomer == null) {
+                    currentDebtCustomer = loadCustomerExt(sourceTicket.getCustomerId());
+                    if (currentDebtCustomer == null) {
+                        throw new BasicException("Unable to load customer while reversing edited sale debt.");
+                    }
+                }
+                currentDebtCustomer.updateCurDebt(-payment.getTotal(), sourceTicket.getDate());
+                final CustomerInfoExt debtCustomer = currentDebtCustomer;
+                getDebtUpdate().exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setDouble(1, debtCustomer.getAccdebt());
+                        setTimestamp(2, debtCustomer.getCurdate());
+                        setString(3, debtCustomer.getId());
+                    }
+                });
+            }
+        }
+
+        new StaticSentence(s, "DELETE FROM taxlines WHERE RECEIPT = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM payments WHERE RECEIPT = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM ticketlines WHERE TICKET = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM tickets WHERE ID = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM receipts WHERE ID = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+
+        for (String voucherNumber : sourceVoucherNumbers) {
+            if (replacementVoucherNumbers.contains(voucherNumber)) {
+                insertVoucherEditAudit(voucherNumber, sourceTicket.getId(), replacementTicket.getId(),
+                        operatorUserId, authorizationUserId, voucherAuthorizationTime, "EDIT_REUSED");
+            } else {
+                int affected = reactivateVoucherAfterEdit(voucherNumber, sourceTicket.getCustomerId());
+                if (affected != 1) {
+                    throw new BasicException("Unable to reactivate voucher from edited sale.");
+                }
+                insertVoucherEditAudit(voucherNumber, sourceTicket.getId(), replacementTicket.getId(),
+                        operatorUserId, authorizationUserId, voucherAuthorizationTime, "EDIT_REACTIVATED");
+            }
+        }
+    }
+
     public final void deleteTicket(final TicketInfo ticket, final String location) throws BasicException {
         deleteTicketInternal(ticket, location, null, null, null, null, false);
     }
 
-    public final void deleteEditedTicket(final TicketInfo sourceTicket, final String location,
+    private void deleteEditedTicket(final TicketInfo sourceTicket, final String location,
             final String replacementReceiptId, final String operatorUserId,
             final String authorizationUserId, final String authorizationAt) throws BasicException {
         deleteTicketInternal(sourceTicket, location, replacementReceiptId, operatorUserId,

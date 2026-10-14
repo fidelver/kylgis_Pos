@@ -157,12 +157,12 @@ public class JTicketsBagTicket extends JTicketsBag {
                             || !m_ticketCopy.getId().equals(replacementTicket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID))) {
                         throw new BasicException("Edited ticket lost its voucher authorization/source context.");
                     }
-                    m_dlSales.deleteEditedTicket(m_ticketCopy,
-                            m_App.getInventoryLocation(),
-                            replacementTicket.getId(),
-                            replacementTicket.getProperty(VoucherEditContext.OPERATOR_ID),
-                            replacementTicket.getProperty(VoucherEditContext.AUTH_USER_ID),
-                            replacementTicket.getProperty(VoucherEditContext.AUTH_AT));
+                    // Voucher edits are finalized atomically inside DataLogicSales.saveTicket.
+
+
+
+
+
                 } else {
                     m_dlSales.deleteTicket(m_ticketCopy, m_App.getInventoryLocation());
                 }
