@@ -2134,12 +2134,8 @@ public final class Transfer extends JPanel implements JPanelView {
                     }
                     rs.close();                                
 
-                    try {                  
-                        transferVoucherAuditIfPresent();
-                        this.con_target.setAutoCommit(true);
-                    } catch (SQLException ex) {
-                        Logger.getLogger(Transfer.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    transferVoucherAuditIfPresent();
+                    this.con_target.setAutoCommit(true);
             
 // Add ForeignKeys                   
                 JOptionPane.showMessageDialog(this
@@ -2160,9 +2156,25 @@ public final class Transfer extends JPanel implements JPanelView {
                         , JOptionPane.WARNING_MESSAGE);                    
                                         
                 } catch (SQLException | HeadlessException e) {
-                    session_source.close();                    
-                    
+                    try {
+                        if (con_target != null && !con_target.getAutoCommit()) {
+                            con_target.rollback();
+                        }
+                    } catch (SQLException rollbackError) {
+                        e.addSuppressed(rollbackError);
+                    }
+                    try {
+                        if (con_target != null) {
+                            con_target.setAutoCommit(true);
+                        }
+                    } catch (SQLException resetError) {
+                        e.addSuppressed(resetError);
+                    }
+                    session_source.close();
+                    jbtnTransfer.setEnabled(true);
+                    webPBar.setVisible(false);
                     JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING, SQL, e));
+                    return;
                 }
             } else {
                 JFrame frame = new JFrame();
