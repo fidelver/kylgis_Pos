@@ -29,6 +29,21 @@ public final class TicketTemplateValidator {
     }
 
     public static void validateForSave(String resourceName, String template) throws BasicException {
+        validate(resourceName, template, true);
+    }
+
+    /**
+     * Runtime health validation checks that an existing printer resource can be
+     * parsed as Velocity + XML without applying newer authoring policy to legacy
+     * templates. This avoids reporting operational failures merely because an
+     * older valid template relies on the default printer destination.
+     */
+    public static void validateForRuntimeHealth(String resourceName, String template) throws BasicException {
+        validate(resourceName, template, false);
+    }
+
+    private static void validate(String resourceName, String template, boolean enforcePrinterPolicy)
+            throws BasicException {
         if (template == null) {
             return;
         }
@@ -56,7 +71,7 @@ public final class TicketTemplateValidator {
                 @Override
                 public void startElement(String uri, String localName, String qName, Attributes attributes)
                         throws SAXException {
-                    if (!"ticket".equals(qName)) {
+                    if (!enforcePrinterPolicy || !"ticket".equals(qName)) {
                         return;
                     }
                     String printer = attributes.getValue("printer");

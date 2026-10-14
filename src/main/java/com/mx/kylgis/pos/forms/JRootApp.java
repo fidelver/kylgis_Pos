@@ -205,11 +205,16 @@ public class JRootApp extends JPanel implements AppView {
     }
     private void configureHealthBar() {
         java.awt.Font font = new java.awt.Font("Arial", java.awt.Font.BOLD, 11);
+        panelTask.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 2));
         m_jHost.setFont(font);
         m_healthPeripherals.setFont(font);
         m_healthResources.setFont(font);
-        m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 8));
-        m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        m_jHost.setPreferredSize(new java.awt.Dimension(390, 24));
+        m_healthPeripherals.setPreferredSize(new java.awt.Dimension(165, 24));
+        m_healthResources.setPreferredSize(new java.awt.Dimension(165, 24));
+        webMemoryBar1.setPreferredSize(new java.awt.Dimension(110, 24));
+        m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
+        m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
         panelTask.add(m_healthPeripherals, 1);
         panelTask.add(m_healthResources, 2);
         refreshHealthBar();
@@ -571,15 +576,17 @@ public class JRootApp extends JPanel implements AppView {
 
     private void refreshHealthBar() {
         updateHealthLabel(m_jHost, OperationalHealth.Category.DATABASE,
-                "Host: " + escapeHtml(safeStatusText(m_props == null ? null : m_props.getHost(), "POS"))
+                escapeHtml(safeStatusText(m_props == null ? null : m_props.getHost(), "POS"))
                 + databaseSuffix());
         updateHealthLabel(m_healthPeripherals, OperationalHealth.Category.PERIPHERALS, null);
         updateHealthLabel(m_healthResources, OperationalHealth.Category.RESOURCES, null);
+        panelTask.revalidate();
+        panelTask.repaint();
     }
 
     private String databaseSuffix() {
         String lastOctet = getDatabaseIpv4LastOctet();
-        return lastOctet == null ? "" : " · DB: …" + escapeHtml(lastOctet);
+        return lastOctet == null ? "" : " · …" + escapeHtml(lastOctet);
     }
 
     private void updateHealthLabel(JLabel label, OperationalHealth.Category category, String suffix) {
@@ -703,7 +710,7 @@ public class JRootApp extends JPanel implements AppView {
             return;
         }
         try {
-            com.mx.kylgis.pos.printer.TicketTemplateValidator.validateForSave(name, template);
+            com.mx.kylgis.pos.printer.TicketTemplateValidator.validateForRuntimeHealth(name, template);
         } catch (BasicException ex) {
             m_health.report(OperationalHealth.Category.RESOURCES, name,
                     OperationalHealth.Severity.AMBER,
