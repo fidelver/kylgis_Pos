@@ -100,17 +100,11 @@
       <version>2.0b6</version> 
     </dependency>  
     <dependency> 
-      <groupId>org.bidib.jbidib.org.qbang.rxtx</groupId>  
-      <artifactId>rxtxcomm</artifactId>  
-      <version>2.2</version> 
-    </dependency>  
-    <dependency> 
       <groupId>com.fazecast</groupId>
       <artifactId>jSerialComm</artifactId>
       <version>2.11.4</version>
     </dependency>
-    <!-- Portable serial transport for Java 21/Linux/Windows/ARM. RXTX remains
-         temporarily for scale drivers until that reserved collaborator scope is migrated. -->
+    <!-- Portable serial transport for Java 21/Linux/Windows/ARM. -->
     <dependency>
       <groupId>org.swinglabs.swingx</groupId>  
       <artifactId>swingx-all</artifactId>  
