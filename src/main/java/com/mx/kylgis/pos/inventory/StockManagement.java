@@ -774,6 +774,11 @@ public class StockManagement extends JPanel implements JPanelView {
                 ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                 script.put("inventoryrecord", invrec);
                 m_TTP.printTicket(script.eval(sresource).toString());
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.PERIPHERALS,
+                        "runtime.printer.Printer.Inventory");
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.RESOURCES,
+                        "runtime.resource.Printer.Inventory");
+                m_App.refreshOperationalHealthIndicators();
 
             } catch (    ScriptException | TicketPrinterException e) {
                 OperationalHealth.Category category = e instanceof ScriptException

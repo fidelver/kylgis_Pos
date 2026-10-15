@@ -1968,6 +1968,11 @@ System.out.println("PanelContainer : Focus Lost");
                 refreshTicket();                
                 
                 m_TTP.printTicket(script.eval(sresource).toString(), ticket);
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.PERIPHERALS,
+                        "runtime.printer." + sresourcename);
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.RESOURCES,
+                        "runtime.resource." + sresourcename);
+                m_App.refreshOperationalHealthIndicators();
 
             } catch (ScriptException e) {
                 m_App.getOperationalHealth().report(OperationalHealth.Category.RESOURCES,

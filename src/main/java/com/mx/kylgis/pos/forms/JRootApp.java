@@ -727,9 +727,10 @@ public class JRootApp extends JPanel implements AppView {
                 || !java.nio.file.Files.isWritable(path)) {
             return true;
         }
-        if (endpoint.matches("/dev/rfcomm\\d+")) {
-            return !isRfcommConnected(endpoint);
-        }
+        // RFCOMM printers are expected to stay disconnected while idle and
+        // establish the Bluetooth link only when a print job writes to the port.
+        // Treating the idle RFCOMM state as a fault creates a false amber health
+        // condition. Runtime print failures are reported by the print paths.
         return false;
     }
 
