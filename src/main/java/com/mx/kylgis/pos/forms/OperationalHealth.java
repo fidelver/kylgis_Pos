@@ -147,7 +147,7 @@ public final class OperationalHealth {
             case "Printer.TicketLine":
                 return CAP_PRINT_LINE;
             case "Printer.ReprintTicket":
-            case "Printer.ReprintLastTicket":
+            case "Printer.PrintLastTicket":
                 return CAP_PRINT_REPRINT;
             case "Printer.TicketPreview":
             case "Printer.TicketPreview2":

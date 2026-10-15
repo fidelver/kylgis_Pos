@@ -32,7 +32,7 @@ import java.awt.Component;
  *
  * @author JG uniCenta
  */
-public class DeviceScale {
+public class DeviceScale implements AutoCloseable {
     
     private Scale m_scale;
     
@@ -118,6 +118,20 @@ public class DeviceScale {
     public boolean existsScale() {
         return m_scale != null;
     }
+
+    public static boolean supportsHotReload(AppProperties props) {
+        if (ScaleServiceConfig.getServiceId(props) != null) {
+            return true;
+        }
+        StringParser parser = new StringParser(props.getProperty("machine.scale"));
+        String type = parser.nextToken(':');
+        return type == null || type.isBlank()
+                || "Not defined".equalsIgnoreCase(type)
+                || "none".equalsIgnoreCase(type)
+                || "fake".equals(type)
+                || "screen".equals(type)
+                || "torreymetrologylatam".equals(type);
+    }
     
     /**
      *
@@ -140,5 +154,16 @@ public class DeviceScale {
                 return result;
             }
         }
-    }    
+    }
+
+    @Override
+    public void close() {
+        if (m_scale != null) {
+            try {
+                m_scale.close();
+            } finally {
+                m_scale = null;
+            }
+        }
+    }
 }

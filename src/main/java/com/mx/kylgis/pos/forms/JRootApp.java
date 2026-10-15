@@ -78,6 +78,7 @@ import java.nio.file.StandardOpenOption;
 public class JRootApp extends JPanel implements AppView {
 
     private AppProperties m_props;
+    private AppProperties m_peripheralProps;
     private Session session;     
     private DataLogicSystem m_dlSystem;
     
@@ -252,7 +253,7 @@ public class JRootApp extends JPanel implements AppView {
         }
         try {
             m_iButtonMonitor = OptionalIButtonMonitor.start(
-                    m_props.getProperty("machine.iButton.library"),
+                    peripheralProperties().getProperty("machine.iButton.library"),
                     new OptionalIButtonMonitor.Listener() {
                 @Override
                 public void deviceArrived(String address) {
@@ -324,7 +325,102 @@ public class JRootApp extends JPanel implements AppView {
 
     public void releaseResources() {
         closeDatabaseHealthSession();
+        closeRuntimePeripherals(true);
+    }
+
+    public synchronized boolean reloadPeripheralConfiguration() {
+        AppProperties previous = peripheralProperties();
+        final AppConfig candidate;
+        try {
+            candidate = new AppConfig(m_props.getConfigFile());
+        } catch (RuntimeException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.WARNING,
+                    "Unable to load saved peripheral configuration", ex);
+            return false;
+        }
+
+        boolean scaleChanged = scaleConfigurationChanged(previous, candidate);
+        if (scaleChanged && (!DeviceScale.supportsHotReload(previous)
+                || !DeviceScale.supportsHotReload(candidate))) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.INFO,
+                    "Scale change requires restart for this driver; peripheral hot reload was not attempted");
+            return false;
+        }
+
+        closeRuntimePeripherals(scaleChanged);
+        try {
+            m_peripheralProps = candidate;
+            initializeRuntimePeripherals(candidate, scaleChanged);
+            updateOperationIndicator();
+            return true;
+        } catch (RuntimeException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.WARNING,
+                    "Unable to apply peripheral configuration; restoring previous runtime devices", ex);
+            closeRuntimePeripherals(scaleChanged);
+            m_peripheralProps = previous;
+            try {
+                initializeRuntimePeripherals(previous, scaleChanged);
+            } catch (RuntimeException rollbackEx) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.SEVERE,
+                        "Unable to restore previous peripheral configuration", rollbackEx);
+            }
+            updateOperationIndicator();
+            return false;
+        }
+    }
+
+    private boolean scaleConfigurationChanged(AppProperties previous, AppProperties candidate) {
+        return !Objects.equals(previous.getProperty("machine.scale"), candidate.getProperty("machine.scale"))
+                || !Objects.equals(previous.getProperty(com.mx.kylgis.pos.scale.ScaleRequestCommand.PROPERTY),
+                        candidate.getProperty(com.mx.kylgis.pos.scale.ScaleRequestCommand.PROPERTY))
+                || !Objects.equals(
+                        com.mx.kylgis.pos.scale.service.ScaleServiceConfig.getServiceId(previous),
+                        com.mx.kylgis.pos.scale.service.ScaleServiceConfig.getServiceId(candidate));
+    }
+
+    private void initializeRuntimePeripherals(AppProperties props, boolean initializeScale) {
+        m_TP = new DeviceTicket(this, props);
+        m_TTP = new TicketParser(getDeviceTicket(), m_dlSystem);
+        printerStart();
+        if (initializeScale || m_Scale == null) {
+            m_Scale = new DeviceScale(this, props);
+        }
+        m_Scanner = DeviceScannerFactory.createInstance(props);
+        if (Boolean.parseBoolean(props.getProperty("machine.iButton"))) {
+            initIButtonMonitor();
+        }
+    }
+
+    private void closeRuntimePeripherals(boolean closeScale) {
         shutdownIButtonMonitor();
+        if (m_Scanner != null) {
+            try {
+                m_Scanner.disconnectDevice();
+            } catch (RuntimeException ex) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                        "Error disconnecting scanner during peripheral reload", ex);
+            }
+            m_Scanner = null;
+        }
+        if (closeScale && m_Scale != null) {
+            try {
+                m_Scale.close();
+            } catch (RuntimeException ex) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                        "Error closing scale during peripheral reload", ex);
+            }
+            m_Scale = null;
+        }
+        if (m_TP != null) {
+            try {
+                m_TP.close();
+            } catch (RuntimeException ex) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                        "Error closing ticket devices during peripheral reload", ex);
+            }
+            m_TP = null;
+            m_TTP = null;
+        }
     }
 
     /**
@@ -335,6 +431,7 @@ public class JRootApp extends JPanel implements AppView {
     public boolean initApp(AppProperties props) {
         
         m_props = props;
+        m_peripheralProps = props;
         m_jPanelDown.setVisible(!(Boolean.valueOf(m_props.getProperty("till.hideinfo"))));
         setOperationIndicator("Inicializando", new java.awt.Color(184, 134, 11), null);
 
@@ -775,13 +872,17 @@ public class JRootApp extends JPanel implements AppView {
         return tooltip.append("</html>").toString();
     }
 
-    private void diagnosePeripherals() {
+    private AppProperties peripheralProperties() {
+        return m_peripheralProps == null ? m_props : m_peripheralProps;
+    }
+
+    private synchronized void diagnosePeripherals() {
         m_health.clear(OperationalHealth.Category.PERIPHERALS);
 
         String receiptIndex = m_TP == null ? "1" : m_TP.getReceiptPrinterIndex();
         for (int i = 1; i <= 6; i++) {
             String key = i == 1 ? "machine.printer" : "machine.printer." + i;
-            String configured = normalizedConfig(m_props.getProperty(key));
+            String configured = normalizedConfig(peripheralProperties().getProperty(key));
             if (!isConfiguredDevice(configured)) {
                 continue;
             }
@@ -797,7 +898,7 @@ public class JRootApp extends JPanel implements AppView {
             }
         }
 
-        String scale = normalizedConfig(m_props.getProperty("machine.scale"));
+        String scale = normalizedConfig(peripheralProperties().getProperty("machine.scale"));
         if (isConfiguredDevice(scale) && (m_Scale == null || !m_Scale.existsScale()
                 || configuredEndpointUnavailable(scale))) {
             m_health.report(OperationalHealth.Category.PERIPHERALS, "scale",
@@ -805,14 +906,14 @@ public class JRootApp extends JPanel implements AppView {
                     "Báscula configurada pero no disponible", OperationalHealth.CAP_SCALE);
         }
 
-        String scanner = normalizedConfig(m_props.getProperty("machine.scanner"));
+        String scanner = normalizedConfig(peripheralProperties().getProperty("machine.scanner"));
         if (isConfiguredDevice(scanner) && m_Scanner == null) {
             m_health.report(OperationalHealth.Category.PERIPHERALS, "scanner",
                     OperationalHealth.Severity.AMBER,
                     "Escáner configurado pero no disponible", OperationalHealth.CAP_SCANNER);
         }
 
-        String display = normalizedConfig(m_props.getProperty("machine.display"));
+        String display = normalizedConfig(peripheralProperties().getProperty("machine.display"));
         if (isConfiguredDevice(display) && (m_TP == null
                 || m_TP.getDeviceDisplay() instanceof com.mx.kylgis.pos.printer.DeviceDisplayNull)) {
             m_health.report(OperationalHealth.Category.PERIPHERALS, "display",
@@ -820,7 +921,7 @@ public class JRootApp extends JPanel implements AppView {
                     "Display configurado pero no disponible", OperationalHealth.CAP_DISPLAY);
         }
 
-        if (Boolean.parseBoolean(m_props.getProperty("machine.iButton")) && m_iButtonMonitor == null) {
+        if (Boolean.parseBoolean(peripheralProperties().getProperty("machine.iButton")) && m_iButtonMonitor == null) {
             m_health.report(OperationalHealth.Category.PERIPHERALS, "ibutton",
                     OperationalHealth.Severity.AMBER,
                     "iButton configurado pero no disponible", OperationalHealth.CAP_IBUTTON);
@@ -936,7 +1037,7 @@ public class JRootApp extends JPanel implements AppView {
         checkPrinterResource("Printer.PartialCash", OperationalHealth.CAP_PRINT_CASH);
         checkPrinterResource("Printer.CloseCash.Preview", OperationalHealth.CAP_PRINT_PREVIEW);
         checkPrinterResource("Printer.ReprintTicket", OperationalHealth.CAP_PRINT_REPRINT);
-        checkPrinterResource("Printer.ReprintLastTicket", OperationalHealth.CAP_PRINT_REPRINT);
+        checkPrinterResource("Printer.PrintLastTicket", OperationalHealth.CAP_PRINT_REPRINT);
         checkPrinterResource("Printer.Start", null);
     }
 

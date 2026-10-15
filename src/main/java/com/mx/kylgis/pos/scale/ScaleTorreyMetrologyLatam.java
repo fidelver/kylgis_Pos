@@ -14,9 +14,14 @@ package com.mx.kylgis.pos.scale;
 
 import com.fazecast.jSerialComm.SerialPort;
 import com.mx.kylgis.pos.forms.AppLocal;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Torrey / Metrology LATAM request-response scale.
@@ -31,6 +36,8 @@ public class ScaleTorreyMetrologyLatam implements Scale {
 
     private static final int BAUD_RATE = 9600;
     private static final int READ_TIMEOUT_MS = 1200;
+    private static final int MAX_FRAME = 40;
+    private static final Pattern WEIGHT_FRAME = Pattern.compile("([+-])\\s*(\\d{1,2}\\.\\d{3})\\s+kg");
     private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x50};
 
     private final String portName;
@@ -112,33 +119,50 @@ public class ScaleTorreyMetrologyLatam implements Scale {
     }
 
     private Double readResponse() throws IOException {
-        StringBuilder numeric = new StringBuilder(12);
-        boolean negative = false;
-
+        ByteArrayOutputStream frame = new ByteArrayOutputStream();
         while (true) {
             int value = input.read();
             if (value < 0) {
-                return numeric.length() == 0 ? 0.0 : parseWeight(numeric, negative);
+                throw new IOException("Incomplete scale response");
             }
+            if (frame.size() >= MAX_FRAME) {
+                throw new IOException("Scale response too long");
+            }
+            frame.write(value);
             if (value == '\r') {
-                return numeric.length() == 0 ? 0.0 : parseWeight(numeric, negative);
-            }
-            if (value == '-') {
-                negative = true;
-            } else if ((value >= '0' && value <= '9') || value == '.') {
-                numeric.append((char) value);
+                return parseWeight(frame.toByteArray());
             }
         }
     }
 
-    private static Double parseWeight(StringBuilder numeric, boolean negative) throws IOException {
+    static Double parseWeight(byte[] raw) throws IOException {
+        if (raw == null || raw.length < 2 || raw.length > MAX_FRAME
+                || raw[raw.length - 1] != '\r') {
+            throw new IOException("Incomplete scale response");
+        }
+        for (byte value : raw) {
+            if (value != '\r' && (value < 32 || value > 126)) {
+                throw new IOException("Invalid non-ASCII scale response");
+            }
+        }
+        String text = new String(raw, 0, raw.length - 1, StandardCharsets.US_ASCII);
+        Matcher match = WEIGHT_FRAME.matcher(text);
+        if (!match.matches()) {
+            throw new IOException("Unrecognized scale response format");
+        }
+        if ("-".equals(match.group(1))) {
+            throw new IOException("Negative scale response");
+        }
         try {
-            double weight = Double.parseDouble(numeric.toString());
-            // A negative scale reading represents an invalid/tare condition for POS sale.
-            return negative ? 0.0 : weight;
+            return new BigDecimal(match.group(2)).doubleValue();
         } catch (NumberFormatException ex) {
             throw new IOException("Invalid scale response", ex);
         }
+    }
+
+    @Override
+    public synchronized void close() {
+        resetPort();
     }
 
     private void resetPort() {

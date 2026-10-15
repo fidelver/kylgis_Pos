@@ -37,16 +37,18 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     private List<PanelConfig> m_panelconfig;
 
     private AppConfig config;
+    private AppView liveApp;
+    private JButton jbtnApplyPeripherals;
     
     /** Creates new form JPanelConfiguration
      * @param oApp */
     public JPanelConfiguration(AppView oApp) {
-        this(oApp.getProperties()); 
-        if (oApp!= null) {
+        this(oApp.getProperties());
+        liveApp = oApp;
+        if (oApp != null) {
             jbtnExit.setVisible(false);
+            jbtnApplyPeripherals.setVisible(oApp instanceof JRootApp);
         }
-        
-        
     }
     
     /**
@@ -56,6 +58,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     public JPanelConfiguration(AppProperties props) {
         
         initComponents();
+        configureActionBar();
         config = new AppConfig(props.getConfigFile());
 
         m_panelconfig = new ArrayList<>();
@@ -132,29 +135,77 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     }
     
     private void saveProperties() {
-        
-        // paneles auxiliares
+        persistProperties(true);
+    }
+
+    private boolean persistProperties(boolean showRestartNotice) {
         try {
-            for (PanelConfig c: m_panelconfig) {
+            for (PanelConfig c : m_panelconfig) {
                 c.saveProperties(config);
             }
         } catch (IllegalStateException ex) {
             JMessageDialog.showMessage(this,
                 new MessageInf(MessageInf.SGN_WARNING,
                         "No se pudo guardar la configuración", ex));
-            return;
+            return false;
         }
-        
+
         try {
             config.save();
-            JOptionPane.showMessageDialog(this, 
-                AppLocal.getIntString("message.restartchanges"), 
-                AppLocal.getIntString("message.title"), 
-                JOptionPane.INFORMATION_MESSAGE);
+            if (showRestartNotice) {
+                JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.restartchanges"),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+            return true;
         } catch (IOException e) {
-            JMessageDialog.showMessage(this, 
-                new MessageInf(MessageInf.SGN_WARNING, 
+            JMessageDialog.showMessage(this,
+                new MessageInf(MessageInf.SGN_WARNING,
                 AppLocal.getIntString("message.cannotsaveconfig"), e));
+            return false;
+        }
+    }
+
+    private void configureActionBar() {
+        jbtnApplyPeripherals = new JButton("Aplicar periféricos");
+        jbtnApplyPeripherals.setFont(new java.awt.Font("Arial", 0, 12));
+        jbtnApplyPeripherals.setPreferredSize(new java.awt.Dimension(150, 45));
+        jbtnApplyPeripherals.setFocusable(false);
+        jbtnApplyPeripherals.setVisible(false);
+        jbtnApplyPeripherals.setToolTipText(
+                "Guardar y recargar impresoras, display, báscula, escáner e iButton sin reiniciar");
+        jbtnApplyPeripherals.addActionListener(evt -> applyPeripheralChanges());
+
+        jPanel1.removeAll();
+        jPanel1.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 18, 0));
+        jPanel1.add(jbtnSave);
+        jPanel1.add(jbtnApplyPeripherals);
+        jPanel1.add(jbtnRestore);
+        jPanel1.add(jbtnExit);
+    }
+
+    private void applyPeripheralChanges() {
+        if (!(liveApp instanceof JRootApp)) {
+            return;
+        }
+        if (!persistProperties(false)) {
+            return;
+        }
+
+        boolean applied = ((JRootApp) liveApp).reloadPeripheralConfiguration();
+        if (applied) {
+            JOptionPane.showMessageDialog(this,
+                    "Periféricos aplicados sin reiniciar.\n"
+                    + "Los cambios de BBDD, idioma, apariencia u otros ajustes estructurales "
+                    + "se aplicarán en el próximo arranque.",
+                    "Configuración aplicada", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudieron aplicar todos los periféricos en caliente.\n"
+                    + "La configuración quedó guardada. Algunos drivers de báscula heredados requieren reiniciar; "
+                    + "si hubo un fallo de inicialización, KylGis POS intentó restaurar los dispositivos anteriores.",
+                    "Reinicio requerido", JOptionPane.WARNING_MESSAGE);
         }
     }
 

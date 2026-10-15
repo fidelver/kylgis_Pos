@@ -92,7 +92,7 @@ public class DeviceTicket implements AutoCloseable {
      */
     public DeviceTicket(Component parent, AppProperties props) {
 
-        PrinterWritterPool pws = new PrinterWritterPool();
+        PrinterWritterPool pws = manage(new PrinterWritterPool());
 
         // La impresora fiscal
         StringParser sf = new StringParser(props.getProperty("machine.fiscalprinter"));
@@ -416,10 +416,23 @@ public class DeviceTicket implements AutoCloseable {
         managedResources.clear();
     }
 
-    private static class PrinterWritterPool {
+    private static class PrinterWritterPool implements AutoCloseable {
 
         private final Map<String, PrinterWritter> m_apool = new HashMap<>();
 
+
+        @Override
+        public void close() {
+            java.util.Set<PrinterWritter> writers = new java.util.HashSet<>(m_apool.values());
+            for (PrinterWritter writer : writers) {
+                try {
+                    writer.close();
+                } catch (RuntimeException ex) {
+                    logger.log(Level.WARNING, "Error closing ESC/POS writer", ex);
+                }
+            }
+            m_apool.clear();
+        }
         public PrinterWritter getPrinterWritter(String con, String port) throws TicketPrinterException {
 
             String skey = con + "-->" + port;

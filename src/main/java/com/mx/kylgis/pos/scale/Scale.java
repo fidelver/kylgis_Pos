@@ -24,7 +24,12 @@ package com.mx.kylgis.pos.scale;
  *
  * @author JG uniCenta
  */
-public interface Scale {
+public interface Scale extends AutoCloseable {
+
+    @Override
+    default void close() {
+        // Most scale implementations do not keep an open resource between reads.
+    }
     
     /**
      *
