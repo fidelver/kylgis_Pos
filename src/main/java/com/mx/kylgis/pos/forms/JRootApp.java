@@ -110,6 +110,10 @@ public class JRootApp extends JPanel implements AppView {
     private TicketParser m_TTP;
     private javax.swing.Timer m_healthMonitorTimer;
     private volatile boolean m_healthProbeRunning;
+    private String m_databaseHealthHost;
+    private int m_databaseHealthPort = -1;
+    private String m_databaseHealthLastOctet;
+    private Session m_databaseHealthSession;
     private final OperationalHealth m_health = new OperationalHealth();
     private final JLabel m_healthPeripherals = new JLabel();
     private final JLabel m_healthResources = new JLabel();
@@ -313,6 +317,7 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     public void releaseResources() {
+        closeDatabaseHealthSession();
         shutdownIButtonMonitor();
     }
 
@@ -331,6 +336,7 @@ public class JRootApp extends JPanel implements AppView {
         
         try {
             session = AppViewConnection.createSession(m_props);
+            cacheDatabaseHealthEndpoint();
             
         } catch (BasicException e) {
             setOperationIndicator("Sin conexión", new java.awt.Color(176, 0, 32), null);
@@ -568,6 +574,83 @@ public class JRootApp extends JPanel implements AppView {
         refreshHealthBar();
     }
 
+    private void cacheDatabaseHealthEndpoint() {
+        m_databaseHealthHost = null;
+        m_databaseHealthPort = -1;
+        m_databaseHealthLastOctet = null;
+        if (session == null) {
+            return;
+        }
+        try {
+            String jdbcUrl = session.getURL();
+            if (jdbcUrl == null || !jdbcUrl.startsWith("jdbc:")) {
+                return;
+            }
+            java.net.URI uri = new java.net.URI(jdbcUrl.substring("jdbc:".length()));
+            m_databaseHealthHost = uri.getHost();
+            m_databaseHealthPort = uri.getPort() > 0 ? uri.getPort() : 3306;
+            if (m_databaseHealthHost != null) {
+                String[] octets = m_databaseHealthHost.split("\\.");
+                if (octets.length == 4) {
+                    boolean valid = true;
+                    for (String octet : octets) {
+                        int value = Integer.parseInt(octet);
+                        valid &= value >= 0 && value <= 255;
+                    }
+                    if (valid) {
+                        m_databaseHealthLastOctet = octets[3];
+                    }
+                }
+            }
+        } catch (SQLException | java.net.URISyntaxException | NumberFormatException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                    "Unable to cache database endpoint for health monitoring.", ex);
+        }
+    }
+
+    private void diagnoseDatabase() {
+        m_health.clear(OperationalHealth.Category.DATABASE);
+        if (session == null) {
+            closeDatabaseHealthSession();
+            m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
+                    OperationalHealth.Severity.RED, "Sesión de BBDD no disponible", null);
+            return;
+        }
+
+        if (m_databaseHealthHost != null && m_databaseHealthPort > 0) {
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(m_databaseHealthHost, m_databaseHealthPort), 1200);
+            } catch (IOException ex) {
+                closeDatabaseHealthSession();
+                m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
+                        OperationalHealth.Severity.RED, "Servidor de BBDD no disponible", null);
+                return;
+            }
+        }
+
+        try {
+            if (m_databaseHealthSession == null) {
+                m_databaseHealthSession = session.forkReadOnly();
+            }
+            Connection connection = m_databaseHealthSession.getConnection();
+            if (!connection.isValid(2)) {
+                throw new SQLException("Database validation failed");
+            }
+        } catch (SQLException ex) {
+            closeDatabaseHealthSession();
+            m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
+                    OperationalHealth.Severity.RED, "BBDD no disponible", null);
+        }
+    }
+
+    private void closeDatabaseHealthSession() {
+        Session probe = m_databaseHealthSession;
+        m_databaseHealthSession = null;
+        if (probe != null) {
+            probe.close();
+        }
+    }
+
     private void setOperationIndicator(String state, java.awt.Color color, String dbLastOctet) {
         m_health.clear(OperationalHealth.Category.DATABASE);
         OperationalHealth.Severity severity = "Sin conexión".equals(state)
@@ -691,12 +774,12 @@ public class JRootApp extends JPanel implements AppView {
         if (m_healthMonitorTimer != null) {
             m_healthMonitorTimer.stop();
         }
-        m_healthMonitorTimer = new javax.swing.Timer(5000, evt -> refreshPeripheralHealthAsync());
+        m_healthMonitorTimer = new javax.swing.Timer(5000, evt -> refreshOperationalHealthAsync());
         m_healthMonitorTimer.setInitialDelay(5000);
         m_healthMonitorTimer.start();
     }
 
-    private void refreshPeripheralHealthAsync() {
+    private void refreshOperationalHealthAsync() {
         if (m_healthProbeRunning || m_props == null) {
             return;
         }
@@ -704,6 +787,7 @@ public class JRootApp extends JPanel implements AppView {
         new javax.swing.SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
+                diagnoseDatabase();
                 diagnosePeripherals();
                 return null;
             }
@@ -827,35 +911,7 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     private String getDatabaseIpv4LastOctet() {
-        if (session == null) {
-            return null;
-        }
-        try {
-            String jdbcUrl = session.getURL();
-            if (jdbcUrl == null || !jdbcUrl.startsWith("jdbc:")) {
-                return null;
-            }
-            java.net.URI uri = new java.net.URI(jdbcUrl.substring("jdbc:".length()));
-            String host = uri.getHost();
-            if (host == null) {
-                return null;
-            }
-            String[] octets = host.split("\\.");
-            if (octets.length != 4) {
-                return null;
-            }
-            for (String octet : octets) {
-                int value = Integer.parseInt(octet);
-                if (value < 0 || value > 255) {
-                    return null;
-                }
-            }
-            return octets[3];
-        } catch (SQLException | java.net.URISyntaxException | NumberFormatException ex) {
-            Logger.getLogger(JRootApp.class.getName()).log(
-                    Level.FINE, "Unable to derive redacted database endpoint for status bar.", ex);
-            return null;
-        }
+        return m_databaseHealthLastOctet;
     }
 
     private static String safeStatusText(String value, String fallback) {
