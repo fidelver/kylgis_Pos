@@ -57,6 +57,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,6 +68,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
 
@@ -97,6 +99,7 @@ public class StockManagement extends JPanel implements JPanelView {
     private final List<SupplierInfo> m_AllSuppliers = new ArrayList<>();
     private final Set<String> m_AssociatedSupplierIds = new HashSet<>();
     private String m_PreferredSupplierId;
+    private boolean m_scaleReadInProgress;
        
     
     private final JInventoryLines m_invlines;
@@ -141,6 +144,7 @@ public class StockManagement extends JPanel implements JPanelView {
 
         initComponents();
         installSupplierRenderer();
+        installResponsiveInventoryLayout();
         
         user = m_App.getAppUserView().getUser().getName();
 
@@ -230,6 +234,79 @@ public class StockManagement extends JPanel implements JPanelView {
     /**
      *
      */
+    /**
+     * Keeps the inventory keypad and action controls visible on narrower POS
+     * displays. The NetBeans form uses AbsoluteLayout coordinates sized for a
+     * ~1540 px content area; on 1280 px terminals the keypad was placed fully
+     * off-screen. Re-assigning the AbsoluteConstraints preserves the generated
+     * form while making only the right-hand working area responsive.
+     */
+    private void installResponsiveInventoryLayout() {
+        jPanel8.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                updateResponsiveInventoryLayout();
+            }
+        });
+        java.awt.EventQueue.invokeLater(this::updateResponsiveInventoryLayout);
+    }
+
+    private void updateResponsiveInventoryLayout() {
+        if (!(jPanel8.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout)) {
+            return;
+        }
+        int width = jPanel8.getWidth();
+        if (width <= 0) {
+            return;
+        }
+
+        org.netbeans.lib.awtextra.AbsoluteLayout layout =
+                (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel8.getLayout();
+
+        if (width >= 1540) {
+            layout.addLayoutComponent(jPanel5,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 0, 790, 280));
+            layout.addLayoutComponent(jPanel2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1260, 0, -1, 330));
+            layout.addLayoutComponent(jPanel1,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1330, 0, 210, 290));
+            layout.addLayoutComponent(m_jBtnShowStock,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 310, 60, 50));
+            layout.addLayoutComponent(m_jcodebar,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1340, 310, -1, 30));
+            layout.addLayoutComponent(m_jEnter,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1480, 300, -1, 50));
+            layout.addLayoutComponent(jScrollPane2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 282, 1170, 70));
+        } else {
+            final int keypadWidth = 210;
+            final int toolsWidth = 60;
+            final int rightMargin = 10;
+            final int keypadX = Math.max(760, width - rightMargin - keypadWidth);
+            final int toolsX = Math.max(680, keypadX - 70);
+            final int catalogWidth = Math.max(210, toolsX - 480);
+            final int stockWidth = Math.max(620, toolsX - 10);
+
+            layout.addLayoutComponent(jPanel5,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 0, catalogWidth, 280));
+            layout.addLayoutComponent(jPanel2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(toolsX, 0, toolsWidth, 290));
+            layout.addLayoutComponent(jPanel1,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX, 0, keypadWidth, 290));
+            layout.addLayoutComponent(m_jBtnShowStock,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(Math.max(470, toolsX - 70), 310, 60, 50));
+            layout.addLayoutComponent(m_jcodebar,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX + 10, 310, 130, 30));
+            layout.addLayoutComponent(m_jEnter,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX + 150, 300, 54, 50));
+            layout.addLayoutComponent(jScrollPane2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 282, stockWidth, 70));
+        }
+
+        jPanel8.revalidate();
+        jPanel8.repaint();
+    }
+
     public void stateToInsert() {
 
         m_jdate.setText(Formats.TIMESTAMP.formatValue(DateUtils.getTodayMinutes()));
@@ -927,16 +1004,42 @@ public class StockManagement extends JPanel implements JPanelView {
     private void incProduct(ProductInfoExt prod) {
 
         if (prod.isScale() && m_App.getDeviceScale().existsScale()) {
-            try {
-                Double value = m_App.getDeviceScale().readWeight();
-                if (value != null) {
-                    incProduct(value, prod);
-                }
-            } catch (ScaleException e) {
+            if (m_scaleReadInProgress) {
                 Toolkit.getDefaultToolkit().beep();
-                new MessageInf(MessageInf.SGN_WARNING,
-                        AppLocal.getIntString("message.noweight"), e).show(this);
+                return;
             }
+            m_scaleReadInProgress = true;
+            m_App.waitCursorBegin();
+            new SwingWorker<Double, Void>() {
+                @Override
+                protected Double doInBackground() throws ScaleException {
+                    return m_App.getDeviceScale().readWeight();
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        Double value = get();
+                        if (value != null) {
+                            incProduct(value, prod);
+                        }
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        Toolkit.getDefaultToolkit().beep();
+                    } catch (ExecutionException ex) {
+                        Toolkit.getDefaultToolkit().beep();
+                        Throwable cause = ex.getCause();
+                        ScaleException scaleException = cause instanceof ScaleException
+                                ? (ScaleException) cause
+                                : new ScaleException(cause == null ? ex.getMessage() : cause.getMessage());
+                        new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.noweight"), scaleException).show(StockManagement.this);
+                    } finally {
+                        m_scaleReadInProgress = false;
+                        m_App.waitCursorEnd();
+                    }
+                }
+            }.execute();
         } else {
             incProduct(1.0, prod);
         }

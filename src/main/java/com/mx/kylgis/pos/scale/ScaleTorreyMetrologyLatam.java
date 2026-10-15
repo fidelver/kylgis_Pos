@@ -120,11 +120,29 @@ public class ScaleTorreyMetrologyLatam implements Scale {
 
     private Double readResponse() throws IOException {
         ByteArrayOutputStream frame = new ByteArrayOutputStream();
-        while (true) {
-            int value = input.read();
-            if (value < 0) {
-                throw new IOException("Incomplete scale response");
+        long deadline = System.nanoTime() + (READ_TIMEOUT_MS * 1_000_000L);
+        byte[] one = new byte[1];
+
+        while (System.nanoTime() < deadline) {
+            int available = serialPort == null ? 0 : serialPort.bytesAvailable();
+            if (available < 0) {
+                throw new IOException("Scale serial port is no longer available");
             }
+            if (available == 0) {
+                try {
+                    Thread.sleep(10L);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Scale read interrupted", ex);
+                }
+                continue;
+            }
+
+            int count = serialPort.readBytes(one, 1);
+            if (count <= 0) {
+                continue;
+            }
+            int value = one[0] & 0xFF;
             if (frame.size() >= MAX_FRAME) {
                 throw new IOException("Scale response too long");
             }
@@ -133,6 +151,7 @@ public class ScaleTorreyMetrologyLatam implements Scale {
                 return parseWeight(frame.toByteArray());
             }
         }
+        throw new IOException("Scale response timeout");
     }
 
     static Double parseWeight(byte[] raw) throws IOException {
