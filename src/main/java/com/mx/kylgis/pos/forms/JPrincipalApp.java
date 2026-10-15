@@ -461,6 +461,15 @@ public class JPrincipalApp extends javax.swing.JPanel implements AppUserView {
      */
     @Override
     public void showTask(String sTaskClass) {
+
+        if (!m_appview.isDatabaseAvailableNow()) {
+            JOptionPane.showMessageDialog(this,
+                    "No se puede cambiar de panel mientras la conexión con la BBDD no esté disponible.\n"
+                    + "La vista actual se conservará. Use ↻ Refrescar para volver al inicio de sesión cuando vuelva la conexión.",
+                    "BBDD no disponible",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
          
         customerInfo = new CustomerInfo("");
         customerInfo.setName("");
@@ -493,23 +502,26 @@ public class JPrincipalApp extends javax.swing.JPanel implements AppUserView {
                     m_aCreatedViews.put(sTaskClass, m_jMyView);
                 }
                 
+                boolean activationSucceeded = false;
                 try {
                     m_jMyView.activate();
+                    activationSucceeded = true;
                 } catch (BasicException e) {
                     JMessageDialog.showMessage(this
                         , new MessageInf(MessageInf.SGN_WARNING
                         , AppLocal.getIntString("message.notactive"), e));            
                 }
+                if (activationSucceeded) {
+                    m_jLastView = m_jMyView;
 
-                m_jLastView = m_jMyView;
+                    setMenuVisible(getBounds().width > 800);
+                    setMenuVisible(false);
 
-                setMenuVisible(getBounds().width > 800);
-                setMenuVisible(false);
-
-                showView(sTaskClass);   
-                String sTitle = m_jMyView.getTitle();
-                m_jPanelTitle.setVisible(sTitle != null);
-                m_jTitle.setText(sTitle);       
+                    showView(sTaskClass);
+                    String sTitle = m_jMyView.getTitle();
+                    m_jPanelTitle.setVisible(sTitle != null);
+                    m_jTitle.setText(sTitle);
+                }       
             }
         } else  {
 

@@ -117,6 +117,7 @@ public class JRootApp extends JPanel implements AppView {
     private final OperationalHealth m_health = new OperationalHealth();
     private final JLabel m_healthPeripherals = new JLabel();
     private final JLabel m_healthResources = new JLabel();
+    private final JButton m_healthRefreshButton = new JButton("↻ Refrescar");
     
     private final Map<String, BeanFactory> m_aBeanFactories;
     
@@ -221,8 +222,13 @@ public class JRootApp extends JPanel implements AppView {
         webMemoryBar1.setPreferredSize(new java.awt.Dimension(100, 24));
         m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
         m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
+        m_healthRefreshButton.setFocusable(false);
+        m_healthRefreshButton.setToolTipText("Verificar BBDD y volver al inicio de sesión");
+        m_healthRefreshButton.setPreferredSize(new java.awt.Dimension(105, 24));
+        m_healthRefreshButton.addActionListener(evt -> returnToLoginAfterDatabaseCheck());
         panelTask.add(m_healthPeripherals, 1);
         panelTask.add(m_healthResources, 2);
+        panelTask.add(m_healthRefreshButton, 3);
         refreshHealthBar();
     }
 
@@ -609,38 +615,85 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     private void diagnoseDatabase() {
+        probeDatabaseHealth();
+    }
+
+    public synchronized boolean isDatabaseAvailableNow() {
+        boolean available = probeDatabaseHealth();
+        if (SwingUtilities.isEventDispatchThread()) {
+            refreshHealthBar();
+        } else {
+            SwingUtilities.invokeLater(this::refreshHealthBar);
+        }
+        return available;
+    }
+
+    private synchronized boolean probeDatabaseHealth() {
         m_health.clear(OperationalHealth.Category.DATABASE);
         if (session == null) {
             closeDatabaseHealthSession();
             m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
                     OperationalHealth.Severity.RED, "Sesión de BBDD no disponible", null);
-            return;
-        }
-
-        if (m_databaseHealthHost != null && m_databaseHealthPort > 0) {
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(m_databaseHealthHost, m_databaseHealthPort), 1200);
-            } catch (IOException ex) {
-                closeDatabaseHealthSession();
-                m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
-                        OperationalHealth.Severity.RED, "Servidor de BBDD no disponible", null);
-                return;
-            }
+            return false;
         }
 
         try {
             if (m_databaseHealthSession == null) {
-                m_databaseHealthSession = session.forkReadOnly();
+                m_databaseHealthSession = session.forkHealthCheck(1500);
             }
             Connection connection = m_databaseHealthSession.getConnection();
-            if (!connection.isValid(2)) {
-                throw new SQLException("Database validation failed");
+            try (Statement probe = connection.createStatement()) {
+                probe.setQueryTimeout(2);
+                try (ResultSet ignored = probe.executeQuery("SELECT 1")) {
+                    if (!ignored.next()) {
+                        throw new SQLException("Database health query returned no row");
+                    }
+                }
             }
+            return true;
         } catch (SQLException ex) {
             closeDatabaseHealthSession();
             m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
                     OperationalHealth.Severity.RED, "BBDD no disponible", null);
+            return false;
         }
+    }
+
+    private void returnToLoginAfterDatabaseCheck() {
+        m_healthRefreshButton.setEnabled(false);
+        m_healthRefreshButton.setText("Verificando…");
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return isDatabaseAvailableNow();
+            }
+
+            @Override
+            protected void done() {
+                m_healthRefreshButton.setEnabled(true);
+                m_healthRefreshButton.setText("↻ Refrescar");
+                try {
+                    if (Boolean.TRUE.equals(get())) {
+                        if (m_principalapp != null) {
+                            // Follow the same safe logout path used by the side-panel Exit action.
+                            // closeAppView() deactivates the active panel, removes it and then
+                            // rebuilds the login view only after the database probe succeeded.
+                            closeAppView();
+                        } else {
+                            showLogin();
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(JRootApp.this,
+                                "La conexión con la BBDD aún no está disponible.",
+                                "BBDD no disponible", JOptionPane.WARNING_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(JRootApp.this,
+                            "No se pudo verificar la BBDD.",
+                            "BBDD no disponible", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
     private void closeDatabaseHealthSession() {
@@ -1161,12 +1214,11 @@ public class JRootApp extends JPanel implements AppView {
         
         try {
            
-            jScrollPane1.getViewport().setView(null);
+            java.util.List people = m_dlSystem.listPeopleVisible();
 
             JFlowPanel jPeople = new JFlowPanel();
             jPeople.applyComponentOrientation(getComponentOrientation());
            
-            java.util.List people = m_dlSystem.listPeopleVisible();
                      
             for (Object people1 : people) {
                 AppUser user = (AppUser) people1;
@@ -1187,6 +1239,12 @@ public class JRootApp extends JPanel implements AppView {
             jScrollPane1.getViewport().setView(jPeople);
             
         } catch (BasicException ee) {
+            m_health.report(OperationalHealth.Category.DATABASE, "database.login",
+                    OperationalHealth.Severity.RED,
+                    "No se pudo actualizar la lista de usuarios", null);
+            refreshHealthBar();
+            Logger.getLogger(JRootApp.class.getName()).log(
+                    Level.FINE, "Unable to refresh visible users; keeping current login view.", ee);
         }
     }
 

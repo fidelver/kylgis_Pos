@@ -209,6 +209,21 @@ public final class Session {
         return new Session(m_surl, m_sappuser, m_spassword, true);
     }
 
+    /**
+     * Opens a dedicated read-only health-check session with short network
+     * timeouts on MySQL/MariaDB URLs so loss of network cannot block the UI
+     * health worker for the driver's default TCP timeout.
+     */
+    public Session forkHealthCheck(int timeoutMillis) throws SQLException {
+        int bounded = Math.max(500, Math.min(timeoutMillis, 5000));
+        String url = m_surl;
+        if (url != null && (url.startsWith("jdbc:mysql:") || url.startsWith("jdbc:mariadb:"))) {
+            String separator = url.contains("?") ? "&" : "?";
+            url = url + separator + "connectTimeout=" + bounded + "&socketTimeout=" + bounded;
+        }
+        return new Session(url, m_sappuser, m_spassword, true);
+    }
+
     private void discardConnectionAfterTransactionFailure() {
         Connection failedConnection = m_c;
         m_c = null;
