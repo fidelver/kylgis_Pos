@@ -137,7 +137,10 @@ public final class JDialogProductSuppliers extends JDialog {
         private SupplierRow(SupplierInfo supplier, ProductSupplierInfo existing) {
             this.supplier = supplier;
             this.existing = existing;
-            this.associated = existing != null && existing.isActive();
+            // Association existence and active state are independent. An inactive
+            // row must remain visibly associated so it can be reactivated without
+            // losing the N:M relationship or its purchase metadata.
+            this.associated = existing != null;
             this.preferred = existing != null && existing.isActive() && existing.isPreferred();
             this.active = existing != null && existing.isActive();
         }
