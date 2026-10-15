@@ -674,6 +674,10 @@ public class JRootApp extends JPanel implements AppView {
                 m_healthRefreshButton.setText("↻ Refrescar");
                 try {
                     if (Boolean.TRUE.equals(get())) {
+                        JOptionPane.showMessageDialog(JRootApp.this,
+                                "Conexión con la BBDD restablecida.\n"
+                                + "Al aceptar se volverá al inicio de sesión para reconstruir la interfaz.",
+                                "BBDD disponible", JOptionPane.INFORMATION_MESSAGE);
                         if (m_principalapp != null) {
                             // Follow the same safe logout path used by the side-panel Exit action.
                             // closeAppView() deactivates the active panel, removes it and then
