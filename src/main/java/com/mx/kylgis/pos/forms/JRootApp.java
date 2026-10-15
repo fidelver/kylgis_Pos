@@ -211,10 +211,10 @@ public class JRootApp extends JPanel implements AppView {
         m_jHost.setFont(font);
         m_healthPeripherals.setFont(font);
         m_healthResources.setFont(font);
-        m_jHost.setPreferredSize(new java.awt.Dimension(390, 24));
-        m_healthPeripherals.setPreferredSize(new java.awt.Dimension(165, 24));
-        m_healthResources.setPreferredSize(new java.awt.Dimension(165, 24));
-        webMemoryBar1.setPreferredSize(new java.awt.Dimension(110, 24));
+        m_jHost.setPreferredSize(new java.awt.Dimension(500, 24));
+        m_healthPeripherals.setPreferredSize(new java.awt.Dimension(150, 24));
+        m_healthResources.setPreferredSize(new java.awt.Dimension(150, 24));
+        webMemoryBar1.setPreferredSize(new java.awt.Dimension(100, 24));
         m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
         m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
         panelTask.add(m_healthPeripherals, 1);
@@ -579,7 +579,7 @@ public class JRootApp extends JPanel implements AppView {
 
     private void refreshHealthBar() {
         updateHealthLabel(m_jHost, OperationalHealth.Category.DATABASE,
-                escapeHtml(safeStatusText(m_props == null ? null : m_props.getHost(), "POS"))
+                "Host: " + escapeHtml(safeStatusText(m_props == null ? null : m_props.getHost(), "POS"))
                 + databaseSuffix());
         updateHealthLabel(m_healthPeripherals, OperationalHealth.Category.PERIPHERALS, null);
         updateHealthLabel(m_healthResources, OperationalHealth.Category.RESOURCES, null);
@@ -589,7 +589,7 @@ public class JRootApp extends JPanel implements AppView {
 
     private String databaseSuffix() {
         String lastOctet = getDatabaseIpv4LastOctet();
-        return lastOctet == null ? "" : " · …" + escapeHtml(lastOctet);
+        return lastOctet == null ? "" : " · IP: …" + escapeHtml(lastOctet);
     }
 
     private void updateHealthLabel(JLabel label, OperationalHealth.Category category, String suffix) {
