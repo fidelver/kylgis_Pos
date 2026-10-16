@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -35,9 +36,13 @@ import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.RowFilter;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableRowSorter;
 
 /** Modal UI for batch voucher campaign creation and assignment report. */
 public final class VoucherCampaignDialog extends JDialog {
@@ -54,6 +59,10 @@ public final class VoucherCampaignDialog extends JDialog {
     private final CustomerModel customerModel = new CustomerModel();
     private final ReportModel reportModel = new ReportModel();
     private final JTable customerTable = new JTable(customerModel);
+    private final TableRowSorter<CustomerModel> customerSorter = new TableRowSorter<>(customerModel);
+    private final JTextField customerFilter = new JTextField(24);
+    private final JButton selectVisibleCustomers = new JButton("Seleccionar visibles");
+    private final JButton clearVisibleCustomers = new JButton("Limpiar visibles");
     private final JTable reportTable = new JTable(reportModel);
     private final JButton createButton = new JButton("Crear campaña");
     private final JButton copyReportButton = new JButton("Copiar reporte");
@@ -118,14 +127,20 @@ public final class VoucherCampaignDialog extends JDialog {
         form.add(mode, c);
         root.add(form, BorderLayout.NORTH);
 
-        customerTable.setAutoCreateRowSorter(true);
+        customerTable.setRowSorter(customerSorter);
         customerTable.setRowHeight(24);
         customerTable.getColumnModel().getColumn(0).setMaxWidth(70);
         reportTable.setAutoCreateRowSorter(true);
         reportTable.setRowHeight(24);
 
-        JPanel customersPanel = new JPanel(new BorderLayout());
+        JPanel customersPanel = new JPanel(new BorderLayout(4, 4));
         customersPanel.setBorder(BorderFactory.createTitledBorder("Clientes de la campaña"));
+        JPanel customerTools = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        customerTools.add(new JLabel("Buscar:"));
+        customerTools.add(customerFilter);
+        customerTools.add(selectVisibleCustomers);
+        customerTools.add(clearVisibleCustomers);
+        customersPanel.add(customerTools, BorderLayout.NORTH);
         customersPanel.add(new JScrollPane(customerTable), BorderLayout.CENTER);
 
         JPanel reportPanel = new JPanel(new BorderLayout());
@@ -153,6 +168,13 @@ public final class VoucherCampaignDialog extends JDialog {
         copyReportButton.addActionListener(e -> copyReport());
         exportReportButton.addActionListener(e -> exportReport());
         loadReportButton.addActionListener(e -> loadSelectedCampaignReport());
+        selectVisibleCustomers.addActionListener(e -> setVisibleCustomerSelection(true));
+        clearVisibleCustomers.addActionListener(e -> setVisibleCustomerSelection(false));
+        customerFilter.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { applyCustomerFilter(); }
+            @Override public void removeUpdate(DocumentEvent e) { applyCustomerFilter(); }
+            @Override public void changedUpdate(DocumentEvent e) { applyCustomerFilter(); }
+        });
         close.addActionListener(e -> dispose());
         updateMode();
     }
@@ -216,7 +238,27 @@ public final class VoucherCampaignDialog extends JDialog {
     private void updateMode() {
         boolean customers = byCustomers.isSelected();
         customerTable.setEnabled(customers);
+        customerFilter.setEnabled(customers);
+        selectVisibleCustomers.setEnabled(customers);
+        clearVisibleCustomers.setEnabled(customers);
         quantity.setEnabled(!customers);
+    }
+
+    private void applyCustomerFilter() {
+        String text = customerFilter.getText() == null ? "" : customerFilter.getText().trim();
+        if (text.isEmpty()) {
+            customerSorter.setRowFilter(null);
+            return;
+        }
+        customerSorter.setRowFilter(RowFilter.regexFilter(
+                "(?i)" + Pattern.quote(text), 1, 2, 3));
+    }
+
+    private void setVisibleCustomerSelection(boolean selected) {
+        for (int viewRow = 0; viewRow < customerTable.getRowCount(); viewRow++) {
+            int modelRow = customerTable.convertRowIndexToModel(viewRow);
+            customerModel.setSelected(modelRow, selected);
+        }
     }
 
     private void createCampaign() {
@@ -403,10 +445,15 @@ public final class VoucherCampaignDialog extends JDialog {
                 default -> "";
             };
         }
+        void setSelected(int row, boolean value) {
+            if (row >= 0 && row < selected.size()) {
+                selected.set(row, value);
+                fireTableCellUpdated(row, 0);
+            }
+        }
         @Override public void setValueAt(Object value, int row, int column) {
             if (column == 0) {
-                selected.set(row, Boolean.TRUE.equals(value));
-                fireTableCellUpdated(row, column);
+                setSelected(row, Boolean.TRUE.equals(value));
             }
         }
     }
