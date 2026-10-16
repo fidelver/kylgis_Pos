@@ -10,11 +10,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -193,20 +193,39 @@ public final class VoucherCampaignService {
 
     private static void ensureGeneratedCodesAvailable(Connection connection,
             String prefix, int quantity) throws SQLException, BasicException {
-        Set<String> existing = new HashSet<>();
-        try (Statement statement = connection.createStatement();
-                ResultSet rows = statement.executeQuery("SELECT VOUCHER_NUMBER FROM vouchers")) {
-            while (rows.next()) {
-                String code = VoucherCodeGenerator.normalize(rows.getString(1));
-                if (!code.isEmpty()) {
-                    existing.add(code);
-                }
-            }
-        }
+        List<String> generated = new ArrayList<>(quantity);
+        Set<String> unique = new LinkedHashSet<>();
         for (int i = 0; i < quantity; i++) {
             String code = VoucherCampaignCodeGenerator.generate(prefix, i);
-            if (existing.contains(code)) {
-                throw new BasicException("Voucher campaign code already exists: " + code);
+            if (!unique.add(code)) {
+                throw new BasicException("Voucher campaign generated a duplicated code: " + code);
+            }
+            generated.add(code);
+        }
+
+        final int chunkSize = 250;
+        for (int offset = 0; offset < generated.size(); offset += chunkSize) {
+            int end = Math.min(generated.size(), offset + chunkSize);
+            StringBuilder sql = new StringBuilder(
+                    "SELECT VOUCHER_NUMBER FROM vouchers WHERE UPPER(TRIM(VOUCHER_NUMBER)) IN (");
+            for (int index = offset; index < end; index++) {
+                if (index > offset) {
+                    sql.append(',');
+                }
+                sql.append('?');
+            }
+            sql.append(')');
+            try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+                int parameter = 1;
+                for (int index = offset; index < end; index++) {
+                    ps.setString(parameter++, generated.get(index));
+                }
+                try (ResultSet rows = ps.executeQuery()) {
+                    if (rows.next()) {
+                        throw new BasicException("Voucher campaign code already exists: "
+                                + VoucherCodeGenerator.normalize(rows.getString(1)));
+                    }
+                }
             }
         }
     }
