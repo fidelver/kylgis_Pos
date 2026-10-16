@@ -13,7 +13,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /** Transactional creation and reporting of voucher campaigns. */
@@ -66,6 +68,9 @@ public final class VoucherCampaignService {
         final String prefix = VoucherCodeGenerator.normalize(codePrefix);
         if (campaignName.isEmpty()) {
             throw new BasicException("Campaign name is required.");
+        }
+        if (campaignName.length() > 255) {
+            throw new BasicException("Campaign name cannot exceed 255 characters.");
         }
         if (prefix.isEmpty()) {
             throw new BasicException("Campaign voucher prefix is required.");
@@ -165,11 +170,15 @@ public final class VoucherCampaignService {
     private static List<CustomerTarget> resolveCustomers(Connection connection,
             List<String> customerIds) throws SQLException, BasicException {
         List<CustomerTarget> targets = new ArrayList<>(customerIds.size());
+        Set<String> seen = new HashSet<>();
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT ID, NAME, PHONE, PHONE2, EMAIL FROM customers WHERE ID = ? AND VISIBLE = TRUE")) {
             for (String customerId : customerIds) {
                 if (customerId == null || customerId.isBlank()) {
                     throw new BasicException("Campaign contains an invalid customer selection.");
+                }
+                if (!seen.add(customerId)) {
+                    throw new BasicException("Campaign contains a duplicated customer selection: " + customerId);
                 }
                 ps.setString(1, customerId);
                 try (ResultSet rows = ps.executeQuery()) {

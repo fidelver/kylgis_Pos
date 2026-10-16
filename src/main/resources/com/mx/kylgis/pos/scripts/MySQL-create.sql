@@ -678,7 +678,7 @@ CREATE TABLE `uom` (
 CREATE TABLE `voucher_campaigns` (
    `id` VARCHAR(100) NOT NULL,
    `name` VARCHAR(255) NOT NULL,
-   `code_prefix` VARCHAR(90) NOT NULL,
+   `code_prefix` VARCHAR(100) NOT NULL,
    `assignment_mode` VARCHAR(16) NOT NULL,
    `amount` DOUBLE NOT NULL,
    `quantity` INT NOT NULL,
@@ -722,7 +722,7 @@ CREATE TABLE `voucher_redemptions` (
    INDEX `voucher_redemption_voucher_inx` (`voucher_id`, `status`),
    INDEX `voucher_redemption_receipt_inx` (`receipt_id`),
    CONSTRAINT `voucher_redemption_voucher_fk` FOREIGN KEY (`voucher_id`) REFERENCES `vouchers` (`id`),
-   CONSTRAINT `voucher_redemption_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`)
+   CONSTRAINT `voucher_redemption_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 
 CREATE TABLE `voucher_reactivation_audit` (

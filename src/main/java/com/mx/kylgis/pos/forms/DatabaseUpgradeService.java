@@ -194,7 +194,7 @@ public final class DatabaseUpgradeService {
                 execute(connection, "CREATE TABLE voucher_campaigns ("
                         + "id VARCHAR(100) NOT NULL PRIMARY KEY, "
                         + "name VARCHAR(255) NOT NULL, "
-                        + "code_prefix VARCHAR(90) NOT NULL, "
+                        + "code_prefix VARCHAR(100) NOT NULL, "
                         + "assignment_mode VARCHAR(16) NOT NULL, "
                         + "amount DOUBLE NOT NULL, "
                         + "quantity INT NOT NULL, "
@@ -243,7 +243,7 @@ public final class DatabaseUpgradeService {
                         + "reversed_at TIMESTAMP NULL, "
                         + "replacement_receipt_id VARCHAR NULL, "
                         + "CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id), "
-                        + "CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id))");
+                        + "CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL)");
             } else {
                 execute(connection, "CREATE TABLE voucher_redemptions ("
                         + "id VARCHAR(100) NOT NULL PRIMARY KEY, "
@@ -259,7 +259,7 @@ public final class DatabaseUpgradeService {
                         + "reversed_at DATETIME NULL, "
                         + "replacement_receipt_id VARCHAR(255) NULL, "
                         + "CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id), "
-                        + "CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id)) "
+                        + "CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL) "
                         + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
             }
             meta = connection.getMetaData();
@@ -270,7 +270,7 @@ public final class DatabaseUpgradeService {
         ensureForeignKey(connection, meta, "voucher_redemptions", "voucher_id",
                 "vouchers", "id", "voucher_redemption_voucher_fk", "RESTRICT");
         ensureForeignKey(connection, connection.getMetaData(), "voucher_redemptions", "customer_id",
-                "customers", "id", "voucher_redemption_customer_fk", "RESTRICT");
+                "customers", "id", "voucher_redemption_customer_fk", "SET NULL");
         if (!indexExists(connection.getMetaData(), "voucher_redemptions", "voucher_redemption_voucher_inx")) {
             execute(connection, "CREATE INDEX voucher_redemption_voucher_inx "
                     + "ON voucher_redemptions (voucher_id, status)");

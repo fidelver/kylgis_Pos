@@ -784,7 +784,7 @@ CREATE TABLE voucher_redemptions (
     reversed_at TIMESTAMP DEFAULT NULL,
     replacement_receipt_id VARCHAR DEFAULT NULL,
     CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id),
-    CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id)
+    CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
 );
 CREATE INDEX voucher_redemption_voucher_inx ON voucher_redemptions(voucher_id, status);
 CREATE INDEX voucher_redemption_receipt_inx ON voucher_redemptions(receipt_id);
