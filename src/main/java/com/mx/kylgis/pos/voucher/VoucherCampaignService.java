@@ -142,6 +142,24 @@ public final class VoucherCampaignService {
         return (CampaignResult) transaction.execute();
     }
 
+    public List<CampaignSummary> listCampaigns() throws BasicException {
+        List<CampaignSummary> result = new ArrayList<>();
+        String sql = "SELECT ID, NAME, ASSIGNMENT_MODE, QUANTITY, STATUS, CREATED_AT "
+                + "FROM voucher_campaigns ORDER BY CREATED_AT DESC, NAME, ID";
+        try (PreparedStatement ps = session.getConnection().prepareStatement(sql);
+                ResultSet rows = ps.executeQuery()) {
+            while (rows.next()) {
+                Timestamp created = rows.getTimestamp(6);
+                result.add(new CampaignSummary(rows.getString(1), rows.getString(2),
+                        rows.getString(3), rows.getInt(4), rows.getString(5),
+                        created == null ? null : new Date(created.getTime())));
+            }
+            return result;
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to list voucher campaigns.", ex);
+        }
+    }
+
     public List<CampaignVoucherRow> loadCampaignReport(String campaignId) throws BasicException {
         if (campaignId == null || campaignId.isBlank()) {
             return Collections.emptyList();
@@ -220,6 +238,31 @@ public final class VoucherCampaignService {
             ps.setTimestamp(8, new Timestamp(createdAt.getTime()));
             ps.setString(9, operatorId);
             ps.executeUpdate();
+        }
+    }
+
+    public static final class CampaignSummary {
+        public final String id;
+        public final String name;
+        public final String assignmentMode;
+        public final int quantity;
+        public final String status;
+        public final Date createdAt;
+
+        CampaignSummary(String id, String name, String assignmentMode, int quantity,
+                String status, Date createdAt) {
+            this.id = id;
+            this.name = name == null ? "" : name;
+            this.assignmentMode = assignmentMode == null ? "" : assignmentMode;
+            this.quantity = quantity;
+            this.status = status == null ? "" : status;
+            this.createdAt = createdAt == null ? null : new Date(createdAt.getTime());
+        }
+
+        @Override
+        public String toString() {
+            String when = createdAt == null ? "" : createdAt.toString();
+            return name + " — " + quantity + " cupones" + (when.isEmpty() ? "" : " — " + when);
         }
     }
 

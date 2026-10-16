@@ -25,6 +25,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -57,6 +58,8 @@ public final class VoucherCampaignDialog extends JDialog {
     private final JButton createButton = new JButton("Crear campaña");
     private final JButton copyReportButton = new JButton("Copiar reporte");
     private final JButton exportReportButton = new JButton("Exportar CSV");
+    private final JButton loadReportButton = new JButton("Cargar reporte");
+    private final JComboBox<VoucherCampaignService.CampaignSummary> campaignHistory = new JComboBox<>();
     private String lastCampaignName = "campana-cupones";
 
     private VoucherCampaignDialog(AppView app, Component owner) throws BasicException {
@@ -65,6 +68,7 @@ public final class VoucherCampaignDialog extends JDialog {
         this.service = new VoucherCampaignService(app.getSession());
         buildUi();
         loadCustomers();
+        loadCampaigns();
         pack();
         setMinimumSize(new Dimension(980, 680));
         setLocationRelativeTo(owner);
@@ -96,6 +100,11 @@ public final class VoucherCampaignDialog extends JDialog {
         addField(form, c, row++, "Prefijo de cupón:", prefix);
         addField(form, c, row++, "Importe de cada cupón:", amount);
         addField(form, c, row++, "Vigencia hasta (AAAA-MM-DD):", expiry);
+
+        JPanel history = new JPanel(new BorderLayout(6, 0));
+        history.add(campaignHistory, BorderLayout.CENTER);
+        history.add(loadReportButton, BorderLayout.EAST);
+        addField(form, c, row++, "Historial de campañas:", history);
 
         JPanel mode = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         ButtonGroup group = new ButtonGroup();
@@ -143,6 +152,7 @@ public final class VoucherCampaignDialog extends JDialog {
         createButton.addActionListener(e -> createCampaign());
         copyReportButton.addActionListener(e -> copyReport());
         exportReportButton.addActionListener(e -> exportReport());
+        loadReportButton.addActionListener(e -> loadSelectedCampaignReport());
         close.addActionListener(e -> dispose());
         updateMode();
     }
@@ -157,6 +167,50 @@ public final class VoucherCampaignDialog extends JDialog {
 
     private void loadCustomers() throws BasicException {
         customerModel.setRows(service.listVisibleCustomers());
+    }
+
+    private void loadCampaigns() throws BasicException {
+        campaignHistory.removeAllItems();
+        for (VoucherCampaignService.CampaignSummary summary : service.listCampaigns()) {
+            campaignHistory.addItem(summary);
+        }
+        loadReportButton.setEnabled(campaignHistory.getItemCount() > 0);
+    }
+
+    private void loadCampaignsAndSelect(String campaignId) throws BasicException {
+        loadCampaigns();
+        if (campaignId == null) {
+            return;
+        }
+        for (int i = 0; i < campaignHistory.getItemCount(); i++) {
+            VoucherCampaignService.CampaignSummary summary = campaignHistory.getItemAt(i);
+            if (campaignId.equals(summary.id)) {
+                campaignHistory.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+
+    private void loadSelectedCampaignReport() {
+        VoucherCampaignService.CampaignSummary summary =
+                (VoucherCampaignService.CampaignSummary) campaignHistory.getSelectedItem();
+        if (summary == null) {
+            return;
+        }
+        try {
+            List<VoucherCampaignService.CampaignVoucherRow> rows =
+                    service.loadCampaignReport(summary.id);
+            reportModel.setRows(rows);
+            lastCampaignName = summary.name;
+            copyReportButton.setEnabled(!rows.isEmpty());
+            exportReportButton.setEnabled(!rows.isEmpty());
+            JOptionPane.showMessageDialog(this,
+                    "Reporte cargado: " + summary.name + "\nCupones: " + rows.size(),
+                    "Campañas de cupones", JOptionPane.INFORMATION_MESSAGE);
+        } catch (BasicException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    "Campañas de cupones", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void updateMode() {
@@ -184,6 +238,7 @@ public final class VoucherCampaignDialog extends JDialog {
             lastCampaignName = result.campaignName;
             copyReportButton.setEnabled(!result.rows.isEmpty());
             exportReportButton.setEnabled(!result.rows.isEmpty());
+            loadCampaignsAndSelect(result.campaignId);
             JOptionPane.showMessageDialog(this,
                     "Campaña creada: " + result.campaignName + "\nCupones: " + result.rows.size(),
                     "Campañas de cupones", JOptionPane.INFORMATION_MESSAGE);
