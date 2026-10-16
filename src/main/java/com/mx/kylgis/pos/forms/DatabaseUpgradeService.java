@@ -64,7 +64,11 @@ public final class DatabaseUpgradeService {
                 meta = connection.getMetaData();
             }
 
-            if (VERSION_1_2.equals(toVersion) || VERSION_1_2_1.equals(toVersion)) {
+            // Product/supplier backfill belongs only to upgrades that have not yet
+            // reached schema 1.2. Re-running it during 1.2 -> 1.2.1 would reset
+            // legitimate N:M preferred-supplier choices back to products.supplier.
+            if (!VERSION_1_2.equals(fromVersion)
+                    && (VERSION_1_2.equals(toVersion) || VERSION_1_2_1.equals(toVersion))) {
                 ensureProductSuppliers(connection, meta);
                 meta = connection.getMetaData();
             }
