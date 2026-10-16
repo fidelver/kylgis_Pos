@@ -37,6 +37,7 @@ import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.AppUser;
 import com.mx.kylgis.pos.voucher.VoucherEditAuthorization;
 import com.mx.kylgis.pos.voucher.VoucherEditContext;
+import com.mx.kylgis.pos.voucher.VoucherDiscountAllocator;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.printer.DeviceTicket;
@@ -583,11 +584,22 @@ public class JTicketsBagTicket extends JTicketsBag {
 
     private void m_jRefundActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jRefundActionPerformed
         
-        java.util.List aRefundLines = new ArrayList();
+        java.util.List aRefundLines;
+        try {
+            aRefundLines = VoucherDiscountAllocator.buildRefundableLines(m_ticket, taxeslogic);
+        } catch (BasicException ex) {
+            JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
+                    "No se pudo preparar la devolución con el descuento de cupón original.", ex));
+            return;
+        }
         
         for(int i = 0; i < m_ticket.getLinesCount(); i++) {
-            TicketLineInfo newline = new TicketLineInfo(m_ticket.getLine(i));
-            aRefundLines.add(newline);
+            TicketLineInfo sourceLine = m_ticket.getLine(i);
+            if ("true".equalsIgnoreCase(sourceLine.getProperty(VoucherDiscountAllocator.PROP_DISCOUNT))) {
+                continue;
+            }
+            TicketLineInfo newline = new TicketLineInfo(sourceLine);
+            // Voucher-aware refundable lines were prepared above; do not append legacy full-price copies.
         } 
 
         m_ticketCopy = null;

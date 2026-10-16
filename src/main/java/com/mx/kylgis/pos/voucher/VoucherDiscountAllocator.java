@@ -41,6 +41,58 @@ public final class VoucherDiscountAllocator {
         return removed;
     }
 
+    /**
+     * Builds the lines offered by the refund UI with the original voucher
+     * discount proportionally embedded into refundable positive lines. Voucher
+     * adjustment lines themselves are never exposed as refund items.
+     */
+    public static List<TicketLineInfo> buildRefundableLines(TicketInfo ticket,
+            TaxesLogic taxesLogic) throws BasicException {
+        List<TicketLineInfo> result = new ArrayList<>();
+        if (ticket == null) {
+            return result;
+        }
+        if (taxesLogic == null) {
+            throw new BasicException("Voucher-aware refund requires the active tax engine.");
+        }
+
+        Map<String, Double> discountByGroup = new LinkedHashMap<>();
+        Map<String, Double> positiveGrossByGroup = new LinkedHashMap<>();
+        for (TicketLineInfo line : ticket.getLines()) {
+            String key = taxBucketKey(line);
+            double gross = calculateGross(line, taxesLogic);
+            if ("true".equalsIgnoreCase(line.getProperty(PROP_DISCOUNT))) {
+                if (RoundUtils.compare(gross, 0.0) < 0) {
+                    discountByGroup.merge(key, -gross, Double::sum);
+                }
+            } else if (RoundUtils.compare(gross, 0.0) > 0) {
+                positiveGrossByGroup.merge(key, gross, Double::sum);
+            }
+        }
+
+        for (TicketLineInfo line : ticket.getLines()) {
+            if ("true".equalsIgnoreCase(line.getProperty(PROP_DISCOUNT))) {
+                continue;
+            }
+            TicketLineInfo copy = new TicketLineInfo(line);
+            double gross = calculateGross(line, taxesLogic);
+            if (RoundUtils.compare(gross, 0.0) > 0) {
+                String key = taxBucketKey(line);
+                double positiveGross = positiveGrossByGroup.getOrDefault(key, 0.0);
+                double discountGross = discountByGroup.getOrDefault(key, 0.0);
+                if (RoundUtils.compare(positiveGross, 0.0) > 0
+                        && RoundUtils.compare(discountGross, 0.0) > 0) {
+                    double factor = (positiveGross - Math.min(discountGross, positiveGross))
+                            / positiveGross;
+                    copy.setPrice(line.getPrice() * factor);
+                    copy.setProperty("voucher.refundAdjusted", "true");
+                }
+            }
+            result.add(copy);
+        }
+        return result;
+    }
+
     public static double apply(TicketInfo ticket, List<VoucherDiscountInfo> discounts,
             TaxesLogic taxesLogic) throws BasicException {
         if (ticket == null || discounts == null || discounts.isEmpty()) {
@@ -148,6 +200,13 @@ public final class VoucherDiscountAllocator {
             throw new BasicException("Voucher discount could not be allocated completely across ticket taxes.");
         }
         return applied;
+    }
+
+    private static String taxBucketKey(TicketLineInfo line) {
+        TaxInfo tax = line.getTaxInfo();
+        String taxId = tax == null ? "" : tax.getId();
+        String taxCategory = line.getProductTaxCategoryID();
+        return taxId + "\\u0000" + (taxCategory == null ? "" : taxCategory);
     }
 
     private static double calculateGross(TicketLineInfo line, TaxesLogic taxesLogic)
