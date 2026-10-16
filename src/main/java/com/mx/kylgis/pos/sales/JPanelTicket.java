@@ -2311,6 +2311,10 @@ System.out.println("PanelContainer : Focus Lost");
                     TicketLineInfo line = m_oTicket.getLine(i);
                     String pId = line.getProductID();
                     
+                if (pId == null) {
+                    jCheckStock.setText(null);
+                    return;
+                }
                 String lName = (m_App.getProperties().getProperty("machine.department"));
                 lName = "'" + lName + "'";
                     ProductStock checkProduct;
@@ -3362,6 +3366,13 @@ System.out.println("PanelContainer : Focus Lost");
             try {
                 TicketLineInfo line = m_oTicket.getLine(i);
                 String pId = line.getProductID();
+                if (pId == null) {
+                    jCheckStock.setText(null);
+                    if (listener != null) {
+                        listener.restart();
+                    }
+                    return;
+                }
                 String location = m_App.getInventoryLocation();
                 ProductStock checkProduct;
                 checkProduct = dlSales.getProductStockState(pId, location);
@@ -3421,6 +3432,14 @@ System.out.println("PanelContainer : Focus Lost");
                     ProductStock checkProduct;
                     checkProduct = dlSales.getProductStockState(pId, location);
                    
+                    if (pId == null || checkProduct == null) {
+                        jCheckStock.setText(null);
+                        if (listener != null) {
+                            listener.restart();
+                        }
+                        return;
+                    }
+
                     Double pMin;
                     Double pMax;
                     Double pUnits;
