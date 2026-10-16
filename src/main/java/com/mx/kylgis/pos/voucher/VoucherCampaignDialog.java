@@ -266,13 +266,16 @@ public final class VoucherCampaignDialog extends JDialog {
     }
 
     private void copyReport() {
-        StringBuilder out = new StringBuilder("Cliente\tTeléfono\tCupón\tImporte\tEstado\n");
+        StringBuilder out = new StringBuilder("Campaña\tCliente\tTeléfono\tEmail\tCupón\tImporte\tEstado\tVigencia\n");
         for (VoucherCampaignService.CampaignVoucherRow row : reportModel.rows) {
-            out.append(row.customerName).append('\t')
-                    .append(row.phone).append('\t')
-                    .append(row.voucherCode).append('\t')
-                    .append(row.amount).append('\t')
-                    .append(row.status).append('\n');
+            out.append(tsv(row.campaignName)).append('\t')
+                    .append(tsv(row.customerName)).append('\t')
+                    .append(tsv(row.phone)).append('\t')
+                    .append(tsv(row.email)).append('\t')
+                    .append(tsv(row.voucherCode)).append('\t')
+                    .append(tsv(Double.toString(row.amount))).append('\t')
+                    .append(tsv(row.status)).append('\t')
+                    .append(tsv(formatExpiry(row.expiresAt))).append('\n');
         }
         Toolkit.getDefaultToolkit().getSystemClipboard()
                 .setContents(new StringSelection(out.toString()), null);
@@ -329,15 +332,34 @@ public final class VoucherCampaignDialog extends JDialog {
                     .append(csv(row.voucherCode)).append(',')
                     .append(csv(Double.toString(row.amount))).append(',')
                     .append(csv(row.status)).append(',')
-                    .append(csv(row.expiresAt == null ? "" : row.expiresAt.toString()))
+                    .append(csv(formatExpiry(row.expiresAt)))
                     .append("\r\n");
         }
         return out.toString();
     }
 
     private static String csv(String value) {
-        String text = value == null ? "" : value;
+        String text = spreadsheetSafe(value == null ? "" : value);
         return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
+    private static String tsv(String value) {
+        String text = spreadsheetSafe(value == null ? "" : value);
+        return text.replace('\t', ' ').replace('\r', ' ').replace('\n', ' ');
+    }
+
+    private static String spreadsheetSafe(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        char first = value.charAt(0);
+        return first == '=' || first == '+' || first == '-' || first == '@'
+                ? "'" + value : value;
+    }
+
+    private static String formatExpiry(Date value) {
+        return value == null ? "" : value.toInstant()
+                .atZone(ZoneId.systemDefault()).toLocalDate().toString();
     }
 
     private static String safeFileName(String value) {
