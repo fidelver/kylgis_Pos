@@ -2033,7 +2033,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 });
             }
 
-            List<ProductsBundleInfo> bundle = getProductsBundle((String) sourceTicket.getLine(i).getProductID());
+            List<ProductsBundleInfo> bundle = sourceTicket.getLine(i).getProductID() == null
+                    ? java.util.Collections.emptyList()
+                    : getProductsBundle((String) sourceTicket.getLine(i).getProductID());
             if (bundle.size() > 0) {
                 for (ProductsBundleInfo bundleComponent : bundle) {
                     ProductInfoExt bundleProduct = getProductInfo(bundleComponent.getProductBundleId());
@@ -2173,7 +2175,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         });
                     }
 // For productBundle
-                    List<ProductsBundleInfo> bundle = getProductsBundle((String)ticket.getLine(i).getProductID());
+                    List<ProductsBundleInfo> bundle = ticket.getLine(i).getProductID() == null
+                            ? java.util.Collections.emptyList()
+                            : getProductsBundle((String) ticket.getLine(i).getProductID());
 
                     if (bundle.size() > 0) {
                         for (ProductsBundleInfo bundleComponent : bundle) {
