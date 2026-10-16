@@ -15,6 +15,8 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,6 +24,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -53,6 +56,8 @@ public final class VoucherCampaignDialog extends JDialog {
     private final JTable reportTable = new JTable(reportModel);
     private final JButton createButton = new JButton("Crear campaña");
     private final JButton copyReportButton = new JButton("Copiar reporte");
+    private final JButton exportReportButton = new JButton("Exportar CSV");
+    private String lastCampaignName = "campana-cupones";
 
     private VoucherCampaignDialog(AppView app, Component owner) throws BasicException {
         super(SwingUtilities.getWindowAncestor(owner), "Campañas de cupones", ModalityType.APPLICATION_MODAL);
@@ -125,8 +130,10 @@ public final class VoucherCampaignDialog extends JDialog {
 
         JButton close = new JButton("Cerrar");
         copyReportButton.setEnabled(false);
+        exportReportButton.setEnabled(false);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttons.add(copyReportButton);
+        buttons.add(exportReportButton);
         buttons.add(createButton);
         buttons.add(close);
         root.add(buttons, BorderLayout.SOUTH);
@@ -135,6 +142,7 @@ public final class VoucherCampaignDialog extends JDialog {
         byQuantity.addActionListener(e -> updateMode());
         createButton.addActionListener(e -> createCampaign());
         copyReportButton.addActionListener(e -> copyReport());
+        exportReportButton.addActionListener(e -> exportReport());
         close.addActionListener(e -> dispose());
         updateMode();
     }
@@ -173,7 +181,9 @@ public final class VoucherCampaignDialog extends JDialog {
                         campaignAmount, expiresAt, (Integer) quantity.getValue(), operatorId);
             }
             reportModel.setRows(result.rows);
+            lastCampaignName = result.campaignName;
             copyReportButton.setEnabled(!result.rows.isEmpty());
+            exportReportButton.setEnabled(!result.rows.isEmpty());
             JOptionPane.showMessageDialog(this,
                     "Campaña creada: " + result.campaignName + "\nCupones: " + result.rows.size(),
                     "Campañas de cupones", JOptionPane.INFORMATION_MESSAGE);
@@ -213,6 +223,72 @@ public final class VoucherCampaignDialog extends JDialog {
                 .setContents(new StringSelection(out.toString()), null);
         JOptionPane.showMessageDialog(this, "Reporte copiado al portapapeles.",
                 "Campañas de cupones", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void exportReport() {
+        if (reportModel.rows.isEmpty()) {
+            return;
+        }
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Guardar reporte de campaña");
+        chooser.setSelectedFile(new java.io.File(safeFileName(lastCampaignName) + ".csv"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        java.io.File selected = chooser.getSelectedFile();
+        if (selected.exists()) {
+            int overwrite = JOptionPane.showConfirmDialog(this,
+                    "El archivo ya existe. ¿Desea reemplazarlo?",
+                    "Exportar reporte", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (overwrite != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+        try {
+            String csv = buildCsvReport();
+            byte[] body = csv.getBytes(StandardCharsets.UTF_8);
+            byte[] withBom = new byte[body.length + 3];
+            withBom[0] = (byte) 0xEF;
+            withBom[1] = (byte) 0xBB;
+            withBom[2] = (byte) 0xBF;
+            System.arraycopy(body, 0, withBom, 3, body.length);
+            Files.write(selected.toPath(), withBom);
+            JOptionPane.showMessageDialog(this,
+                    "Reporte CSV guardado correctamente.",
+                    "Campañas de cupones", JOptionPane.INFORMATION_MESSAGE);
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo guardar el reporte: " + ex.getMessage(),
+                    "Campañas de cupones", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String buildCsvReport() {
+        StringBuilder out = new StringBuilder();
+        out.append("Campaña,Cliente,Teléfono,Email,Cupón,Importe,Estado,Vigencia\r\n");
+        for (VoucherCampaignService.CampaignVoucherRow row : reportModel.rows) {
+            out.append(csv(row.campaignName)).append(',')
+                    .append(csv(row.customerName)).append(',')
+                    .append(csv(row.phone)).append(',')
+                    .append(csv(row.email)).append(',')
+                    .append(csv(row.voucherCode)).append(',')
+                    .append(csv(Double.toString(row.amount))).append(',')
+                    .append(csv(row.status)).append(',')
+                    .append(csv(row.expiresAt == null ? "" : row.expiresAt.toString()))
+                    .append("\r\n");
+        }
+        return out.toString();
+    }
+
+    private static String csv(String value) {
+        String text = value == null ? "" : value;
+        return "\"" + text.replace("\"", "\"\"") + "\"";
+    }
+
+    private static String safeFileName(String value) {
+        String text = value == null ? "campana-cupones" : value.trim();
+        text = text.replaceAll("[^A-Za-z0-9._-]+", "_");
+        return text.isEmpty() ? "campana-cupones" : text;
     }
 
     private static final class CustomerModel extends AbstractTableModel {
