@@ -165,7 +165,12 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
                 voucherStatus.setText("Cupón no encontrado.");
                 return;
             }
-            if (!"A".equals(voucher.getStatus())) {
+            String sourceReceiptId = getVoucherEditSourceReceiptId();
+            boolean active = "A".equals(voucher.getStatus());
+            boolean authorizedSourceVoucher = "D".equals(voucher.getStatus())
+                    && sourceReceiptId != null && !sourceReceiptId.isBlank()
+                    && dlSales.isReusableVoucherFromSourceReceipt(sourceReceiptId, voucher.getVoucherNumber());
+            if (!active && !authorizedSourceVoucher) {
                 voucherStatus.setText("Cupón ya redimido o inactivo.");
                 return;
             }
@@ -184,7 +189,7 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
             m_jMoneyEuros.setText(Formats.CURRENCY.formatValue(voucher.getAmount()));
             webLblcustomerName.setText(voucher.getCustomerId() == null
                     ? "Cupón de campaña abierto" : voucher.getCustomerName());
-            voucherStatus.setText("Disponible");
+            voucherStatus.setText(active ? "Disponible" : "Redimido en venta origen (edición autorizada)");
             printState();
         } catch (BasicException ex) {
             voucherStatus.setText("No se pudo consultar el cupón.");
@@ -223,8 +228,16 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
 
         String sourceReceiptId = getVoucherEditSourceReceiptId();
         boolean active = "A".equals(voucherInfo.getStatus());
-        boolean authorizedSourceVoucher = "D".equals(voucherInfo.getStatus())
-                && sourceReceiptId != null && !sourceReceiptId.isBlank();
+        boolean authorizedSourceVoucher = false;
+        if ("D".equals(voucherInfo.getStatus())
+                && sourceReceiptId != null && !sourceReceiptId.isBlank()) {
+            try {
+                authorizedSourceVoucher = dlSales.isReusableVoucherFromSourceReceipt(
+                        sourceReceiptId, voucherInfo.getVoucherNumber());
+            } catch (BasicException ex) {
+                return null;
+            }
+        }
         if (!active && !authorizedSourceVoucher) {
             return null;
         }

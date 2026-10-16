@@ -3273,7 +3273,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 });
     }
 
-    private boolean isReusableVoucherFromSourceReceipt(String sourceReceiptId,
+    public boolean isReusableVoucherFromSourceReceipt(String sourceReceiptId,
             String voucherNumber) throws BasicException {
         if (sourceReceiptId == null || voucherNumber == null) {
             return false;
