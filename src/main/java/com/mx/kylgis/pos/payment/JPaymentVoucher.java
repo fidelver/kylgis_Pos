@@ -243,7 +243,10 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
             return null;
         }
         m_sVoucher1 = voucherInfo.getVoucherNumber();
-        double appliedAmount = Math.min(voucherInfo.getAmount(), Math.max(0.0, m_dTotal));
+        double discountCapacity = m_notifier instanceof JPaymentSelect paymentSelect
+                ? paymentSelect.getVoucherDiscountCapacity()
+                : Math.max(0.0, m_dTotal);
+        double appliedAmount = Math.min(voucherInfo.getAmount(), discountCapacity);
         if (appliedAmount <= 0.0) {
             return null;
         }

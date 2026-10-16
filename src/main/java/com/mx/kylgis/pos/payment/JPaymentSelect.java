@@ -27,6 +27,7 @@ import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
+import com.mx.kylgis.pos.util.RoundUtils;
 import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 
 import java.awt.*;
@@ -494,6 +495,10 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         return total;
     }
 
+    public double getVoucherDiscountCapacity() {
+        return Math.max(0.0, m_dTotal - getVoucherDiscountTotal());
+    }
+
     private double getSettlementTotal() {
         return m_aPaymentInfo.getTotal() + getVoucherDiscountTotal();
     }
@@ -551,6 +556,15 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             return false;
         }
         if (payment instanceof VoucherDiscountInfo discount) {
+            double netAfterDiscount = Math.max(0.0,
+                    m_dTotal - getVoucherDiscountTotal() - discount.getTotal());
+            if (RoundUtils.compare(m_aPaymentInfo.getTotal(), netAfterDiscount) > 0) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucher.paymentscaptured"),
+                        AppLocal.getIntString("message.voucher.validation.title"),
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
             m_voucherDiscounts.add(discount);
         } else {
             m_aPaymentInfo.add(payment);
