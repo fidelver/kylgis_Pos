@@ -180,7 +180,7 @@ public final class VoucherDiscountAllocator {
             TicketLineInfo adjustment = new TicketLineInfo(
                     "Descuento cupón " + discount.getVoucher(),
                     bucket.taxCategoryId,
-                    "1",
+                    "0",
                     1.0,
                     -netDiscount,
                     bucket.tax);
@@ -228,7 +228,7 @@ public final class VoucherDiscountAllocator {
             throw new BasicException("Voucher discount found a line without an applicable tax rule.");
         }
         TicketLineInfo unit = new TicketLineInfo(
-                "Voucher tax factor", taxCategoryId, "1", 1.0, 1.0, tax);
+                "Voucher tax factor", taxCategoryId, "0", 1.0, 1.0, tax);
         double factor = calculateGross(unit, taxesLogic);
         if (!Double.isFinite(factor) || RoundUtils.compare(factor, 0.0) <= 0) {
             throw new BasicException("Voucher discount found an invalid effective tax factor.");
