@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -103,6 +104,8 @@ public final class VoucherCampaignService {
                         throw new BasicException("One or more selected customers are no longer available.");
                     }
 
+                    ensureGeneratedCodesAvailable(connection, prefix, quantity);
+
                     insertCampaign(connection, campaignId, campaignName, prefix, mode,
                             amount, quantity, expiresAt, createdAt, operatorId);
 
@@ -185,6 +188,26 @@ public final class VoucherCampaignService {
             return result;
         } catch (SQLException ex) {
             throw new BasicException("Unable to load voucher campaign report.", ex);
+        }
+    }
+
+    private static void ensureGeneratedCodesAvailable(Connection connection,
+            String prefix, int quantity) throws SQLException, BasicException {
+        Set<String> existing = new HashSet<>();
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery("SELECT VOUCHER_NUMBER FROM vouchers")) {
+            while (rows.next()) {
+                String code = VoucherCodeGenerator.normalize(rows.getString(1));
+                if (!code.isEmpty()) {
+                    existing.add(code);
+                }
+            }
+        }
+        for (int i = 0; i < quantity; i++) {
+            String code = VoucherCampaignCodeGenerator.generate(prefix, i);
+            if (existing.contains(code)) {
+                throw new BasicException("Voucher campaign code already exists: " + code);
+            }
         }
     }
 
