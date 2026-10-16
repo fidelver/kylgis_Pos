@@ -78,6 +78,9 @@ public final class VoucherCampaignService {
         if (!Double.isFinite(amount) || amount <= 0.0) {
             throw new BasicException("Campaign voucher amount must be greater than zero.");
         }
+        if (expiresAt != null && expiresAt.getTime() <= System.currentTimeMillis()) {
+            throw new BasicException("Campaign expiry must be in the future.");
+        }
         if (quantity < 1 || quantity > 10000) {
             throw new BasicException("Campaign quantity must be between 1 and 10000 vouchers.");
         }

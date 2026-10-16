@@ -155,6 +155,7 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
         String code = com.mx.kylgis.pos.voucher.VoucherCodeGenerator.normalize(
                 m_directVoucherCode == null ? null : m_directVoucherCode.getText());
         m_voucherInfo = null;
+        m_jVoucher.setSelectedItem(null);
         if (code.isEmpty()) {
             voucherStatus.setText("Capture un código de cupón.");
             return;
