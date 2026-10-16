@@ -19,7 +19,7 @@ public final class VoucherCodeGenerator {
     private static final char[] ALPHABET =
             "23456789ABCDEFGHJKMNPQRSTUVWXYZ".toCharArray();
     private static final Pattern ACCEPTED = Pattern.compile(
-            "[A-Z0-9](?:[A-Z0-9-]{0,98}[A-Z0-9])?");
+            "[A-Z0-9](?:[A-Z0-9_-]{0,98}[A-Z0-9])?");
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private VoucherCodeGenerator() {
@@ -52,8 +52,8 @@ public final class VoucherCodeGenerator {
     }
 
     /**
-     * Accepts historical/manual alphanumeric-hyphen codes while rejecting
-     * whitespace, control characters, leading/trailing hyphens and values that
+     * Accepts historical/manual alphanumeric, hyphen and underscore codes while rejecting
+     * whitespace, control characters, leading/trailing separators and values that
      * cannot fit the current VARCHAR(100) schema.
      */
     public static boolean isValid(String value) {

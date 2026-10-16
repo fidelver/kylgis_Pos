@@ -8,6 +8,8 @@ import com.mx.kylgis.pos.data.user.EditorRecord;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.panels.JPanelTable2;
+import java.awt.Component;
+import javax.swing.JButton;
 
 public class VoucherPanel extends JPanelTable2 {
 
@@ -44,6 +46,14 @@ public class VoucherPanel extends JPanelTable2 {
         return editor;
     }  
     
+    @Override
+    public Component getToolbarExtras() {
+        JButton campaigns = new JButton("Campañas");
+        campaigns.setFocusable(false);
+        campaigns.addActionListener(e -> VoucherCampaignDialog.showDialog(app, this));
+        return campaigns;
+    }
+
     @Override
     public String getTitle() {
         return AppLocal.getIntString("Menu.Vouchers");
