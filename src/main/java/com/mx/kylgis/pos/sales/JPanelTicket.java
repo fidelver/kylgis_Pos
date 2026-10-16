@@ -1808,7 +1808,7 @@ System.out.println("PanelContainer : Focus Lost");
 
                         List<VoucherDiscountInfo> voucherDiscounts = paymentdialog.getSelectedVoucherDiscounts();
                         try {
-                            VoucherDiscountAllocator.apply(ticket, voucherDiscounts);
+                            VoucherDiscountAllocator.apply(ticket, voucherDiscounts, taxeslogic);
                             ticket.setVoucherDiscounts(voucherDiscounts);
                             ticket.resetTaxes();
                             taxeslogic.calculateTaxes(ticket);

@@ -3,9 +3,12 @@
 package com.mx.kylgis.pos.voucher;
 
 import com.mx.kylgis.pos.basic.BasicException;
+import com.mx.kylgis.pos.sales.TaxesException;
+import com.mx.kylgis.pos.sales.TaxesLogic;
 import com.mx.kylgis.pos.ticket.TaxInfo;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import com.mx.kylgis.pos.ticket.TicketLineInfo;
+import com.mx.kylgis.pos.ticket.TicketTaxInfo;
 import com.mx.kylgis.pos.util.RoundUtils;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,13 +41,17 @@ public final class VoucherDiscountAllocator {
         return removed;
     }
 
-    public static double apply(TicketInfo ticket, List<VoucherDiscountInfo> discounts)
-            throws BasicException {
+    public static double apply(TicketInfo ticket, List<VoucherDiscountInfo> discounts,
+            TaxesLogic taxesLogic) throws BasicException {
         if (ticket == null || discounts == null || discounts.isEmpty()) {
             return 0.0;
         }
 
-        List<TaxBucket> buckets = buildBuckets(ticket);
+        if (taxesLogic == null) {
+            throw new BasicException("Voucher discount requires the active tax engine.");
+        }
+
+        List<TaxBucket> buckets = buildBuckets(ticket, taxesLogic);
         double remainingGross = buckets.stream()
                 .filter(bucket -> RoundUtils.compare(bucket.gross, 0.0) > 0)
                 .mapToDouble(bucket -> bucket.gross)
@@ -69,19 +76,24 @@ public final class VoucherDiscountAllocator {
         return totalApplied;
     }
 
-    private static List<TaxBucket> buildBuckets(TicketInfo ticket) {
+    private static List<TaxBucket> buildBuckets(TicketInfo ticket, TaxesLogic taxesLogic)
+            throws BasicException {
         Map<String, TaxBucket> grouped = new LinkedHashMap<>();
         for (TicketLineInfo line : ticket.getLines()) {
             if ("true".equalsIgnoreCase(line.getProperty(PROP_DISCOUNT))) {
                 continue;
             }
-            double gross = line.getValue();
+            double gross = calculateGross(line, taxesLogic);
             TaxInfo tax = line.getTaxInfo();
             String taxId = tax == null ? "" : tax.getId();
             String taxCategory = line.getProductTaxCategoryID();
             String key = taxId + "\u0000" + (taxCategory == null ? "" : taxCategory);
-            TaxBucket bucket = grouped.computeIfAbsent(key,
-                    ignored -> new TaxBucket(tax, taxCategory));
+            TaxBucket bucket = grouped.get(key);
+            if (bucket == null) {
+                bucket = new TaxBucket(tax, taxCategory,
+                        calculateGrossFactor(tax, taxCategory, taxesLogic));
+                grouped.put(key, bucket);
+            }
             bucket.gross += gross;
         }
         return new ArrayList<>(grouped.values());
@@ -112,8 +124,7 @@ public final class VoucherDiscountAllocator {
                 continue;
             }
 
-            double taxRate = bucket.tax == null ? 0.0 : bucket.tax.getRate();
-            double netDiscount = allocation / (1.0 + taxRate);
+            double netDiscount = allocation / bucket.grossFactor;
             TicketLineInfo adjustment = new TicketLineInfo(
                     "Descuento cupón " + discount.getVoucher(),
                     bucket.taxCategoryId,
@@ -139,6 +150,33 @@ public final class VoucherDiscountAllocator {
         return applied;
     }
 
+    private static double calculateGross(TicketLineInfo line, TaxesLogic taxesLogic)
+            throws BasicException {
+        try {
+            double gross = line.getSubValue();
+            for (TicketTaxInfo tax : taxesLogic.calculateTaxes(line)) {
+                gross += tax.getTax();
+            }
+            return gross;
+        } catch (TaxesException ex) {
+            throw new BasicException("Voucher discount could not evaluate the ticket tax tree.", ex);
+        }
+    }
+
+    private static double calculateGrossFactor(TaxInfo tax, String taxCategoryId,
+            TaxesLogic taxesLogic) throws BasicException {
+        if (tax == null) {
+            throw new BasicException("Voucher discount found a line without an applicable tax rule.");
+        }
+        TicketLineInfo unit = new TicketLineInfo(
+                "Voucher tax factor", taxCategoryId, "1", 1.0, 1.0, tax);
+        double factor = calculateGross(unit, taxesLogic);
+        if (!Double.isFinite(factor) || RoundUtils.compare(factor, 0.0) <= 0) {
+            throw new BasicException("Voucher discount found an invalid effective tax factor.");
+        }
+        return factor;
+    }
+
     private static String safe(String value) {
         return value == null ? "" : value;
     }
@@ -146,11 +184,13 @@ public final class VoucherDiscountAllocator {
     private static final class TaxBucket {
         private final TaxInfo tax;
         private final String taxCategoryId;
+        private final double grossFactor;
         private double gross;
 
-        private TaxBucket(TaxInfo tax, String taxCategoryId) {
+        private TaxBucket(TaxInfo tax, String taxCategoryId, double grossFactor) {
             this.tax = tax;
             this.taxCategoryId = taxCategoryId;
+            this.grossFactor = grossFactor;
         }
     }
 }
