@@ -25,6 +25,7 @@ import com.mx.kylgis.pos.data.loader.*;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.BeanFactoryDataSingle;
+import com.mx.kylgis.pos.voucher.VoucherCodeGenerator;
 import com.mx.kylgis.pos.voucher.VoucherInfo;
 
 /**
@@ -366,6 +367,17 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
     }
           
           
+        public final VoucherInfo getVoucherInfoByNumber(String voucherNumber) throws BasicException {
+            return (VoucherInfo) new PreparedSentence(s,
+                    "SELECT V.ID, V.VOUCHER_NUMBER, V.CUSTOMER, COALESCE(C.NAME, ''), "
+                    + "V.AMOUNT, V.STATUS, V.EXPIRES_AT FROM vouchers V "
+                    + "LEFT JOIN customers C ON C.ID = V.CUSTOMER "
+                    + "WHERE UPPER(TRIM(V.VOUCHER_NUMBER)) = ?",
+                    SerializerWriteString.INSTANCE,
+                    VoucherInfo.getSerializerRead()).find(
+                            VoucherCodeGenerator.normalize(voucherNumber));
+        }
+
         public final VoucherInfo getVoucherInfoAll(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
 		, "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +

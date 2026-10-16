@@ -56,6 +56,10 @@ public class PaymentInfoList {
     public void removeLast() {
         m_apayment.removeLast();
     }
+
+    public boolean remove(PaymentInfo payment) {
+        return m_apayment.remove(payment);
+    }
     
     public LinkedList<PaymentInfo> getPayments() {
         return m_apayment;

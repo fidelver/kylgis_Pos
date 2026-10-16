@@ -27,12 +27,15 @@ import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -48,6 +51,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
                             implements JPaymentNotifier {
     
     private PaymentInfoList m_aPaymentInfo;
+    private List<VoucherDiscountInfo> m_voucherDiscounts;
+    private LinkedList<PaymentInfo> m_selectionOrder;
     private boolean printselected;
     
     private boolean accepted;
@@ -145,9 +150,15 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     public List<PaymentInfo> getSelectedPayments() {
         return m_aPaymentInfo.getPayments();
     }
+
+    public List<VoucherDiscountInfo> getSelectedVoucherDiscounts() {
+        return new ArrayList<>(m_voucherDiscounts);
+    }
             
       public boolean showDialog(double total, CustomerInfoExt customerext,double deposit) {
         m_aPaymentInfo = new PaymentInfoList();
+        m_voucherDiscounts = new ArrayList<>();
+        m_selectionOrder = new LinkedList<>();
         accepted = false;
         paymentInProgress = false;
         m_jButtonOK.setEnabled(true);
@@ -174,6 +185,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     public boolean showDialog(double total, CustomerInfoExt customerext) {
         
         m_aPaymentInfo = new PaymentInfoList();
+        m_voucherDiscounts = new ArrayList<>();
+        m_selectionOrder = new LinkedList<>();
         accepted = false;
         paymentInProgress = false;
         m_jButtonOK.setEnabled(true);
@@ -290,7 +303,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     public class JPaymentVoucherCreator implements JPaymentCreator {
         @Override
         public JPaymentInterface createJPayment() {
-            return new JPaymentVoucher(app, JPaymentSelect.this, "voucherin");            
+            return new JPaymentVoucher(app, JPaymentSelect.this);            
         }
         @Override
         public String getKey() { 
@@ -473,15 +486,31 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
     }
     
+    private double getVoucherDiscountTotal() {
+        double total = 0.0;
+        for (VoucherDiscountInfo discount : m_voucherDiscounts) {
+            total += discount.getTotal();
+        }
+        return total;
+    }
+
+    private double getSettlementTotal() {
+        return m_aPaymentInfo.getTotal() + getVoucherDiscountTotal();
+    }
+
+    private double getRemainingTotal() {
+        return Math.max(0.0, m_dTotal - getSettlementTotal());
+    }
+
     private void printState() {
         
         m_jRemaininglEuros.setText(Formats.CURRENCY.formatValue(
-                m_dTotal - m_aPaymentInfo.getTotal()));
-        m_jButtonRemove.setEnabled(!m_aPaymentInfo.isEmpty());
+                getRemainingTotal()));
+        m_jButtonRemove.setEnabled(!m_selectionOrder.isEmpty());
         m_jTabPayment.setSelectedIndex(0); 
         ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
                 .activate(customerext, 
-                m_dTotal - m_aPaymentInfo.getTotal()
+                getRemainingTotal()
                 , m_sTransactionID);
     }
     
@@ -495,16 +524,14 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         });
     }
 
-    private boolean isDuplicateVoucherPayment(PaymentInfo candidate) {
-        if (candidate == null
-                || !"voucherin".equals(candidate.getName())
+    private boolean isDuplicateVoucherDiscount(PaymentInfo candidate) {
+        if (!(candidate instanceof VoucherDiscountInfo)
                 || candidate.getVoucher() == null) {
             return false;
         }
 
-        for (PaymentInfo existing : m_aPaymentInfo.getPayments()) {
-            if ("voucherin".equals(existing.getName())
-                    && existing.getVoucher() != null
+        for (VoucherDiscountInfo existing : m_voucherDiscounts) {
+            if (existing.getVoucher() != null
                     && candidate.getVoucher().equalsIgnoreCase(existing.getVoucher())) {
                 return true;
             }
@@ -516,14 +543,19 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         if (payment == null) {
             return false;
         }
-        if (isDuplicateVoucherPayment(payment)) {
+        if (isDuplicateVoucherDiscount(payment)) {
             JOptionPane.showMessageDialog(this,
                     AppLocal.getIntString("message.voucher.duplicate"),
                     AppLocal.getIntString("message.voucher.validation.title"),
                     JOptionPane.WARNING_MESSAGE);
             return false;
         }
-        m_aPaymentInfo.add(payment);
+        if (payment instanceof VoucherDiscountInfo discount) {
+            m_voucherDiscounts.add(discount);
+        } else {
+            m_aPaymentInfo.add(payment);
+        }
+        m_selectionOrder.add(payment);
         return true;
     }
 
@@ -545,9 +577,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     }
 
     private boolean isLastPaymentApprovedCard() {
-        return m_aPaymentInfo != null
-                && !m_aPaymentInfo.isEmpty()
-                && isApprovedCardPayment(m_aPaymentInfo.getPayments().getLast());
+        return m_selectionOrder != null
+                && !m_selectionOrder.isEmpty()
+                && isApprovedCardPayment(m_selectionOrder.getLast());
     }
 
     private void showApprovedPaymentGuard(String messageKey) {
@@ -795,14 +827,19 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
     private void m_jButtonRemoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonRemoveActionPerformed
 
-        if (m_aPaymentInfo.isEmpty()) {
+        if (m_selectionOrder.isEmpty()) {
             return;
         }
         if (isLastPaymentApprovedCard()) {
             showApprovedPaymentGuard("message.payment.approvedpending.remove");
             return;
         }
-        m_aPaymentInfo.removeLast();
+        PaymentInfo lastSelection = m_selectionOrder.removeLast();
+        if (lastSelection instanceof VoucherDiscountInfo discount) {
+            m_voucherDiscounts.remove(discount);
+        } else {
+            m_aPaymentInfo.remove(lastSelection);
+        }
         printState();
 
     }//GEN-LAST:event_m_jButtonRemoveActionPerformed
@@ -823,11 +860,11 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         if (m_jTabPayment.getSelectedComponent() != null) {
             ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
                     .activate(customerext
-                    , m_dTotal - m_aPaymentInfo.getTotal()
+                    , getRemainingTotal()
                     , m_sTransactionID);
             m_jRemaininglEuros.setText(
                 Formats.CURRENCY.formatValue(
-                m_dTotal - m_aPaymentInfo.getTotal()));
+                getRemainingTotal()));
         }
         
     }//GEN-LAST:event_m_jTabPaymentStateChanged

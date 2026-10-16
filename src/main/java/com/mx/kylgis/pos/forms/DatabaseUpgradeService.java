@@ -26,6 +26,7 @@ public final class DatabaseUpgradeService {
     public static final String VERSION_1_0 = "1.0";
     public static final String VERSION_1_1 = "1.1";
     public static final String VERSION_1_2 = "1.2";
+    public static final String VERSION_1_2_1 = "1.2.1";
 
     private DatabaseUpgradeService() {
     }
@@ -33,7 +34,10 @@ public final class DatabaseUpgradeService {
     public static boolean supports(String fromVersion, String toVersion) {
         return (VERSION_1_0.equals(fromVersion) && VERSION_1_1.equals(toVersion))
                 || (VERSION_1_1.equals(fromVersion) && VERSION_1_2.equals(toVersion))
-                || (VERSION_1_0.equals(fromVersion) && VERSION_1_2.equals(toVersion));
+                || (VERSION_1_0.equals(fromVersion) && VERSION_1_2.equals(toVersion))
+                || (VERSION_1_2.equals(fromVersion) && VERSION_1_2_1.equals(toVersion))
+                || (VERSION_1_1.equals(fromVersion) && VERSION_1_2_1.equals(toVersion))
+                || (VERSION_1_0.equals(fromVersion) && VERSION_1_2_1.equals(toVersion));
     }
 
     public static void upgrade(Session session, AppProperties properties,
@@ -60,8 +64,16 @@ public final class DatabaseUpgradeService {
                 meta = connection.getMetaData();
             }
 
-            if (VERSION_1_2.equals(toVersion)) {
+            if (VERSION_1_2.equals(toVersion) || VERSION_1_2_1.equals(toVersion)) {
                 ensureProductSuppliers(connection, meta);
+                meta = connection.getMetaData();
+            }
+
+            if (VERSION_1_2_1.equals(toVersion)) {
+                validateVoucherNumbers(connection);
+                ensureVoucherLifecycle(connection, meta);
+                ensureVoucherAudit(connection, connection.getMetaData());
+                ensureVoucherDiscountCampaigns(connection, connection.getMetaData());
             }
 
             updateApplicationVersion(connection, properties, toVersion);
@@ -155,6 +167,117 @@ public final class DatabaseUpgradeService {
         if (!indexExists(connection.getMetaData(), "voucher_reactivation_audit", "voucher_reactivation_authorized_inx")) {
             execute(connection, "CREATE INDEX voucher_reactivation_authorized_inx "
                     + "ON voucher_reactivation_audit (authorized_by, authorized_at)");
+        }
+    }
+
+    private static void ensureVoucherDiscountCampaigns(Connection connection, DatabaseMetaData meta)
+            throws SQLException {
+        if (!tableExists(meta, "vouchers") || !tableExists(meta, "customers")
+                || !tableExists(meta, "receipts")) {
+            throw new SQLException("Required voucher/customer/receipt tables do not exist.");
+        }
+
+        if (!tableExists(meta, "voucher_campaigns")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE voucher_campaigns ("
+                        + "id VARCHAR NOT NULL PRIMARY KEY, "
+                        + "name VARCHAR NOT NULL, "
+                        + "code_prefix VARCHAR NOT NULL, "
+                        + "assignment_mode VARCHAR(16) NOT NULL, "
+                        + "amount DOUBLE PRECISION NOT NULL, "
+                        + "quantity INTEGER NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "expires_at TIMESTAMP NULL, "
+                        + "created_at TIMESTAMP NOT NULL, "
+                        + "created_by VARCHAR NOT NULL)");
+            } else {
+                execute(connection, "CREATE TABLE voucher_campaigns ("
+                        + "id VARCHAR(100) NOT NULL PRIMARY KEY, "
+                        + "name VARCHAR(255) NOT NULL, "
+                        + "code_prefix VARCHAR(90) NOT NULL, "
+                        + "assignment_mode VARCHAR(16) NOT NULL, "
+                        + "amount DOUBLE NOT NULL, "
+                        + "quantity INT NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "expires_at DATETIME NULL, "
+                        + "created_at DATETIME NOT NULL, "
+                        + "created_by VARCHAR(255) NOT NULL) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        requireColumns(meta, "voucher_campaigns", "id", "name", "code_prefix",
+                "assignment_mode", "amount", "quantity", "status", "expires_at",
+                "created_at", "created_by");
+        if (!indexExists(meta, "voucher_campaigns", "voucher_campaign_created_inx")) {
+            execute(connection, "CREATE INDEX voucher_campaign_created_inx "
+                    + "ON voucher_campaigns (created_at)");
+        }
+
+        meta = connection.getMetaData();
+        if (!columnExists(meta, "vouchers", "campaign_id")) {
+            execute(connection, "ALTER TABLE vouchers ADD COLUMN campaign_id "
+                    + (isPostgreSql(meta) ? "VARCHAR NULL" : "VARCHAR(100) NULL"));
+            meta = connection.getMetaData();
+        }
+        ensureForeignKey(connection, meta, "vouchers", "campaign_id",
+                "voucher_campaigns", "id", "vouchers_campaign_fk", "SET NULL");
+        if (!indexExists(connection.getMetaData(), "vouchers", "vouchers_campaign_inx")) {
+            execute(connection, "CREATE INDEX vouchers_campaign_inx ON vouchers (campaign_id)");
+        }
+
+        meta = connection.getMetaData();
+        if (!tableExists(meta, "voucher_redemptions")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE voucher_redemptions ("
+                        + "id VARCHAR NOT NULL PRIMARY KEY, "
+                        + "voucher_id VARCHAR NOT NULL, "
+                        + "voucher_number VARCHAR NOT NULL, "
+                        + "receipt_id VARCHAR NOT NULL, "
+                        + "customer_id VARCHAR NULL, "
+                        + "voucher_customer_before VARCHAR NULL, "
+                        + "discount_amount DOUBLE PRECISION NOT NULL, "
+                        + "redeemed_at TIMESTAMP NOT NULL, "
+                        + "operator_id VARCHAR NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "reversed_at TIMESTAMP NULL, "
+                        + "replacement_receipt_id VARCHAR NULL, "
+                        + "CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id), "
+                        + "CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id))");
+            } else {
+                execute(connection, "CREATE TABLE voucher_redemptions ("
+                        + "id VARCHAR(100) NOT NULL PRIMARY KEY, "
+                        + "voucher_id VARCHAR(100) NOT NULL, "
+                        + "voucher_number VARCHAR(100) NOT NULL, "
+                        + "receipt_id VARCHAR(255) NOT NULL, "
+                        + "customer_id VARCHAR(255) NULL, "
+                        + "voucher_customer_before VARCHAR(255) NULL, "
+                        + "discount_amount DOUBLE NOT NULL, "
+                        + "redeemed_at DATETIME NOT NULL, "
+                        + "operator_id VARCHAR(255) NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "reversed_at DATETIME NULL, "
+                        + "replacement_receipt_id VARCHAR(255) NULL, "
+                        + "CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id), "
+                        + "CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id)) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        requireColumns(meta, "voucher_redemptions", "id", "voucher_id", "voucher_number",
+                "receipt_id", "customer_id", "voucher_customer_before", "discount_amount",
+                "redeemed_at", "operator_id", "status", "reversed_at", "replacement_receipt_id");
+        ensureForeignKey(connection, meta, "voucher_redemptions", "voucher_id",
+                "vouchers", "id", "voucher_redemption_voucher_fk", "RESTRICT");
+        ensureForeignKey(connection, connection.getMetaData(), "voucher_redemptions", "customer_id",
+                "customers", "id", "voucher_redemption_customer_fk", "RESTRICT");
+        if (!indexExists(connection.getMetaData(), "voucher_redemptions", "voucher_redemption_voucher_inx")) {
+            execute(connection, "CREATE INDEX voucher_redemption_voucher_inx "
+                    + "ON voucher_redemptions (voucher_id, status)");
+        }
+        if (!indexExists(connection.getMetaData(), "voucher_redemptions", "voucher_redemption_receipt_inx")) {
+            execute(connection, "CREATE INDEX voucher_redemption_receipt_inx "
+                    + "ON voucher_redemptions (receipt_id)");
         }
     }
 
@@ -284,6 +407,70 @@ public final class DatabaseUpgradeService {
                 }
             }
         }
+    }
+
+    private static void requireColumns(DatabaseMetaData meta, String table, String... columns)
+            throws SQLException {
+        if (!tableExists(meta, table)) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+        for (String column : columns) {
+            if (!columnExists(meta, table, column)) {
+                throw new SQLException("Table " + table + " is incomplete: missing " + column);
+            }
+        }
+    }
+
+    private static void ensureForeignKey(Connection connection, DatabaseMetaData meta,
+            String table, String foreignColumn, String referencedTable, String referencedColumn,
+            String constraintName, String onDelete) throws SQLException {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+
+        boolean anyOnColumn = false;
+        try (ResultSet rows = meta.getImportedKeys(currentCatalog(meta), currentSchema(meta), actualTable)) {
+            while (rows.next()) {
+                if (!foreignColumn.equalsIgnoreCase(rows.getString("FKCOLUMN_NAME"))) {
+                    continue;
+                }
+                anyOnColumn = true;
+                String pkTable = rows.getString("PKTABLE_NAME");
+                String pkColumn = rows.getString("PKCOLUMN_NAME");
+                if (!referencedTable.equalsIgnoreCase(pkTable)
+                        || !referencedColumn.equalsIgnoreCase(pkColumn)) {
+                    throw new SQLException("Foreign key " + table + "." + foreignColumn
+                            + " points to an unexpected target.");
+                }
+                short expectedRule = (short) ("SET NULL".equalsIgnoreCase(onDelete)
+                        ? DatabaseMetaData.importedKeySetNull
+                        : DatabaseMetaData.importedKeyRestrict);
+                short actualRule = rows.getShort("DELETE_RULE");
+                if (actualRule != expectedRule
+                        && !(expectedRule == DatabaseMetaData.importedKeyRestrict
+                        && actualRule == DatabaseMetaData.importedKeyNoAction)) {
+                    throw new SQLException("Foreign key " + table + "." + foreignColumn
+                            + " has an unexpected delete rule.");
+                }
+                return;
+            }
+        }
+
+        if (anyOnColumn) {
+            throw new SQLException("Foreign key " + table + "." + foreignColumn
+                    + " is incompatible with expected schema.");
+        }
+
+        String clause = "SET NULL".equalsIgnoreCase(onDelete)
+                ? " ON DELETE SET NULL"
+                : " ON DELETE RESTRICT";
+        execute(connection, "ALTER TABLE " + table + " ADD CONSTRAINT " + constraintName
+                + " FOREIGN KEY (" + foreignColumn + ") REFERENCES " + referencedTable
+                + " (" + referencedColumn + ")" + clause);
+
+        ensureForeignKey(connection, connection.getMetaData(), table, foreignColumn,
+                referencedTable, referencedColumn, constraintName, onDelete);
     }
 
     private static void validateCompositePrimaryKey(DatabaseMetaData meta, String table,

@@ -740,6 +740,21 @@ CREATE TABLE uom (
     PRIMARY KEY ( id )
 );
 
+/* KylGis voucher campaigns */
+CREATE TABLE voucher_campaigns (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    code_prefix VARCHAR NOT NULL,
+    assignment_mode VARCHAR(16) NOT NULL,
+    amount double precision NOT NULL,
+    quantity INTEGER NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    expires_at TIMESTAMP DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL
+);
+CREATE INDEX voucher_campaign_created_inx ON voucher_campaigns(created_at);
+
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE vouchers (
     id VARCHAR NOT NULL,
@@ -748,9 +763,31 @@ CREATE TABLE vouchers (
     amount double precision default 0 NOT NULL,
     status CHAR(1) DEFAULT 'A',
     expires_at TIMESTAMP DEFAULT NULL,
+    campaign_id VARCHAR DEFAULT NULL,
     CONSTRAINT vouchers_number_uq UNIQUE (voucher_number),
+    CONSTRAINT vouchers_campaign_fk FOREIGN KEY (campaign_id) REFERENCES voucher_campaigns(id) ON DELETE SET NULL,
     PRIMARY KEY ( id )
 );
+CREATE INDEX vouchers_campaign_inx ON vouchers(campaign_id);
+
+CREATE TABLE voucher_redemptions (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    voucher_id VARCHAR NOT NULL,
+    voucher_number VARCHAR NOT NULL,
+    receipt_id VARCHAR NOT NULL,
+    customer_id VARCHAR DEFAULT NULL,
+    voucher_customer_before VARCHAR DEFAULT NULL,
+    discount_amount double precision NOT NULL,
+    redeemed_at TIMESTAMP NOT NULL,
+    operator_id VARCHAR NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    reversed_at TIMESTAMP DEFAULT NULL,
+    replacement_receipt_id VARCHAR DEFAULT NULL,
+    CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id),
+    CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+CREATE INDEX voucher_redemption_voucher_inx ON voucher_redemptions(voucher_id, status);
+CREATE INDEX voucher_redemption_receipt_inx ON voucher_redemptions(receipt_id);
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE voucher_reactivation_audit (

@@ -53,6 +53,8 @@ import com.mx.kylgis.pos.ticket.TicketInfo;
 import com.mx.kylgis.pos.ui.KylGisNotifications;
 import com.mx.kylgis.pos.ticket.TicketLineInfo;
 import com.mx.kylgis.pos.ticket.TicketTaxInfo;
+import com.mx.kylgis.pos.voucher.VoucherDiscountAllocator;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.InactivityListener;
@@ -1767,6 +1769,9 @@ System.out.println("PanelContainer : Focus Lost");
             
             try {
 
+                if (ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL) {
+                    VoucherDiscountAllocator.removeExistingAdjustments(ticket);
+                }
                 taxeslogic.calculateTaxes(ticket);
                 if (ticket.getTotal()>=0.0){
                     ticket.resetPayments();
@@ -1801,6 +1806,20 @@ System.out.println("PanelContainer : Focus Lost");
 
                     if (paymentAccepted) {
 
+                        List<VoucherDiscountInfo> voucherDiscounts = paymentdialog.getSelectedVoucherDiscounts();
+                        try {
+                            VoucherDiscountAllocator.apply(ticket, voucherDiscounts);
+                            ticket.setVoucherDiscounts(voucherDiscounts);
+                            ticket.resetTaxes();
+                            taxeslogic.calculateTaxes(ticket);
+                        } catch (BasicException ex) {
+                            VoucherDiscountAllocator.removeExistingAdjustments(ticket);
+                            JOptionPane.showMessageDialog(this,
+                                    "No se pudo aplicar el descuento del cupón.\n" + ex.getMessage(),
+                                    "Cupón inválido", JOptionPane.ERROR_MESSAGE);
+                            return false;
+                        }
+
                         ticket.setPayments(paymentdialog.getSelectedPayments());
 
                         if (!hasConsistentNormalSalePayments(ticket)) {
@@ -1814,6 +1833,7 @@ System.out.println("PanelContainer : Focus Lost");
                                     + "Total pagos: " + RoundUtils.round(paymentTotal),
                                     "Inconsistencia de pagos", JOptionPane.ERROR_MESSAGE);
                             ticket.resetPayments();
+                            VoucherDiscountAllocator.removeExistingAdjustments(ticket);
                             return false;
                         }
 

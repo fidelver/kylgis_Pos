@@ -32,6 +32,7 @@ import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.payment.PaymentInfo;
 import com.mx.kylgis.pos.payment.PaymentInfoMagcard;
 import com.mx.kylgis.pos.payment.PaymentInfoTicket;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 import com.mx.kylgis.pos.util.StringUtils;
 import java.io.*;
 import java.text.DateFormat;
@@ -72,6 +73,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     private String m_sActiveCash;
     private List<TicketLineInfo> m_aLines;
     private List<PaymentInfo> payments;
+    private List<VoucherDiscountInfo> voucherDiscounts;
     private List<TicketTaxInfo> taxes;
     private final String m_sResponse;
     private String loyaltyCardNumber;
@@ -106,6 +108,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_sActiveCash = null;
         m_aLines = new ArrayList<>();
         payments = new ArrayList<>();
+        voucherDiscounts = new ArrayList<>();
         taxes = null;
         m_sResponse = null;
         oldTicket=false;
@@ -142,6 +145,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_User = null;
         m_sActiveCash = null;
         payments = new ArrayList<>(); // JG June 2102 diamond inference
+        voucherDiscounts = new ArrayList<>();
         taxes = null;
 
         ticketstatus = in.readInt();
@@ -170,6 +174,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_Customer = new CustomerInfoExt(dr.getString(9));
         m_aLines = new ArrayList<>();
         payments = new ArrayList<>();
+        voucherDiscounts = new ArrayList<>();
         taxes = null;
         
         ticketstatus = dr.getInt(10);
@@ -199,6 +204,10 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         t.payments = new LinkedList<>(); // JG June 2102 diamond inference
         payments.forEach((p) -> {
             t.payments.add(p.copyPayment());
+        });
+        t.voucherDiscounts = new ArrayList<>();
+        voucherDiscounts.forEach((discount) -> {
+            t.voucherDiscounts.add((VoucherDiscountInfo) discount.copyPayment());
         });
         t.oldTicket=oldTicket;
         // taxes are not copied, must be calculated again.
@@ -467,6 +476,18 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public void resetPayments() {
         payments = new ArrayList<>(); // JG June 2102 diamond inference
+    }
+
+    public List<VoucherDiscountInfo> getVoucherDiscounts() {
+        return voucherDiscounts;
+    }
+
+    public void setVoucherDiscounts(List<VoucherDiscountInfo> discounts) {
+        voucherDiscounts = discounts == null ? new ArrayList<>() : new ArrayList<>(discounts);
+    }
+
+    public void resetVoucherDiscounts() {
+        voucherDiscounts = new ArrayList<>();
     }
 
     public List<TicketTaxInfo> getTaxes() {

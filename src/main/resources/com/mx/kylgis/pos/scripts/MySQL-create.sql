@@ -674,6 +674,22 @@ CREATE TABLE `uom` (
     PRIMARY KEY ( `id` )
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 
+/* KylGis voucher campaigns */
+CREATE TABLE `voucher_campaigns` (
+   `id` VARCHAR(100) NOT NULL,
+   `name` VARCHAR(255) NOT NULL,
+   `code_prefix` VARCHAR(90) NOT NULL,
+   `assignment_mode` VARCHAR(16) NOT NULL,
+   `amount` DOUBLE NOT NULL,
+   `quantity` INT NOT NULL,
+   `status` VARCHAR(16) NOT NULL,
+   `expires_at` DATETIME DEFAULT NULL,
+   `created_at` DATETIME NOT NULL,
+   `created_by` VARCHAR(255) NOT NULL,
+   PRIMARY KEY (`id`),
+   INDEX `voucher_campaign_created_inx` (`created_at`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
 /* Header line. Object: vouchers. Script date: 23/01/2018 08:00:00 */
 CREATE TABLE `vouchers` (
    `id` VARCHAR(100) NOT NULL,
@@ -682,8 +698,31 @@ CREATE TABLE `vouchers` (
    `amount` DOUBLE DEFAULT NULL,
    `status` CHAR(1) DEFAULT 'A',
    `expires_at` DATETIME DEFAULT NULL,
+   `campaign_id` VARCHAR(100) DEFAULT NULL,
    UNIQUE INDEX `vouchers_number_uq` (`voucher_number`),
-  PRIMARY KEY ( `id` )
+   INDEX `vouchers_campaign_inx` (`campaign_id`),
+   CONSTRAINT `vouchers_campaign_fk` FOREIGN KEY (`campaign_id`) REFERENCES `voucher_campaigns` (`id`) ON DELETE SET NULL,
+   PRIMARY KEY ( `id` )
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+CREATE TABLE `voucher_redemptions` (
+   `id` VARCHAR(100) NOT NULL,
+   `voucher_id` VARCHAR(100) NOT NULL,
+   `voucher_number` VARCHAR(100) NOT NULL,
+   `receipt_id` VARCHAR(255) NOT NULL,
+   `customer_id` VARCHAR(255) DEFAULT NULL,
+   `voucher_customer_before` VARCHAR(255) DEFAULT NULL,
+   `discount_amount` DOUBLE NOT NULL,
+   `redeemed_at` DATETIME NOT NULL,
+   `operator_id` VARCHAR(255) NOT NULL,
+   `status` VARCHAR(16) NOT NULL,
+   `reversed_at` DATETIME DEFAULT NULL,
+   `replacement_receipt_id` VARCHAR(255) DEFAULT NULL,
+   PRIMARY KEY (`id`),
+   INDEX `voucher_redemption_voucher_inx` (`voucher_id`, `status`),
+   INDEX `voucher_redemption_receipt_inx` (`receipt_id`),
+   CONSTRAINT `voucher_redemption_voucher_fk` FOREIGN KEY (`voucher_id`) REFERENCES `vouchers` (`id`),
+   CONSTRAINT `voucher_redemption_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 
 CREATE TABLE `voucher_reactivation_audit` (

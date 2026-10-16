@@ -27,14 +27,24 @@ public final class VoucherEditContext {
 
     public static Set<String> voucherNumbers(TicketInfo ticket) {
         Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        if (ticket == null || ticket.getPayments() == null) {
+        if (ticket == null) {
             return result;
         }
+        if (ticket.getPayments() != null) {
         for (PaymentInfo payment : ticket.getPayments()) {
             if (payment != null && "voucherin".equals(payment.getName())) {
                 String voucher = payment.getVoucher();
                 if (voucher != null && !voucher.isBlank()) {
                     result.add(voucher.trim());
+                }
+            }
+        }
+        }
+        if (ticket.getVoucherDiscounts() != null) {
+            for (VoucherDiscountInfo discount : ticket.getVoucherDiscounts()) {
+                if (discount != null && discount.getVoucher() != null
+                        && !discount.getVoucher().isBlank()) {
+                    result.add(discount.getVoucher().trim());
                 }
             }
         }
