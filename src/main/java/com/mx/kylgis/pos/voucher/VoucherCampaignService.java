@@ -169,7 +169,7 @@ public final class VoucherCampaignService {
                 + "V.VOUCHER_NUMBER, V.AMOUNT, V.STATUS, V.EXPIRES_AT "
                 + "FROM vouchers V JOIN voucher_campaigns VC ON VC.ID = V.CAMPAIGN_ID "
                 + "LEFT JOIN customers C ON C.ID = V.CUSTOMER WHERE VC.ID = ? "
-                + "ORDER BY V.VOUCHER_NUMBER";
+                + "ORDER BY LENGTH(V.VOUCHER_NUMBER), V.VOUCHER_NUMBER";
         List<CampaignVoucherRow> result = new ArrayList<>();
         try (PreparedStatement ps = session.getConnection().prepareStatement(sql)) {
             ps.setString(1, campaignId);
