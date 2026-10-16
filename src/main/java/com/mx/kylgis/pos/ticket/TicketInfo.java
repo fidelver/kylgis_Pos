@@ -405,7 +405,9 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
         for (Iterator<TicketLineInfo> i = m_aLines.iterator(); i.hasNext();) {
             oLine = i.next();
-            dArticles += oLine.getMultiply();
+            if (!"true".equalsIgnoreCase(oLine.getProperty("voucher.discount"))) {
+                dArticles += oLine.getMultiply();
+            }
         }
 
         return dArticles;
