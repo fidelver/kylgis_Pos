@@ -45,7 +45,10 @@ public final class VoucherDiscountAllocator {
         }
 
         List<TaxBucket> buckets = buildBuckets(ticket);
-        double remainingGross = buckets.stream().mapToDouble(bucket -> bucket.gross).sum();
+        double remainingGross = buckets.stream()
+                .filter(bucket -> RoundUtils.compare(bucket.gross, 0.0) > 0)
+                .mapToDouble(bucket -> bucket.gross)
+                .sum();
         if (RoundUtils.compare(remainingGross, 0.0) <= 0) {
             throw new BasicException("Voucher discount requires a positive sale total.");
         }
@@ -73,9 +76,6 @@ public final class VoucherDiscountAllocator {
                 continue;
             }
             double gross = line.getValue();
-            if (RoundUtils.compare(gross, 0.0) <= 0) {
-                continue;
-            }
             TaxInfo tax = line.getTaxInfo();
             String taxId = tax == null ? "" : tax.getId();
             String taxCategory = line.getProductTaxCategoryID();
