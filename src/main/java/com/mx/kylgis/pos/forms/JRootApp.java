@@ -1258,12 +1258,37 @@ public class JRootApp extends JPanel implements AppView {
     }
     
     private static String mapNewClass(String classname) {
-        String newclass = m_oldclasses.get(classname);
+        String normalized = normalizeLegacyBeanFactoryName(classname);
+        String newclass = m_oldclasses.get(normalized);
         return newclass == null 
-                ? classname 
+                ? normalized 
                 : newclass;
     }
     
+    static String normalizeLegacyBeanFactoryName(String beanfactory) {
+        if (beanfactory == null || beanfactory.isEmpty()) {
+            return beanfactory;
+        }
+
+        String[][] prefixes = {
+            {"/com/openbravo/pos/", "/com/mx/kylgis/pos/"},
+            {"/com/unicenta/pos/", "/com/mx/kylgis/pos/"},
+            {"/com/openbravo/", "/com/mx/kylgis/pos/"},
+            {"/com/unicenta/", "/com/mx/kylgis/pos/"},
+            {"com.openbravo.pos.", "com.mx.kylgis.pos."},
+            {"com.unicenta.pos.", "com.mx.kylgis.pos."},
+            {"com.openbravo.", "com.mx.kylgis.pos."},
+            {"com.unicenta.", "com.mx.kylgis.pos."}
+        };
+
+        for (String[] prefix : prefixes) {
+            if (beanfactory.startsWith(prefix[0])) {
+                return prefix[1] + beanfactory.substring(prefix[0].length());
+            }
+        }
+        return beanfactory;
+    }
+
     private static void initOldClasses() {
         m_oldclasses = new HashMap<>();
         
