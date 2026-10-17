@@ -233,9 +233,13 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 
                 JasperPrint jp = JasperFillManager.fillReport(jr, reportparams, data);    
             
-               reportviewer.loadJasperPrint(jp);
-
+                // Relayout first, then load/refresh the JasperPrint at its final size.
+                // Loading before hiding the filter left the viewer with stale geometry and
+                // could produce blank/partially painted detail until page navigation.
                 setVisibleFilter(false);
+                revalidate();
+                doLayout();
+                reportviewer.loadJasperPrint(jp);
                 
             } catch (MissingResourceException e) {    
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadresourcedata"), e);
