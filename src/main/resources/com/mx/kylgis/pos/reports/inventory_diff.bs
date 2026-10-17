@@ -39,7 +39,7 @@ report.setSentence("SELECT " +
                     "products LEFT OUTER JOIN categories ON products.CATEGORY = categories.ID " +
                 "WHERE products.ID = stockdiary.PRODUCT " +
                 "AND ?(QBF_FILTER) " +
-                "GROUP BY locations.ID, locations.NAME, products.REFERENCE, products.NAME, products.CATEGORY, categories.NAME " +
+                "GROUP BY locations.ID, locations.NAME, products.REFERENCE, products.NAME, products.CATEGORY, categories.NAME, products.SUPPLIER " +
                 "ORDER BY locations.ID, categories.NAME, products.NAME");
 
 report.addParameter("stockdiary.DATENEW");

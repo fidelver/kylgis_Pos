@@ -38,8 +38,8 @@ report.setSentence("SELECT "
                 + "ON (stockdiary.product = products.id)) "
             + "LEFT OUTER JOIN suppliers suppliers "
                 + "ON (products.supplier = suppliers.id) "
-        + "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND ?(QBF_FILTER) " 
-        + "GROUP BY locations.name, stockdiary.reason, stockdiary.datenew, products.name");
+        + "WHERE products.VISIBLE = " + app.getSession().DB.TRUE() + " AND ?(QBF_FILTER) " 
+        + "GROUP BY locations.name, stockdiary.reason, stockdiary.datenew, stockdiary.supplierdoc, stockdiary.price, suppliers.name, products.name, products.reference, products.code");
 
 report.addParameter("stockdiary.DATENEW");
 report.addParameter("stockdiary.DATENEW");
