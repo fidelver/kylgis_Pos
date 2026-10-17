@@ -546,7 +546,11 @@ CREATE TABLE `product_suppliers` (
 	`priority` int(11) default NULL,
 	`last_purchase` datetime default NULL,
 	PRIMARY KEY (`product_id`, `supplier_id`),
-	KEY `product_suppliers_supplier_inx` (`supplier_id`)
+	KEY `product_suppliers_supplier_inx` (`supplier_id`),
+	CONSTRAINT `product_suppliers_product_fk` FOREIGN KEY (`product_id`)
+		REFERENCES `products` (`id`) ON DELETE CASCADE,
+	CONSTRAINT `product_suppliers_supplier_fk` FOREIGN KEY (`supplier_id`)
+		REFERENCES `suppliers` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 
 /* Header line. Object: taxcategories. Script date: 23/01/2018 08:00:00 */
@@ -738,6 +742,97 @@ CREATE TABLE `voucher_reactivation_audit` (
    UNIQUE INDEX `voucher_reactivation_original_uq` (`original_receipt`, `voucher_number`),
    INDEX `voucher_reactivation_new_inx` (`new_receipt`),
    INDEX `voucher_reactivation_authorized_inx` (`authorized_by`, `authorized_at`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+/* KylGis 1.3: versioned recipes and auditable inventory transformations. */
+CREATE TABLE `recipe_versions` (
+    `id` VARCHAR(255) NOT NULL,
+    `product_id` VARCHAR(255) NOT NULL,
+    `version_no` INT NOT NULL,
+    `status` VARCHAR(16) NOT NULL,
+    `yield_quantity` DECIMAL(19,6) NOT NULL,
+    `yield_uom_id` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME NOT NULL,
+    `created_by` VARCHAR(255) NOT NULL,
+    `notes` VARCHAR(1000) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `recipe_versions_product_version_uq` (`product_id`, `version_no`),
+    KEY `recipe_versions_product_status_inx` (`product_id`, `status`),
+    CONSTRAINT `recipe_versions_product_fk` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`),
+    CONSTRAINT `recipe_versions_uom_fk` FOREIGN KEY (`yield_uom_id`) REFERENCES `uom` (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+CREATE TABLE `recipe_components` (
+    `recipe_version_id` VARCHAR(255) NOT NULL,
+    `line_no` INT NOT NULL,
+    `component_product_id` VARCHAR(255) NOT NULL,
+    `quantity` DECIMAL(19,6) NOT NULL,
+    `uom_id` VARCHAR(255) NOT NULL,
+    `waste_allowance` DECIMAL(9,6) DEFAULT NULL,
+    PRIMARY KEY (`recipe_version_id`, `line_no`),
+    KEY `recipe_components_product_inx` (`component_product_id`),
+    CONSTRAINT `recipe_components_recipe_fk` FOREIGN KEY (`recipe_version_id`) REFERENCES `recipe_versions` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `recipe_components_product_fk` FOREIGN KEY (`component_product_id`) REFERENCES `products` (`id`),
+    CONSTRAINT `recipe_components_uom_fk` FOREIGN KEY (`uom_id`) REFERENCES `uom` (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+CREATE TABLE `product_uom_conversions` (
+    `product_id` VARCHAR(255) NOT NULL,
+    `from_uom_id` VARCHAR(255) NOT NULL,
+    `to_uom_id` VARCHAR(255) NOT NULL,
+    `factor` DECIMAL(19,9) NOT NULL,
+    `active` BIT(1) NOT NULL DEFAULT b'1',
+    PRIMARY KEY (`product_id`, `from_uom_id`, `to_uom_id`),
+    KEY `product_uom_from_inx` (`from_uom_id`),
+    KEY `product_uom_to_inx` (`to_uom_id`),
+    CONSTRAINT `product_uom_product_fk` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `product_uom_from_fk` FOREIGN KEY (`from_uom_id`) REFERENCES `uom` (`id`),
+    CONSTRAINT `product_uom_to_fk` FOREIGN KEY (`to_uom_id`) REFERENCES `uom` (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+CREATE TABLE `inventory_transformations` (
+    `id` VARCHAR(255) NOT NULL,
+    `idempotency_key` VARCHAR(255) NOT NULL,
+    `request_hash` VARCHAR(64) NOT NULL,
+    `type` VARCHAR(24) NOT NULL,
+    `status` VARCHAR(16) NOT NULL,
+    `location_id` VARCHAR(255) NOT NULL,
+    `recipe_version_id` VARCHAR(255) DEFAULT NULL,
+    `reverses_id` VARCHAR(255) DEFAULT NULL,
+    `expected_output` DECIMAL(19,6) DEFAULT NULL,
+    `actual_output` DECIMAL(19,6) DEFAULT NULL,
+    `created_at` DATETIME NOT NULL,
+    `created_by` VARCHAR(255) NOT NULL,
+    `notes` VARCHAR(1000) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `inventory_transform_idempotency_uq` (`idempotency_key`),
+    UNIQUE KEY `inventory_transform_reverses_uq` (`reverses_id`),
+    KEY `inventory_transform_location_date_inx` (`location_id`, `created_at`),
+    KEY `inventory_transform_recipe_inx` (`recipe_version_id`),
+    CONSTRAINT `inventory_transform_location_fk` FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`),
+    CONSTRAINT `inventory_transform_recipe_fk` FOREIGN KEY (`recipe_version_id`) REFERENCES `recipe_versions` (`id`),
+    CONSTRAINT `inventory_transform_reverse_fk` FOREIGN KEY (`reverses_id`) REFERENCES `inventory_transformations` (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+CREATE TABLE `inventory_transformation_lines` (
+    `transformation_id` VARCHAR(255) NOT NULL,
+    `line_no` INT NOT NULL,
+    `direction` VARCHAR(8) NOT NULL,
+    `product_id` VARCHAR(255) NOT NULL,
+    `attributesetinstance_id` VARCHAR(255) DEFAULT NULL,
+    `quantity` DECIMAL(19,6) NOT NULL,
+    `uom_id` VARCHAR(255) NOT NULL,
+    `base_quantity` DECIMAL(19,6) NOT NULL,
+    `unit_cost` DECIMAL(19,6) DEFAULT NULL,
+    `total_cost` DECIMAL(19,6) DEFAULT NULL,
+    `stockdiary_id` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`transformation_id`, `line_no`),
+    UNIQUE KEY `inventory_transform_line_diary_uq` (`stockdiary_id`),
+    KEY `inventory_transform_line_product_inx` (`product_id`),
+    CONSTRAINT `inventory_transform_line_header_fk` FOREIGN KEY (`transformation_id`) REFERENCES `inventory_transformations` (`id`),
+    CONSTRAINT `inventory_transform_line_product_fk` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`),
+    CONSTRAINT `inventory_transform_line_uom_fk` FOREIGN KEY (`uom_id`) REFERENCES `uom` (`id`),
+    CONSTRAINT `inventory_transform_line_diary_fk` FOREIGN KEY (`stockdiary_id`) REFERENCES `stockdiary` (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
 
 -- Update foreign keys of attributeinstance

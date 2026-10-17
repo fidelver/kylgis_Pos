@@ -33,6 +33,9 @@ public class MovementReason extends ComboItemLocal {
     public static final MovementReason IN_REFUND = new MovementReason(+2, "stock.in.refund");
     public static final MovementReason IN_MOVEMENT = new MovementReason(+4, "stock.in.movement");    
     public static final MovementReason IN_ADJUST = new MovementReason(+5, "stock.in.adjust");
+    public static final MovementReason IN_PRODUCTION = new MovementReason(+6, "stock.in.production");
+    public static final MovementReason IN_CONVERSION = new MovementReason(+7, "stock.in.conversion");
+    public static final MovementReason IN_REVERSAL = new MovementReason(+8, "stock.in.reversal");
 
 // OUT values    
     public static final MovementReason OUT_SALE = new MovementReason(-1, "stock.out.sale");
@@ -45,6 +48,10 @@ public class MovementReason extends ComboItemLocal {
     public static final MovementReason OUT_USED = new MovementReason(-7, "stock.out.used");
     public static final MovementReason OUT_SUBTRACT = new MovementReason(-8, "stock.out.subtract");
     public static final MovementReason OUT_ADJUST = new MovementReason(-9, "stock.out.adjust");
+    public static final MovementReason OUT_PRODUCTION = new MovementReason(-10, "stock.out.production");
+    public static final MovementReason OUT_CONVERSION = new MovementReason(-11, "stock.out.conversion");
+    public static final MovementReason OUT_WASTE = new MovementReason(-12, "stock.out.waste");
+    public static final MovementReason OUT_REVERSAL = new MovementReason(-13, "stock.out.reversal");
 
 // TRANSFER
     public static final MovementReason OUT_CROSSING = new MovementReason(1000, "stock.out.crossing");

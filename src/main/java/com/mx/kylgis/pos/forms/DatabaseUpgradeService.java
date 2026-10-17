@@ -4,6 +4,7 @@ package com.mx.kylgis.pos.forms;
 
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.Session;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -27,6 +28,7 @@ public final class DatabaseUpgradeService {
     public static final String VERSION_1_1 = "1.1";
     public static final String VERSION_1_2 = "1.2";
     public static final String VERSION_1_2_1 = "1.2.1";
+    public static final String VERSION_1_3 = "1.3";
 
     private DatabaseUpgradeService() {
     }
@@ -37,7 +39,11 @@ public final class DatabaseUpgradeService {
                 || (VERSION_1_0.equals(fromVersion) && VERSION_1_2.equals(toVersion))
                 || (VERSION_1_2.equals(fromVersion) && VERSION_1_2_1.equals(toVersion))
                 || (VERSION_1_1.equals(fromVersion) && VERSION_1_2_1.equals(toVersion))
-                || (VERSION_1_0.equals(fromVersion) && VERSION_1_2_1.equals(toVersion));
+                || (VERSION_1_0.equals(fromVersion) && VERSION_1_2_1.equals(toVersion))
+                || (VERSION_1_2_1.equals(fromVersion) && VERSION_1_3.equals(toVersion))
+                || (VERSION_1_2.equals(fromVersion) && VERSION_1_3.equals(toVersion))
+                || (VERSION_1_1.equals(fromVersion) && VERSION_1_3.equals(toVersion))
+                || (VERSION_1_0.equals(fromVersion) && VERSION_1_3.equals(toVersion));
     }
 
     public static void upgrade(Session session, AppProperties properties,
@@ -65,24 +71,177 @@ public final class DatabaseUpgradeService {
             }
 
             // Product/supplier backfill belongs only to upgrades that have not yet
-            // reached schema 1.2. Re-running it during 1.2 -> 1.2.1 would reset
+            // reached schema 1.2. Re-running it from 1.2/1.2.1 would reset
             // legitimate N:M preferred-supplier choices back to products.supplier.
-            if (!VERSION_1_2.equals(fromVersion)
-                    && (VERSION_1_2.equals(toVersion) || VERSION_1_2_1.equals(toVersion))) {
+            if (!VERSION_1_2.equals(fromVersion) && !VERSION_1_2_1.equals(fromVersion)
+                    && (VERSION_1_2.equals(toVersion) || VERSION_1_2_1.equals(toVersion)
+                    || VERSION_1_3.equals(toVersion))) {
                 ensureProductSuppliers(connection, meta);
                 meta = connection.getMetaData();
             }
 
-            if (VERSION_1_2_1.equals(toVersion)) {
+            if (VERSION_1_2_1.equals(toVersion) || VERSION_1_3.equals(toVersion)) {
                 validateVoucherNumbers(connection);
                 ensureVoucherLifecycle(connection, meta);
                 ensureVoucherAudit(connection, connection.getMetaData());
                 ensureVoucherDiscountCampaigns(connection, connection.getMetaData());
+                meta = connection.getMetaData();
+            }
+
+            if (VERSION_1_3.equals(toVersion)) {
+                ensureRecipesAndTransformations(connection, meta);
+                ensureRecipeUiAccess(connection);
             }
 
             updateApplicationVersion(connection, properties, toVersion);
         } catch (SQLException ex) {
             throw new BasicException("KylGis database upgrade failed.", ex);
+        }
+    }
+
+    /**
+     * Fail-closed validation used immediately after a fresh KylGis schema is
+     * created and stamped with the current application version. It performs no
+     * DDL/DML and prevents startup when the create script drifted from the
+     * KylGis-native schema contract.
+     */
+    public static void validateFreshSchema(Session session, AppProperties properties,
+            String version) throws BasicException {
+        if (!VERSION_1_3.equals(version)) {
+            return;
+        }
+        try {
+            Connection connection = session.getConnection();
+            DatabaseMetaData meta = connection.getMetaData();
+            if (!isSupportedDatabase(meta)) {
+                throw new SQLException("Unsupported database engine for KylGis schema validation: "
+                        + meta.getDatabaseProductName());
+            }
+            validateFreshApplicationIdentity(connection, properties, version);
+            validateFreshVoucherSchema(meta);
+            validateFreshProductSuppliersSchema(connection, meta);
+            validateFreshRecipeSchema(connection, meta);
+        } catch (SQLException ex) {
+            throw new BasicException("Fresh KylGis database schema validation failed.", ex);
+        }
+    }
+
+    private static void validateFreshApplicationIdentity(Connection connection,
+            AppProperties properties, String version) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT NAME, VERSION FROM applications WHERE ID = ?")) {
+            statement.setString(1, ApplicationIdentity.getDatabaseId(properties));
+            try (ResultSet row = statement.executeQuery()) {
+                if (!row.next()) {
+                    throw new SQLException("Fresh database application identity row is missing.");
+                }
+                if (!ApplicationIdentity.getDatabaseName(properties).equals(row.getString(1))
+                        || !version.equals(row.getString(2))) {
+                    throw new SQLException("Fresh database application identity/version mismatch.");
+                }
+                if (row.next()) {
+                    throw new SQLException("Fresh database application identity is not unique.");
+                }
+            }
+        }
+    }
+
+    private static void validateFreshVoucherSchema(DatabaseMetaData meta) throws SQLException {
+        validateColumns(meta, "vouchers", "id", "voucher_number", "customer", "amount",
+                "status", "expires_at");
+        if (!indexExists(meta, "vouchers", "vouchers_number_uq")) {
+            throw new SQLException("Fresh vouchers schema is missing vouchers_number_uq.");
+        }
+        validateColumns(meta, "voucher_reactivation_audit", "id", "voucher_number",
+                "original_receipt", "new_receipt", "operator_id", "authorized_by",
+                "authorized_at", "reason");
+        String[] indexes = {"voucher_reactivation_original_uq",
+            "voucher_reactivation_new_inx", "voucher_reactivation_authorized_inx"};
+        for (String index : indexes) {
+            if (!indexExists(meta, "voucher_reactivation_audit", index)) {
+                throw new SQLException("Fresh voucher audit schema is missing " + index + ".");
+            }
+        }
+    }
+
+    private static void validateFreshProductSuppliersSchema(Connection connection,
+            DatabaseMetaData meta) throws SQLException {
+        validateColumns(meta, "product_suppliers", "product_id", "supplier_id",
+                "is_preferred", "active", "supplier_sku", "purchase_uom", "last_cost",
+                "priority", "last_purchase");
+        validateCompositePrimaryKey(meta, "product_suppliers", "product_id", "supplier_id");
+        validateCascadeForeignKey(meta, "product_suppliers", "product_id", "products", "id");
+        validateCascadeForeignKey(meta, "product_suppliers", "supplier_id", "suppliers", "id");
+        if (!indexExists(meta, "product_suppliers", "product_suppliers_supplier_inx")) {
+            throw new SQLException("Fresh product_suppliers schema is missing supplier index.");
+        }
+        validatePreferredSupplierUniqueness(connection);
+    }
+
+    private static void validateFreshRecipeSchema(Connection connection, DatabaseMetaData meta)
+            throws SQLException {
+        String[] baseTables = {"products", "uom", "locations", "stockcurrent", "stockdiary"};
+        for (String table : baseTables) {
+            if (!tableExists(meta, table)) {
+                throw new SQLException("Fresh recipe schema is missing base table " + table + ".");
+            }
+        }
+
+        validateColumns(meta, "recipe_versions", "id", "product_id", "version_no", "status",
+                "yield_quantity", "yield_uom_id", "created_at", "created_by", "notes");
+        validatePrimaryKey(meta, "recipe_versions", "id");
+        requireIndex(meta, "recipe_versions", "recipe_versions_product_version_uq");
+        requireIndex(meta, "recipe_versions", "recipe_versions_product_status_inx");
+        validateForeignKey(meta, "recipe_versions", "product_id", "products", "id");
+        validateForeignKey(meta, "recipe_versions", "yield_uom_id", "uom", "id");
+
+        validateColumns(meta, "recipe_components", "recipe_version_id", "line_no",
+                "component_product_id", "quantity", "uom_id", "waste_allowance");
+        validatePrimaryKey(meta, "recipe_components", "recipe_version_id", "line_no");
+        requireIndex(meta, "recipe_components", "recipe_components_product_inx");
+        validateForeignKey(meta, "recipe_components", "recipe_version_id", "recipe_versions", "id");
+        validateForeignKey(meta, "recipe_components", "component_product_id", "products", "id");
+        validateForeignKey(meta, "recipe_components", "uom_id", "uom", "id");
+
+        validateColumns(meta, "product_uom_conversions", "product_id", "from_uom_id",
+                "to_uom_id", "factor", "active");
+        validatePrimaryKey(meta, "product_uom_conversions", "product_id", "from_uom_id", "to_uom_id");
+        validateForeignKey(meta, "product_uom_conversions", "product_id", "products", "id");
+        validateForeignKey(meta, "product_uom_conversions", "from_uom_id", "uom", "id");
+        validateForeignKey(meta, "product_uom_conversions", "to_uom_id", "uom", "id");
+
+        validateColumns(meta, "inventory_transformations", "id", "idempotency_key",
+                "request_hash", "type", "status", "location_id", "recipe_version_id",
+                "reverses_id", "expected_output", "actual_output", "created_at", "created_by",
+                "notes");
+        validatePrimaryKey(meta, "inventory_transformations", "id");
+        requireIndex(meta, "inventory_transformations", "inventory_transform_idempotency_uq");
+        requireIndex(meta, "inventory_transformations", "inventory_transform_reverses_uq");
+        requireIndex(meta, "inventory_transformations", "inventory_transform_location_date_inx");
+        requireIndex(meta, "inventory_transformations", "inventory_transform_recipe_inx");
+        validateForeignKey(meta, "inventory_transformations", "location_id", "locations", "id");
+        validateForeignKey(meta, "inventory_transformations", "recipe_version_id", "recipe_versions", "id");
+        validateForeignKey(meta, "inventory_transformations", "reverses_id", "inventory_transformations", "id");
+
+        validateColumns(meta, "inventory_transformation_lines", "transformation_id", "line_no",
+                "direction", "product_id", "attributesetinstance_id", "quantity", "uom_id",
+                "base_quantity", "unit_cost", "total_cost", "stockdiary_id");
+        validatePrimaryKey(meta, "inventory_transformation_lines", "transformation_id", "line_no");
+        requireIndex(meta, "inventory_transformation_lines", "inventory_transform_line_diary_uq");
+        requireIndex(meta, "inventory_transformation_lines", "inventory_transform_line_product_inx");
+        validateForeignKey(meta, "inventory_transformation_lines", "transformation_id",
+                "inventory_transformations", "id");
+        validateForeignKey(meta, "inventory_transformation_lines", "product_id", "products", "id");
+        validateForeignKey(meta, "inventory_transformation_lines", "uom_id", "uom", "id");
+        validateForeignKey(meta, "inventory_transformation_lines", "stockdiary_id", "stockdiary", "id");
+        validateRecipeUniqueIndexes(meta);
+        validateRecipeIntegrity(connection);
+    }
+
+    private static void requireIndex(DatabaseMetaData meta, String table, String index)
+            throws SQLException {
+        if (!indexExists(meta, table, index)) {
+            throw new SQLException("Required index missing: " + table + "." + index);
         }
     }
 
@@ -341,8 +500,11 @@ public final class DatabaseUpgradeService {
         }
 
         validateCompositePrimaryKey(meta, "product_suppliers", "product_id", "supplier_id");
-        validateCascadeForeignKey(meta, "product_suppliers", "product_id", "products", "id");
-        validateCascadeForeignKey(meta, "product_suppliers", "supplier_id", "suppliers", "id");
+        ensureCascadeForeignKey(connection, "product_suppliers", "product_id",
+                "products", "id", "product_suppliers_product_fk");
+        ensureCascadeForeignKey(connection, "product_suppliers", "supplier_id",
+                "suppliers", "id", "product_suppliers_supplier_fk");
+        meta = connection.getMetaData();
         validatePreferredSupplierUniqueness(connection);
 
         if (!indexExists(meta, "product_suppliers", "product_suppliers_supplier_inx")) {
@@ -352,6 +514,359 @@ public final class DatabaseUpgradeService {
 
         backfillLegacyProductSuppliers(connection);
         validatePreferredSupplierUniqueness(connection);
+    }
+
+    private static void ensureRecipesAndTransformations(Connection connection, DatabaseMetaData meta)
+            throws SQLException {
+        String[] requiredBaseTables = {"products", "uom", "locations", "stockdiary"};
+        for (String table : requiredBaseTables) {
+            if (!tableExists(meta, table)) {
+                throw new SQLException("Required recipe/transform base table does not exist: " + table);
+            }
+        }
+
+        if (!tableExists(meta, "recipe_versions")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE recipe_versions ("
+                        + "id VARCHAR NOT NULL PRIMARY KEY, "
+                        + "product_id VARCHAR NOT NULL, "
+                        + "version_no INTEGER NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "yield_quantity NUMERIC(19,6) NOT NULL, "
+                        + "yield_uom_id VARCHAR NOT NULL, "
+                        + "created_at TIMESTAMP NOT NULL, "
+                        + "created_by VARCHAR NOT NULL, "
+                        + "notes VARCHAR(1000) NULL, "
+                        + "CONSTRAINT recipe_versions_product_version_uq UNIQUE (product_id, version_no), "
+                        + "CONSTRAINT recipe_versions_product_fk FOREIGN KEY (product_id) REFERENCES products(id), "
+                        + "CONSTRAINT recipe_versions_uom_fk FOREIGN KEY (yield_uom_id) REFERENCES uom(id))");
+            } else {
+                execute(connection, "CREATE TABLE recipe_versions ("
+                        + "id VARCHAR(255) NOT NULL PRIMARY KEY, "
+                        + "product_id VARCHAR(255) NOT NULL, "
+                        + "version_no INT NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "yield_quantity DECIMAL(19,6) NOT NULL, "
+                        + "yield_uom_id VARCHAR(255) NOT NULL, "
+                        + "created_at DATETIME NOT NULL, "
+                        + "created_by VARCHAR(255) NOT NULL, "
+                        + "notes VARCHAR(1000) NULL, "
+                        + "UNIQUE KEY recipe_versions_product_version_uq (product_id, version_no), "
+                        + "KEY recipe_versions_product_status_inx (product_id, status), "
+                        + "CONSTRAINT recipe_versions_product_fk FOREIGN KEY (product_id) REFERENCES products(id), "
+                        + "CONSTRAINT recipe_versions_uom_fk FOREIGN KEY (yield_uom_id) REFERENCES uom(id)) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "recipe_versions", "id", "product_id", "version_no", "status",
+                "yield_quantity", "yield_uom_id", "created_at", "created_by", "notes");
+        validatePrimaryKey(meta, "recipe_versions", "id");
+        if (!indexExists(meta, "recipe_versions", "recipe_versions_product_version_uq")) {
+            execute(connection, "CREATE UNIQUE INDEX recipe_versions_product_version_uq "
+                    + "ON recipe_versions (product_id, version_no)");
+        }
+        if (!indexExists(connection.getMetaData(), "recipe_versions", "recipe_versions_product_status_inx")) {
+            execute(connection, "CREATE INDEX recipe_versions_product_status_inx "
+                    + "ON recipe_versions (product_id, status)");
+        }
+        meta = connection.getMetaData();
+        validateForeignKey(meta, "recipe_versions", "product_id", "products", "id");
+        validateForeignKey(meta, "recipe_versions", "yield_uom_id", "uom", "id");
+
+        if (!tableExists(meta, "recipe_components")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE recipe_components ("
+                        + "recipe_version_id VARCHAR NOT NULL, "
+                        + "line_no INTEGER NOT NULL, "
+                        + "component_product_id VARCHAR NOT NULL, "
+                        + "quantity NUMERIC(19,6) NOT NULL, "
+                        + "uom_id VARCHAR NOT NULL, "
+                        + "waste_allowance NUMERIC(9,6) NULL, "
+                        + "PRIMARY KEY (recipe_version_id, line_no), "
+                        + "CONSTRAINT recipe_components_recipe_fk FOREIGN KEY (recipe_version_id) "
+                        + "REFERENCES recipe_versions(id) ON DELETE CASCADE, "
+                        + "CONSTRAINT recipe_components_product_fk FOREIGN KEY (component_product_id) REFERENCES products(id), "
+                        + "CONSTRAINT recipe_components_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id))");
+            } else {
+                execute(connection, "CREATE TABLE recipe_components ("
+                        + "recipe_version_id VARCHAR(255) NOT NULL, "
+                        + "line_no INT NOT NULL, "
+                        + "component_product_id VARCHAR(255) NOT NULL, "
+                        + "quantity DECIMAL(19,6) NOT NULL, "
+                        + "uom_id VARCHAR(255) NOT NULL, "
+                        + "waste_allowance DECIMAL(9,6) NULL, "
+                        + "PRIMARY KEY (recipe_version_id, line_no), "
+                        + "KEY recipe_components_product_inx (component_product_id), "
+                        + "CONSTRAINT recipe_components_recipe_fk FOREIGN KEY (recipe_version_id) "
+                        + "REFERENCES recipe_versions(id) ON DELETE CASCADE, "
+                        + "CONSTRAINT recipe_components_product_fk FOREIGN KEY (component_product_id) REFERENCES products(id), "
+                        + "CONSTRAINT recipe_components_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id)) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "recipe_components", "recipe_version_id", "line_no",
+                "component_product_id", "quantity", "uom_id", "waste_allowance");
+        validatePrimaryKey(meta, "recipe_components", "recipe_version_id", "line_no");
+        if (!indexExists(meta, "recipe_components", "recipe_components_product_inx")) {
+            execute(connection, "CREATE INDEX recipe_components_product_inx "
+                    + "ON recipe_components (component_product_id)");
+        }
+        meta = connection.getMetaData();
+        validateForeignKey(meta, "recipe_components", "recipe_version_id", "recipe_versions", "id");
+        validateForeignKey(meta, "recipe_components", "component_product_id", "products", "id");
+        validateForeignKey(meta, "recipe_components", "uom_id", "uom", "id");
+
+        if (!tableExists(meta, "product_uom_conversions")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE product_uom_conversions ("
+                        + "product_id VARCHAR NOT NULL, "
+                        + "from_uom_id VARCHAR NOT NULL, "
+                        + "to_uom_id VARCHAR NOT NULL, "
+                        + "factor NUMERIC(19,9) NOT NULL, "
+                        + "active BOOLEAN NOT NULL DEFAULT TRUE, "
+                        + "PRIMARY KEY (product_id, from_uom_id, to_uom_id), "
+                        + "CONSTRAINT product_uom_product_fk FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE, "
+                        + "CONSTRAINT product_uom_from_fk FOREIGN KEY (from_uom_id) REFERENCES uom(id), "
+                        + "CONSTRAINT product_uom_to_fk FOREIGN KEY (to_uom_id) REFERENCES uom(id))");
+            } else {
+                execute(connection, "CREATE TABLE product_uom_conversions ("
+                        + "product_id VARCHAR(255) NOT NULL, "
+                        + "from_uom_id VARCHAR(255) NOT NULL, "
+                        + "to_uom_id VARCHAR(255) NOT NULL, "
+                        + "factor DECIMAL(19,9) NOT NULL, "
+                        + "active BIT(1) NOT NULL DEFAULT b'1', "
+                        + "PRIMARY KEY (product_id, from_uom_id, to_uom_id), "
+                        + "KEY product_uom_from_inx (from_uom_id), "
+                        + "KEY product_uom_to_inx (to_uom_id), "
+                        + "CONSTRAINT product_uom_product_fk FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE, "
+                        + "CONSTRAINT product_uom_from_fk FOREIGN KEY (from_uom_id) REFERENCES uom(id), "
+                        + "CONSTRAINT product_uom_to_fk FOREIGN KEY (to_uom_id) REFERENCES uom(id)) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "product_uom_conversions", "product_id", "from_uom_id",
+                "to_uom_id", "factor", "active");
+        validatePrimaryKey(meta, "product_uom_conversions", "product_id", "from_uom_id", "to_uom_id");
+        validateForeignKey(meta, "product_uom_conversions", "product_id", "products", "id");
+        validateForeignKey(meta, "product_uom_conversions", "from_uom_id", "uom", "id");
+        validateForeignKey(meta, "product_uom_conversions", "to_uom_id", "uom", "id");
+
+        if (!tableExists(meta, "inventory_transformations")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE inventory_transformations ("
+                        + "id VARCHAR NOT NULL PRIMARY KEY, "
+                        + "idempotency_key VARCHAR NOT NULL, "
+                        + "request_hash VARCHAR(64) NOT NULL, "
+                        + "type VARCHAR(24) NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "location_id VARCHAR NOT NULL, "
+                        + "recipe_version_id VARCHAR NULL, "
+                        + "reverses_id VARCHAR NULL, "
+                        + "expected_output NUMERIC(19,6) NULL, "
+                        + "actual_output NUMERIC(19,6) NULL, "
+                        + "created_at TIMESTAMP NOT NULL, "
+                        + "created_by VARCHAR NOT NULL, "
+                        + "notes VARCHAR(1000) NULL, "
+                        + "CONSTRAINT inventory_transform_idempotency_uq UNIQUE (idempotency_key), "
+                        + "CONSTRAINT inventory_transform_reverses_uq UNIQUE (reverses_id), "
+                        + "CONSTRAINT inventory_transform_location_fk FOREIGN KEY (location_id) REFERENCES locations(id), "
+                        + "CONSTRAINT inventory_transform_recipe_fk FOREIGN KEY (recipe_version_id) REFERENCES recipe_versions(id), "
+                        + "CONSTRAINT inventory_transform_reverse_fk FOREIGN KEY (reverses_id) REFERENCES inventory_transformations(id))");
+            } else {
+                execute(connection, "CREATE TABLE inventory_transformations ("
+                        + "id VARCHAR(255) NOT NULL PRIMARY KEY, "
+                        + "idempotency_key VARCHAR(255) NOT NULL, "
+                        + "request_hash VARCHAR(64) NOT NULL, "
+                        + "type VARCHAR(24) NOT NULL, "
+                        + "status VARCHAR(16) NOT NULL, "
+                        + "location_id VARCHAR(255) NOT NULL, "
+                        + "recipe_version_id VARCHAR(255) NULL, "
+                        + "reverses_id VARCHAR(255) NULL, "
+                        + "expected_output DECIMAL(19,6) NULL, "
+                        + "actual_output DECIMAL(19,6) NULL, "
+                        + "created_at DATETIME NOT NULL, "
+                        + "created_by VARCHAR(255) NOT NULL, "
+                        + "notes VARCHAR(1000) NULL, "
+                        + "UNIQUE KEY inventory_transform_idempotency_uq (idempotency_key), "
+                        + "UNIQUE KEY inventory_transform_reverses_uq (reverses_id), "
+                        + "KEY inventory_transform_location_date_inx (location_id, created_at), "
+                        + "KEY inventory_transform_recipe_inx (recipe_version_id), "
+                        + "CONSTRAINT inventory_transform_location_fk FOREIGN KEY (location_id) REFERENCES locations(id), "
+                        + "CONSTRAINT inventory_transform_recipe_fk FOREIGN KEY (recipe_version_id) REFERENCES recipe_versions(id), "
+                        + "CONSTRAINT inventory_transform_reverse_fk FOREIGN KEY (reverses_id) REFERENCES inventory_transformations(id)) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "inventory_transformations", "id", "idempotency_key", "request_hash",
+                "type", "status", "location_id", "recipe_version_id", "reverses_id",
+                "expected_output", "actual_output", "created_at", "created_by", "notes");
+        validatePrimaryKey(meta, "inventory_transformations", "id");
+        if (!indexExists(meta, "inventory_transformations", "inventory_transform_idempotency_uq")) {
+            execute(connection, "CREATE UNIQUE INDEX inventory_transform_idempotency_uq "
+                    + "ON inventory_transformations (idempotency_key)");
+        }
+        if (!indexExists(connection.getMetaData(), "inventory_transformations", "inventory_transform_reverses_uq")) {
+            execute(connection, "CREATE UNIQUE INDEX inventory_transform_reverses_uq "
+                    + "ON inventory_transformations (reverses_id)");
+        }
+        if (!indexExists(connection.getMetaData(), "inventory_transformations", "inventory_transform_location_date_inx")) {
+            execute(connection, "CREATE INDEX inventory_transform_location_date_inx "
+                    + "ON inventory_transformations (location_id, created_at)");
+        }
+        if (!indexExists(connection.getMetaData(), "inventory_transformations", "inventory_transform_recipe_inx")) {
+            execute(connection, "CREATE INDEX inventory_transform_recipe_inx "
+                    + "ON inventory_transformations (recipe_version_id)");
+        }
+        meta = connection.getMetaData();
+        validateForeignKey(meta, "inventory_transformations", "location_id", "locations", "id");
+        validateForeignKey(meta, "inventory_transformations", "recipe_version_id", "recipe_versions", "id");
+        validateForeignKey(meta, "inventory_transformations", "reverses_id", "inventory_transformations", "id");
+
+        if (!tableExists(meta, "inventory_transformation_lines")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE inventory_transformation_lines ("
+                        + "transformation_id VARCHAR NOT NULL, "
+                        + "line_no INTEGER NOT NULL, "
+                        + "direction VARCHAR(8) NOT NULL, "
+                        + "product_id VARCHAR NOT NULL, "
+                        + "attributesetinstance_id VARCHAR NULL, "
+                        + "quantity NUMERIC(19,6) NOT NULL, "
+                        + "uom_id VARCHAR NOT NULL, "
+                        + "base_quantity NUMERIC(19,6) NOT NULL, "
+                        + "unit_cost NUMERIC(19,6) NULL, "
+                        + "total_cost NUMERIC(19,6) NULL, "
+                        + "stockdiary_id VARCHAR NOT NULL, "
+                        + "PRIMARY KEY (transformation_id, line_no), "
+                        + "CONSTRAINT inventory_transform_line_diary_uq UNIQUE (stockdiary_id), "
+                        + "CONSTRAINT inventory_transform_line_header_fk FOREIGN KEY (transformation_id) "
+                        + "REFERENCES inventory_transformations(id), "
+                        + "CONSTRAINT inventory_transform_line_product_fk FOREIGN KEY (product_id) REFERENCES products(id), "
+                        + "CONSTRAINT inventory_transform_line_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id), "
+                        + "CONSTRAINT inventory_transform_line_diary_fk FOREIGN KEY (stockdiary_id) REFERENCES stockdiary(id))");
+            } else {
+                execute(connection, "CREATE TABLE inventory_transformation_lines ("
+                        + "transformation_id VARCHAR(255) NOT NULL, "
+                        + "line_no INT NOT NULL, "
+                        + "direction VARCHAR(8) NOT NULL, "
+                        + "product_id VARCHAR(255) NOT NULL, "
+                        + "attributesetinstance_id VARCHAR(255) NULL, "
+                        + "quantity DECIMAL(19,6) NOT NULL, "
+                        + "uom_id VARCHAR(255) NOT NULL, "
+                        + "base_quantity DECIMAL(19,6) NOT NULL, "
+                        + "unit_cost DECIMAL(19,6) NULL, "
+                        + "total_cost DECIMAL(19,6) NULL, "
+                        + "stockdiary_id VARCHAR(255) NOT NULL, "
+                        + "PRIMARY KEY (transformation_id, line_no), "
+                        + "UNIQUE KEY inventory_transform_line_diary_uq (stockdiary_id), "
+                        + "KEY inventory_transform_line_product_inx (product_id), "
+                        + "CONSTRAINT inventory_transform_line_header_fk FOREIGN KEY (transformation_id) "
+                        + "REFERENCES inventory_transformations(id), "
+                        + "CONSTRAINT inventory_transform_line_product_fk FOREIGN KEY (product_id) REFERENCES products(id), "
+                        + "CONSTRAINT inventory_transform_line_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id), "
+                        + "CONSTRAINT inventory_transform_line_diary_fk FOREIGN KEY (stockdiary_id) REFERENCES stockdiary(id)) "
+                        + "ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "inventory_transformation_lines", "transformation_id", "line_no",
+                "direction", "product_id", "attributesetinstance_id", "quantity", "uom_id",
+                "base_quantity", "unit_cost", "total_cost", "stockdiary_id");
+        validatePrimaryKey(meta, "inventory_transformation_lines", "transformation_id", "line_no");
+        if (!indexExists(meta, "inventory_transformation_lines", "inventory_transform_line_diary_uq")) {
+            execute(connection, "CREATE UNIQUE INDEX inventory_transform_line_diary_uq "
+                    + "ON inventory_transformation_lines (stockdiary_id)");
+        }
+        if (!indexExists(connection.getMetaData(), "inventory_transformation_lines", "inventory_transform_line_product_inx")) {
+            execute(connection, "CREATE INDEX inventory_transform_line_product_inx "
+                    + "ON inventory_transformation_lines (product_id)");
+        }
+        meta = connection.getMetaData();
+        validateForeignKey(meta, "inventory_transformation_lines", "transformation_id", "inventory_transformations", "id");
+        validateForeignKey(meta, "inventory_transformation_lines", "product_id", "products", "id");
+        validateForeignKey(meta, "inventory_transformation_lines", "uom_id", "uom", "id");
+        validateForeignKey(meta, "inventory_transformation_lines", "stockdiary_id", "stockdiary", "id");
+
+        validateRecipeUniqueIndexes(meta);
+        validateRecipeIntegrity(connection);
+    }
+
+    private static void validateRecipeUniqueIndexes(DatabaseMetaData meta) throws SQLException {
+        validateIndexDefinition(meta, "recipe_versions", "recipe_versions_product_version_uq",
+                true, "product_id", "version_no");
+        validateIndexDefinition(meta, "inventory_transformations", "inventory_transform_idempotency_uq",
+                true, "idempotency_key");
+        validateIndexDefinition(meta, "inventory_transformations", "inventory_transform_reverses_uq",
+                true, "reverses_id");
+        validateIndexDefinition(meta, "inventory_transformation_lines", "inventory_transform_line_diary_uq",
+                true, "stockdiary_id");
+    }
+
+    private static void validateRecipeIntegrity(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(
+                        "SELECT product_id, COUNT(*) FROM recipe_versions "
+                        + "WHERE UPPER(status) = 'ACTIVE' GROUP BY product_id HAVING COUNT(*) > 1")) {
+            if (rows.next()) {
+                throw new SQLException("Recipe migration blocked: product has more than one ACTIVE recipe: "
+                        + rows.getString(1));
+            }
+        }
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(
+                        "SELECT id FROM recipe_versions WHERE yield_quantity <= 0")) {
+            if (rows.next()) {
+                throw new SQLException("Recipe migration blocked: non-positive yield in recipe " + rows.getString(1));
+            }
+        }
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(
+                        "SELECT recipe_version_id, line_no FROM recipe_components WHERE quantity <= 0")) {
+            if (rows.next()) {
+                throw new SQLException("Recipe migration blocked: non-positive component quantity.");
+            }
+        }
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(
+                        "SELECT product_id, from_uom_id, to_uom_id FROM product_uom_conversions "
+                        + "WHERE factor <= 0 OR from_uom_id = to_uom_id")) {
+            if (rows.next()) {
+                throw new SQLException("UOM conversion migration blocked: invalid conversion for product "
+                        + rows.getString(1));
+            }
+        }
+    }
+
+    private static void validateColumns(DatabaseMetaData meta, String table, String... columns)
+            throws SQLException {
+        for (String column : columns) {
+            if (!columnExists(meta, table, column)) {
+                throw new SQLException("Table " + table + " is incomplete: missing " + column);
+            }
+        }
+    }
+
+    private static void validateForeignKey(DatabaseMetaData meta, String table,
+            String foreignColumn, String referencedTable, String referencedColumn)
+            throws SQLException {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+        try (ResultSet rows = meta.getImportedKeys(currentCatalog(meta), currentSchema(meta), actualTable)) {
+            while (rows.next()) {
+                if (foreignColumn.equalsIgnoreCase(rows.getString("FKCOLUMN_NAME"))
+                        && referencedTable.equalsIgnoreCase(rows.getString("PKTABLE_NAME"))
+                        && referencedColumn.equalsIgnoreCase(rows.getString("PKCOLUMN_NAME"))) {
+                    return;
+                }
+            }
+        }
+        throw new SQLException("Missing foreign key " + table + "." + foreignColumn
+                + " -> " + referencedTable + "." + referencedColumn);
     }
 
     private static void validateLegacyProductSuppliers(Connection connection) throws SQLException {
@@ -479,24 +994,90 @@ public final class DatabaseUpgradeService {
 
     private static void validateCompositePrimaryKey(DatabaseMetaData meta, String table,
             String firstColumn, String secondColumn) throws SQLException {
+        validatePrimaryKey(meta, table, firstColumn, secondColumn);
+    }
+
+    private static void validatePrimaryKey(DatabaseMetaData meta, String table,
+            String... expectedColumns) throws SQLException {
         String actualTable = resolveTable(meta, table);
         if (actualTable == null) {
             throw new SQLException("Required table not found in current schema: " + table);
         }
-        Set<String> columns = new HashSet<>();
+        java.util.TreeMap<Short, String> columns = new java.util.TreeMap<>();
         try (ResultSet rows = meta.getPrimaryKeys(currentCatalog(meta), currentSchema(meta), actualTable)) {
             while (rows.next()) {
                 String column = rows.getString("COLUMN_NAME");
+                short sequence = rows.getShort("KEY_SEQ");
                 if (column != null) {
-                    columns.add(column.toLowerCase(Locale.ROOT));
+                    columns.put(sequence, column);
                 }
             }
         }
-        if (columns.size() != 2
-                || !columns.contains(firstColumn.toLowerCase(Locale.ROOT))
-                || !columns.contains(secondColumn.toLowerCase(Locale.ROOT))) {
-            throw new SQLException("Product suppliers table has an invalid primary key.");
+        if (columns.size() != expectedColumns.length) {
+            throw new SQLException("Table " + table + " has an invalid primary key.");
         }
+        int index = 0;
+        for (String column : columns.values()) {
+            if (!expectedColumns[index++].equalsIgnoreCase(column)) {
+                throw new SQLException("Table " + table + " has an invalid primary key.");
+            }
+        }
+    }
+
+    private static void ensureCascadeForeignKey(Connection connection, String table,
+            String foreignColumn, String referencedTable, String referencedColumn,
+            String constraintName) throws SQLException {
+        DatabaseMetaData meta = connection.getMetaData();
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+
+        boolean anyForeignKeyOnColumn = false;
+        try (ResultSet rows = meta.getImportedKeys(currentCatalog(meta), currentSchema(meta), actualTable)) {
+            while (rows.next()) {
+                String fkColumn = rows.getString("FKCOLUMN_NAME");
+                if (!foreignColumn.equalsIgnoreCase(fkColumn)) {
+                    continue;
+                }
+                anyForeignKeyOnColumn = true;
+                String pkTable = rows.getString("PKTABLE_NAME");
+                String pkColumn = rows.getString("PKCOLUMN_NAME");
+                if (referencedTable.equalsIgnoreCase(pkTable)
+                        && referencedColumn.equalsIgnoreCase(pkColumn)) {
+                    if (rows.getShort("DELETE_RULE") != DatabaseMetaData.importedKeyCascade) {
+                        throw new SQLException("Foreign key " + table + "." + foreignColumn
+                                + " exists but must use ON DELETE CASCADE.");
+                    }
+                    return;
+                }
+                throw new SQLException("Foreign key " + table + "." + foreignColumn
+                        + " points to an unexpected target.");
+            }
+        }
+
+        if (anyForeignKeyOnColumn) {
+            throw new SQLException("Foreign key " + table + "." + foreignColumn
+                    + " is incompatible with expected schema.");
+        }
+
+        String orphanSql = "SELECT c." + foreignColumn + " FROM " + table + " c "
+                + "LEFT JOIN " + referencedTable + " p ON p." + referencedColumn
+                + " = c." + foreignColumn + " WHERE c." + foreignColumn
+                + " IS NOT NULL AND p." + referencedColumn + " IS NULL";
+        try (Statement statement = connection.createStatement();
+                ResultSet rows = statement.executeQuery(orphanSql)) {
+            if (rows.next()) {
+                throw new SQLException("Cannot add foreign key " + table + "." + foreignColumn
+                        + ": orphan reference " + rows.getString(1));
+            }
+        }
+
+        execute(connection, "ALTER TABLE " + table + " ADD CONSTRAINT " + constraintName
+                + " FOREIGN KEY (" + foreignColumn + ") REFERENCES " + referencedTable
+                + " (" + referencedColumn + ") ON DELETE CASCADE");
+        validateCascadeForeignKey(connection.getMetaData(), table, foreignColumn,
+                referencedTable, referencedColumn);
     }
 
     private static void validateCascadeForeignKey(DatabaseMetaData meta, String table,
@@ -548,6 +1129,119 @@ public final class DatabaseUpgradeService {
         }
     }
 
+    private static void ensureRecipeUiAccess(Connection connection) throws SQLException {
+        patchMenuRootForRecipes(connection);
+        patchStandardRoleForRecipes(connection, "0", "Administrator role");
+        patchStandardRoleForRecipes(connection, "1", "Manager role");
+    }
+
+    private static void patchMenuRootForRecipes(Connection connection) throws SQLException {
+        final String recipeClass = "com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel";
+        final String productionClass = "com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel";
+        final String historyClass = "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel";
+        final String bundleLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/bundle.png\", \"Menu.Bundle\", \"com.mx.kylgis.pos.inventory.BundlePanel\");";
+        final String recipeLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/bundle.png\", \"Menu.Recipes\", \""
+                + recipeClass + "\");";
+        final String productionLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/stockmaint.png\", \"Menu.RecipeProduction\", \""
+                + productionClass + "\");";
+        final String historyLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/reports.png\", \"Menu.TransformationHistory\", \""
+                + historyClass + "\");";
+        byte[] content;
+        try (PreparedStatement select = connection.prepareStatement(
+                "SELECT CONTENT FROM resources WHERE NAME = ? FOR UPDATE")) {
+            select.setString(1, "Menu.Root");
+            try (ResultSet row = select.executeQuery()) {
+                if (!row.next()) {
+                    throw new SQLException("Menu.Root resource is missing; recipe entries cannot be installed safely.");
+                }
+                content = row.getBytes(1);
+            }
+        }
+        if (content == null) {
+            throw new SQLException("Menu.Root content is null; recipe entries cannot be installed safely.");
+        }
+        String text = new String(content, StandardCharsets.UTF_8);
+        String newline = text.contains("\r\n") ? "\r\n" : "\n";
+        String patched = text;
+        if (!patched.contains(recipeClass) && patched.contains(bundleLine)) {
+            patched = patched.replace(bundleLine, bundleLine + newline + recipeLine);
+        }
+        if (!patched.contains(productionClass) && patched.contains(recipeLine)) {
+            patched = patched.replace(recipeLine, recipeLine + newline + productionLine);
+        }
+        if (!patched.contains(historyClass) && patched.contains(productionLine)) {
+            patched = patched.replace(productionLine, productionLine + newline + historyLine);
+        }
+        if (!patched.contains(recipeClass) || !patched.contains(productionClass)
+                || !patched.contains(historyClass)) {
+            throw new SQLException("Menu.Root could not be patched with all recipe/transform entries; "
+                    + "review the customized menu before completing the 1.3 upgrade.");
+        }
+        if (patched.equals(text)) {
+            return;
+        }
+        try (PreparedStatement update = connection.prepareStatement(
+                "UPDATE resources SET CONTENT = ? WHERE NAME = ?")) {
+            update.setBytes(1, patched.getBytes(StandardCharsets.UTF_8));
+            update.setString(2, "Menu.Root");
+            if (update.executeUpdate() != 1) {
+                throw new SQLException("Menu.Root recipe entries were not updated exactly once.");
+            }
+        }
+    }
+
+    private static void patchStandardRoleForRecipes(Connection connection, String roleId,
+            String expectedRoleName) throws SQLException {
+        final String bundlePermission = "<class name=\"com.mx.kylgis.pos.inventory.BundlePanel\"/>";
+        final String recipePermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel\"/>";
+        final String productionPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel\"/>";
+        final String historyPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel\"/>";
+        String roleName;
+        byte[] permissions;
+        try (PreparedStatement select = connection.prepareStatement(
+                "SELECT NAME, PERMISSIONS FROM roles WHERE ID = ? FOR UPDATE")) {
+            select.setString(1, roleId);
+            try (ResultSet row = select.executeQuery()) {
+                if (!row.next()) {
+                    return;
+                }
+                roleName = row.getString(1);
+                permissions = row.getBytes(2);
+            }
+        }
+        if (!expectedRoleName.equals(roleName) || permissions == null) {
+            return;
+        }
+        String text = new String(permissions, StandardCharsets.UTF_8);
+        String newline = text.contains("\r\n") ? "\r\n" : "\n";
+        String patched = text;
+        if (!patched.contains(recipePermission) && patched.contains(bundlePermission)) {
+            patched = patched.replace(bundlePermission,
+                    bundlePermission + newline + "    " + recipePermission);
+        }
+        if (!patched.contains(productionPermission) && patched.contains(recipePermission)) {
+            patched = patched.replace(recipePermission,
+                    recipePermission + newline + "    " + productionPermission);
+        }
+        if (!patched.contains(historyPermission) && patched.contains(productionPermission)) {
+            patched = patched.replace(productionPermission,
+                    productionPermission + newline + "    " + historyPermission);
+        }
+        if (patched.equals(text)) {
+            return;
+        }
+        try (PreparedStatement update = connection.prepareStatement(
+                "UPDATE roles SET PERMISSIONS = ? WHERE ID = ? AND NAME = ?")) {
+            update.setBytes(1, patched.getBytes(StandardCharsets.UTF_8));
+            update.setString(2, roleId);
+            update.setString(3, expectedRoleName);
+            if (update.executeUpdate() != 1) {
+                throw new SQLException("Standard role recipe permissions were not updated exactly once: "
+                        + expectedRoleName);
+            }
+        }
+    }
+
     private static void updateApplicationVersion(Connection connection, AppProperties properties,
             String version) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
@@ -595,6 +1289,44 @@ public final class DatabaseUpgradeService {
             }
         }
         throw new SQLException("Required column not found: " + table + "." + column);
+    }
+
+    private static void validateIndexDefinition(DatabaseMetaData meta, String table,
+            String index, boolean unique, String... expectedColumns) throws SQLException {
+        String actualTable = resolveTable(meta, table);
+        if (actualTable == null) {
+            throw new SQLException("Required table not found in current schema: " + table);
+        }
+        java.util.TreeMap<Short, String> columns = new java.util.TreeMap<>();
+        Boolean nonUnique = null;
+        try (ResultSet rows = meta.getIndexInfo(currentCatalog(meta), currentSchema(meta),
+                actualTable, false, false)) {
+            while (rows.next()) {
+                String name = rows.getString("INDEX_NAME");
+                if (name == null || !index.equalsIgnoreCase(name)) {
+                    continue;
+                }
+                boolean rowNonUnique = rows.getBoolean("NON_UNIQUE");
+                if (nonUnique != null && nonUnique.booleanValue() != rowNonUnique) {
+                    throw new SQLException("Index " + index + " has inconsistent uniqueness metadata.");
+                }
+                nonUnique = rowNonUnique;
+                String column = rows.getString("COLUMN_NAME");
+                if (column != null) {
+                    columns.put(rows.getShort("ORDINAL_POSITION"), column);
+                }
+            }
+        }
+        if (nonUnique == null || (unique && nonUnique.booleanValue())
+                || columns.size() != expectedColumns.length) {
+            throw new SQLException("Index " + index + " has an invalid definition on table " + table + ".");
+        }
+        int position = 0;
+        for (String column : columns.values()) {
+            if (!expectedColumns[position++].equalsIgnoreCase(column)) {
+                throw new SQLException("Index " + index + " has an invalid definition on table " + table + ".");
+            }
+        }
     }
 
     private static boolean indexExists(DatabaseMetaData meta, String table, String index)

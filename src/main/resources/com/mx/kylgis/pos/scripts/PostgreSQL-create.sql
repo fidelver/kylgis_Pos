@@ -805,6 +805,94 @@ CREATE TABLE voucher_reactivation_audit (
 CREATE INDEX voucher_reactivation_new_inx ON voucher_reactivation_audit(new_receipt);
 CREATE INDEX voucher_reactivation_authorized_inx ON voucher_reactivation_audit(authorized_by, authorized_at);
 
+/* KylGis 1.3: versioned recipes and auditable inventory transformations. */
+CREATE TABLE recipe_versions (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    product_id VARCHAR NOT NULL,
+    version_no INTEGER NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    yield_quantity NUMERIC(19,6) NOT NULL,
+    yield_uom_id VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL,
+    notes VARCHAR(1000) DEFAULT NULL,
+    CONSTRAINT recipe_versions_product_version_uq UNIQUE (product_id, version_no),
+    CONSTRAINT recipe_versions_product_fk FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT recipe_versions_uom_fk FOREIGN KEY (yield_uom_id) REFERENCES uom(id)
+);
+CREATE INDEX recipe_versions_product_status_inx ON recipe_versions(product_id, status);
+
+CREATE TABLE recipe_components (
+    recipe_version_id VARCHAR NOT NULL,
+    line_no INTEGER NOT NULL,
+    component_product_id VARCHAR NOT NULL,
+    quantity NUMERIC(19,6) NOT NULL,
+    uom_id VARCHAR NOT NULL,
+    waste_allowance NUMERIC(9,6) DEFAULT NULL,
+    PRIMARY KEY (recipe_version_id, line_no),
+    CONSTRAINT recipe_components_recipe_fk FOREIGN KEY (recipe_version_id)
+        REFERENCES recipe_versions(id) ON DELETE CASCADE,
+    CONSTRAINT recipe_components_product_fk FOREIGN KEY (component_product_id) REFERENCES products(id),
+    CONSTRAINT recipe_components_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id)
+);
+CREATE INDEX recipe_components_product_inx ON recipe_components(component_product_id);
+
+CREATE TABLE product_uom_conversions (
+    product_id VARCHAR NOT NULL,
+    from_uom_id VARCHAR NOT NULL,
+    to_uom_id VARCHAR NOT NULL,
+    factor NUMERIC(19,9) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (product_id, from_uom_id, to_uom_id),
+    CONSTRAINT product_uom_product_fk FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT product_uom_from_fk FOREIGN KEY (from_uom_id) REFERENCES uom(id),
+    CONSTRAINT product_uom_to_fk FOREIGN KEY (to_uom_id) REFERENCES uom(id)
+);
+
+CREATE TABLE inventory_transformations (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    idempotency_key VARCHAR NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
+    type VARCHAR(24) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    location_id VARCHAR NOT NULL,
+    recipe_version_id VARCHAR DEFAULT NULL,
+    reverses_id VARCHAR DEFAULT NULL,
+    expected_output NUMERIC(19,6) DEFAULT NULL,
+    actual_output NUMERIC(19,6) DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL,
+    notes VARCHAR(1000) DEFAULT NULL,
+    CONSTRAINT inventory_transform_idempotency_uq UNIQUE (idempotency_key),
+    CONSTRAINT inventory_transform_reverses_uq UNIQUE (reverses_id),
+    CONSTRAINT inventory_transform_location_fk FOREIGN KEY (location_id) REFERENCES locations(id),
+    CONSTRAINT inventory_transform_recipe_fk FOREIGN KEY (recipe_version_id) REFERENCES recipe_versions(id),
+    CONSTRAINT inventory_transform_reverse_fk FOREIGN KEY (reverses_id) REFERENCES inventory_transformations(id)
+);
+CREATE INDEX inventory_transform_location_date_inx ON inventory_transformations(location_id, created_at);
+CREATE INDEX inventory_transform_recipe_inx ON inventory_transformations(recipe_version_id);
+
+CREATE TABLE inventory_transformation_lines (
+    transformation_id VARCHAR NOT NULL,
+    line_no INTEGER NOT NULL,
+    direction VARCHAR(8) NOT NULL,
+    product_id VARCHAR NOT NULL,
+    attributesetinstance_id VARCHAR DEFAULT NULL,
+    quantity NUMERIC(19,6) NOT NULL,
+    uom_id VARCHAR NOT NULL,
+    base_quantity NUMERIC(19,6) NOT NULL,
+    unit_cost NUMERIC(19,6) DEFAULT NULL,
+    total_cost NUMERIC(19,6) DEFAULT NULL,
+    stockdiary_id VARCHAR NOT NULL,
+    PRIMARY KEY (transformation_id, line_no),
+    CONSTRAINT inventory_transform_line_diary_uq UNIQUE (stockdiary_id),
+    CONSTRAINT inventory_transform_line_header_fk FOREIGN KEY (transformation_id) REFERENCES inventory_transformations(id),
+    CONSTRAINT inventory_transform_line_product_fk FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT inventory_transform_line_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id),
+    CONSTRAINT inventory_transform_line_diary_fk FOREIGN KEY (stockdiary_id) REFERENCES stockdiary(id)
+);
+CREATE INDEX inventory_transform_line_product_inx ON inventory_transformation_lines(product_id);
+
 CREATE SEQUENCE ticketsnum START WITH 1;
 CREATE SEQUENCE ticketsnum_refund START WITH 1;
 CREATE SEQUENCE ticketsnum_payment START WITH 1;

@@ -507,6 +507,12 @@ public class JRootApp extends JPanel implements AppView {
                         bsentence.putParameter("APP_VERSION", Matcher.quoteReplacement(ApplicationIdentity.getVersion()));
 
                         java.util.List l = bsentence.list();
+                        if (sDBVersion == null) {
+                            DatabaseUpgradeService.validateFreshSchema(
+                                    session, m_props, targetDBVersion);
+                            sDBVersion = targetDBVersion;
+                        }
+
 
                         if (l.size() > 0) { 
                             JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING
