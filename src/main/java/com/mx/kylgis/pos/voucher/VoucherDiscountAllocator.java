@@ -74,19 +74,23 @@ public final class VoucherDiscountAllocator {
             if ("true".equalsIgnoreCase(line.getProperty(PROP_DISCOUNT))) {
                 continue;
             }
-            TicketLineInfo copy = new TicketLineInfo(line);
             double gross = calculateGross(line, taxesLogic);
-            if (RoundUtils.compare(gross, 0.0) > 0) {
-                String key = taxBucketKey(line);
-                double positiveGross = positiveGrossByGroup.getOrDefault(key, 0.0);
-                double discountGross = discountByGroup.getOrDefault(key, 0.0);
-                if (RoundUtils.compare(positiveGross, 0.0) > 0
-                        && RoundUtils.compare(discountGross, 0.0) > 0) {
-                    double factor = (positiveGross - Math.min(discountGross, positiveGross))
-                            / positiveGross;
-                    copy.setPrice(line.getPrice() * factor);
-                    copy.setProperty("voucher.refundAdjusted", "true");
-                }
+            // Refund UI reverses the selected line quantity. Offering an existing
+            // zero/negative adjustment as a refundable item would turn discounts
+            // or promotions into a positive charge on the refund ticket.
+            if (RoundUtils.compare(gross, 0.0) <= 0) {
+                continue;
+            }
+            TicketLineInfo copy = new TicketLineInfo(line);
+            String key = taxBucketKey(line);
+            double positiveGross = positiveGrossByGroup.getOrDefault(key, 0.0);
+            double discountGross = discountByGroup.getOrDefault(key, 0.0);
+            if (RoundUtils.compare(positiveGross, 0.0) > 0
+                    && RoundUtils.compare(discountGross, 0.0) > 0) {
+                double factor = (positiveGross - Math.min(discountGross, positiveGross))
+                        / positiveGross;
+                copy.setPrice(line.getPrice() * factor);
+                copy.setProperty("voucher.refundAdjusted", "true");
             }
             result.add(copy);
         }
