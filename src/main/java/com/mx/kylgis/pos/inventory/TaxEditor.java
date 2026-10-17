@@ -30,6 +30,7 @@ import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
+import com.mx.kylgis.pos.ticket.TaxInfo;
 import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -55,7 +56,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
     private ComboBoxValModel taxcustcatmodel;   
     
     private SentenceList taxparentsent;
-    private ComboBoxValModel taxparentmodel;    
+    private ComboBoxValModel taxparentmodel;
+    private final List<TaxInfo> taxparentlist = new ArrayList<>();
     
     /** Creates new form taxEditor
      * @param app
@@ -73,7 +75,9 @@ public class TaxEditor extends JPanel implements EditorRecord {
         taxcustcatmodel = new ComboBoxValModel();    
         
         taxparentsent = dlSales.getTaxList();
-        taxparentmodel = new ComboBoxValModel();    
+        taxparentmodel = new ComboBoxValModel();
+
+        configureFiscalHelp();
 
         m_jName.getDocument().addDocumentListener(dirty);
         m_jTaxCategory.addActionListener(dirty);
@@ -114,10 +118,17 @@ public class TaxEditor extends JPanel implements EditorRecord {
         
         try {
             a = taxparentsent.list();
+            taxparentlist.clear();
+            for (Object item : a) {
+                if (item instanceof TaxInfo) {
+                    taxparentlist.add((TaxInfo) item);
+                }
+            }
         } catch (BasicException eD) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.cannotloadlists"), eD);
             msg.show(this);
             a = new ArrayList();
+            taxparentlist.clear();
         }
         
         a.add(0, null); // The null item
@@ -230,25 +241,97 @@ public class TaxEditor extends JPanel implements EditorRecord {
      */
     @Override
     public Object createValue() throws BasicException {
+
+        String name = m_jName.getText() == null ? "" : m_jName.getText().trim();
+        Object category = taxcatmodel.getSelectedKey();
+        Object parent = taxparentmodel.getSelectedKey();
+        Object parsedRate = Formats.PERCENT.parseValue(m_jRate.getText());
+
+        if (name.isEmpty()) {
+            throw new BasicException(AppLocal.getIntString("message.tax.name.required"));
+        }
+        if (category == null) {
+            throw new BasicException(AppLocal.getIntString("message.tax.category.required"));
+        }
+        if (!(parsedRate instanceof Number)) {
+            throw new BasicException(AppLocal.getIntString("message.tax.rate.required"));
+        }
+
+        double rate = ((Number) parsedRate).doubleValue();
+        if (Double.isNaN(rate) || Double.isInfinite(rate)) {
+            throw new BasicException(AppLocal.getIntString("message.tax.rate.invalid"));
+        }
+
+        String parentId = parent == null ? null : parent.toString();
+        if (createsParentCycle(parentId)) {
+            throw new BasicException(AppLocal.getIntString("message.tax.parent.cycle"));
+        }
         
         Object[] tax = new Object[8];
 
         tax[0] = m_oId;
-        tax[1] = m_jName.getText();
-        tax[2] = taxcatmodel.getSelectedKey();
+        tax[1] = name;
+        tax[2] = category;
         tax[3] = taxcustcatmodel.getSelectedKey(); 
-        tax[4] = taxparentmodel.getSelectedKey(); 
-        tax[5] = Formats.PERCENT.parseValue(m_jRate.getText());
+        tax[4] = parent; 
+        tax[5] = Double.valueOf(rate);
         tax[6] = Boolean.valueOf(jCascade.isSelected());
         tax[7] = Formats.INT.parseValue(jOrder.getText());
         
         return tax;
     }
 
-    /**
-     *
-     * @return
-     */
+    /** Configures localized fiscal guidance for the generic tax fields. */
+    private void configureFiscalHelp() {
+        m_jRate.setToolTipText(AppLocal.getIntString("tooltip.tax.rate.mx"));
+        m_jRate.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.rate.mx"));
+        m_jTaxCategory.setToolTipText(AppLocal.getIntString("tooltip.tax.category.mx"));
+        m_jTaxCategory.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.category.mx"));
+        m_jCustTaxCategory.setToolTipText(AppLocal.getIntString("tooltip.tax.customer.category"));
+        m_jCustTaxCategory.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.customer.category"));
+        m_jTaxParent.setToolTipText(AppLocal.getIntString("tooltip.tax.parent"));
+        m_jTaxParent.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.parent"));
+        jCascade.setToolTipText(AppLocal.getIntString("tooltip.tax.cascade.mx"));
+        jCascade.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.cascade.mx"));
+    }
+
+    private boolean createsParentCycle(String parentId) {
+        if (parentId == null || m_oId == null) {
+            return false;
+        }
+
+        String ownId = m_oId.toString();
+        String current = parentId;
+        int remaining = taxparentlist.size() + 1;
+
+        while (current != null && remaining-- > 0) {
+            if (ownId.equals(current)) {
+                return true;
+            }
+
+            TaxInfo parentTax = null;
+            for (TaxInfo candidate : taxparentlist) {
+                if (current.equals(candidate.getId())) {
+                    parentTax = candidate;
+                    break;
+                }
+            }
+
+            if (parentTax == null) {
+                return false;
+            }
+            current = parentTax.getParentID();
+        }
+
+        // An already-corrupt parent graph must not accept another edit that keeps a cycle.
+        return current != null;
+    }
+
     @Override
     public Component getComponent() {
         return this;

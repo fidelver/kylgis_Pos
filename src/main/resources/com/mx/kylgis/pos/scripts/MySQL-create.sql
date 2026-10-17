@@ -1084,16 +1084,18 @@ INSERT INTO resources(id, name, restype, content) VALUES('74', 'script.Totaldisc
 INSERT INTO categories(id, name) VALUES ('000', 'Category Standard');
 
 -- ADD TAXCATEGORIES
+-- México: IVA general 16%; 0% y Exento no son equivalentes fiscales. IVA fronterizo 8% no es predeterminado.
+-- IEPS requiere reglas por producto y factor; no se precarga automáticamente.
 /* 002 added 31/01/2017 00:00:00. */
-INSERT INTO taxcategories(id, name) VALUES ('000', 'Tax Exempt');
-INSERT INTO taxcategories(id, name) VALUES ('001', 'Tax Standard');
-INSERT INTO taxcategories(id, name) VALUES ('002', 'Tax Other');
+INSERT INTO taxcategories(id, name) VALUES ('000', 'IVA Exento');
+INSERT INTO taxcategories(id, name) VALUES ('001', 'IVA 16%');
+INSERT INTO taxcategories(id, name) VALUES ('002', 'IVA 0%');
 
 -- ADD TAXES
 /* 002 added 31/01/2017 00:00:00. */
-INSERT INTO taxes(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'Tax Exempt', '000', NULL, NULL, 0, FALSE, NULL);
-INSERT INTO taxes(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'Tax Standard', '001', NULL, NULL, 0.20, FALSE, NULL);
-INSERT INTO taxes(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('002', 'Tax Other', '002', NULL, NULL, 0, FALSE, NULL);
+INSERT INTO taxes(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'IVA Exento', '000', NULL, NULL, 0, FALSE, NULL);
+INSERT INTO taxes(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'IVA 16%', '001', NULL, NULL, 0.16, FALSE, NULL);
+INSERT INTO taxes(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('002', 'IVA 0%', '002', NULL, NULL, 0, FALSE, NULL);
 
 -- ADD PRODUCTS
 INSERT INTO products(id, reference, code, name, category, taxcat, isservice, display, printto) 

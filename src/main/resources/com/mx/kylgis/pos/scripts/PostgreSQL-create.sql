@@ -226,8 +226,10 @@ CREATE TABLE taxcategories (
 	PRIMARY KEY  ( id )
 );
 CREATE UNIQUE INDEX TAXCAT_NAME_INX ON taxcategories(name);
-INSERT INTO taxcategories(id, name) VALUES ('000', 'Tax Exempt');
-INSERT INTO taxcategories(id, name) VALUES ('001', 'Tax Standard');
+-- México: IVA general 16%; IVA 0% y Exento son tratamientos diferentes. IEPS y estímulos especiales requieren validación específica.
+INSERT INTO taxcategories(id, name) VALUES ('000', 'IVA Exento');
+INSERT INTO taxcategories(id, name) VALUES ('001', 'IVA 16%');
+INSERT INTO taxcategories(id, name) VALUES ('002', 'IVA 0%');
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE taxes (
@@ -245,8 +247,9 @@ CREATE TABLE taxes (
     CONSTRAINT TAXES_TAXES_FK FOREIGN KEY (parentid) REFERENCES taxes(id)
 );
 CREATE UNIQUE INDEX TAXES_NAME_INX ON taxes(name);
-INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'Tax Exempt', '000', NULL, NULL, 0, false, NULL);
-INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'Tax Standard', '001', NULL, NULL, 0.10, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'IVA Exento', '000', NULL, NULL, 0, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'IVA 16%', '001', NULL, NULL, 0.16, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('002', 'IVA 0%', '002', NULL, NULL, 0, false, NULL);
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE attribute (
