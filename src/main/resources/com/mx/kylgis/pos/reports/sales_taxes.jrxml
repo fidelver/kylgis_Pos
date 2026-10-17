@@ -12,8 +12,13 @@
 	<field name="TAXID" class="java.lang.String"/>
 	<field name="TAXNAME" class="java.lang.String"/>
 	<field name="TOTALTAXES" class="java.lang.Double"/>
+	<field name="TOTALBASE" class="java.lang.Double"/>
 	<variable name="BIGTOTALTAXES" class="java.lang.Double" calculation="Sum">
 		<variableExpression><![CDATA[$F{TOTALTAXES}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
+	</variable>
+	<variable name="BIGTOTALBASE" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{TOTALBASE}]]></variableExpression>
 		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
 	</variable>
 	<background>
@@ -141,6 +146,11 @@
 				<textFieldExpression><![CDATA[$R{label.taxname}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
+				<reportElement x="300" y="2" width="125" height="15" uuid="f75ab540-1bf8-41dc-8d41-9d75b7e2bd21"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="SansSerif" size="11" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$R{label.base}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-14" mode="Opaque" x="435" y="2" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="0eefca46-c510-463b-a8a5-6dfaad9eb2f4"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -177,6 +187,11 @@
 					<paragraph lineSpacing="Single"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{TAXNAME}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement x="300" y="0" width="125" height="13" uuid="9f75216a-75fc-430b-8d86-76f33a2928e0"/>
+				<textElement textAlignment="Right"><font fontName="SansSerif" size="10"/></textElement>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{TOTALBASE})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-3" mode="Opaque" x="435" y="0" width="100" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="50f0a92a-0809-4f33-8e04-5e0c6e5a247f"/>
@@ -258,6 +273,11 @@
 	</pageFooter>
 	<summary>
 		<band height="30">
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement x="300" y="7" width="125" height="15" uuid="dce50931-ce10-40d4-9b34-066a67d43f4e"/>
+				<textElement textAlignment="Right"><font fontName="SansSerif" size="11" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($V{BIGTOTALBASE})]]></textFieldExpression>
+			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField-5" mode="Opaque" x="435" y="7" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="2b1153d6-c11c-4f21-a007-6c45341ba03b"/>
 				<box>

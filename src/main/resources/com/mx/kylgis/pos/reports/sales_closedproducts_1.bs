@@ -33,9 +33,9 @@ report.setSentence("SELECT categories.NAME AS catname, " +
        "taxes.RATE * 100 AS taxrate, " +
        "sum((ticketlines.PRICE * taxes.rate) * units) AS totaltax, " +
 //       "sum((ticketlines.units * ticketlines.PRICE) + (ticketlines.PRICE * taxes.rate)) AS totaltotal, " +
-       "sum((ticketlines.units * ticketlines.PRICE) + ((ticketlines.PRICE * taxes.rate) * units)) AS totaltotal, " +
-       "closedcash.DATESTART AS DATESTART, " +
-       "closedcash.DATEEND AS DATEEND " +
+       "sum((ticketlines.units * ticketlines.PRICE) + ((ticketlines.PRICE * taxes.rate) * units)) AS totaltotal " +
+
+
   "FROM (((((ticketlines ticketlines " +
             "INNER JOIN taxes taxes ON (ticketlines.TAXID = taxes.ID)) " +
            "INNER JOIN tickets tickets ON (ticketlines.TICKET = tickets.ID)) " +
@@ -44,7 +44,7 @@ report.setSentence("SELECT categories.NAME AS catname, " +
         "INNER JOIN products products ON (ticketlines.PRODUCT = products.ID)) " +
        "INNER JOIN categories categories ON (products.CATEGORY = categories.ID) " +
     "WHERE ?(QBF_FILTER) " +
-"GROUP BY products.REFERENCE");
+"GROUP BY categories.NAME, products.REFERENCE, products.NAME, products.PRICESELL, taxes.RATE");
 
 report.addParameter("closedcash.DATEEND");
 report.addParameter("closedcash.DATEEND");
@@ -55,10 +55,12 @@ paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 report.addQBFFilter(paramdates);
 
 report.addParameter("products.NAME");
+report.addParameter("products.PRICEBUY");
+report.addParameter("products.PRICESELL");
 report.addParameter("products.CATEGORY");
 report.addParameter("products.CODE");
-report.addParameter("stockcurrent.UNITS");
-report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter1());
+
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter());
 
 report.addField("catname", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("prodref", com.mx.kylgis.pos.data.loader.Datas.STRING);

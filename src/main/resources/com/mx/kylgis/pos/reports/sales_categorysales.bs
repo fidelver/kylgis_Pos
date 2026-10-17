@@ -25,22 +25,22 @@ report.setReport("/com/mx/kylgis/pos/reports/sales_categorysales");
 report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 
 report.setSentence("SELECT " +
-        "R.datenew, " +
-        "C.id, " +
-        "C.name AS CATNAME, " +
+        "MIN(R.datenew) AS datenew, " +
+        "COALESCE(C.id, CASE WHEN TL.price < 0 THEN '__DISCOUNT__' ELSE '__NOPRODUCT__' END) AS ID, " +
+        "CASE WHEN C.id IS NULL AND TL.price < 0 THEN '__DISCOUNT__' ELSE C.name END AS CATNAME, " +
         "SUM(TL.price * TL.units) AS BASE, " +
-        "SUM((TL.price * TL.units) * TX.rate) AS AMOUNT," +
-        "SUM((TL.PRICE+(TL.PRICE*TX.RATE))*TL.units) AS TOTAL, " +
-        "SUM(TL.units) AS UNITS " +
-    "FROM (((((products P " +
-          "CROSS JOIN categories C ON (P.category = C.id)) " +
-         "INNER JOIN ticketlines TL ON (TL.product = P.id)) " +
-        "INNER JOIN taxes TX ON (TL.taxid = TX.id)) " +
-       "INNER JOIN tickets T ON (TL.ticket = T.id)) " +
-      "INNER JOIN receipts R ON (T.id = R.id)) " +
-     "INNER JOIN taxlines TXL ON (TXL.receipt = R.id) AND (TXL.taxid = TX.id) " +
+        "SUM((TL.price * TL.units) * TX.rate) AS AMOUNT, " +
+        "SUM((TL.price + (TL.price * TX.rate)) * TL.units) AS TOTAL, " +
+        "SUM(CASE WHEN TL.product IS NULL AND TL.price < 0 THEN 0 ELSE TL.units END) AS UNITS " +
+    "FROM ticketlines TL " +
+        "INNER JOIN taxes TX ON TL.taxid = TX.id " +
+        "INNER JOIN tickets T ON TL.ticket = T.id " +
+        "INNER JOIN receipts R ON T.id = R.id " +
+        "LEFT JOIN products P ON TL.product = P.id " +
+        "LEFT JOIN categories C ON P.category = C.id " +
     "WHERE ?(QBF_FILTER) " +
-    "GROUP BY C.id " +
+    "GROUP BY COALESCE(C.id, CASE WHEN TL.price < 0 THEN '__DISCOUNT__' ELSE '__NOPRODUCT__' END), " +
+        "CASE WHEN C.id IS NULL AND TL.price < 0 THEN '__DISCOUNT__' ELSE C.name END " +
     "ORDER BY CATNAME ASC");
 
 report.addParameter("R.DATENEW");

@@ -237,7 +237,7 @@
 					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{CATNAME}]]></textFieldExpression>
+				<textFieldExpression><![CDATA["__DISCOUNT__".equals($F{CATNAME}) ? $R{label.discount} : ($F{CATNAME} == null ? $R{label.noproduct} : $F{CATNAME})]]></textFieldExpression>
 			</textField>
 			<textField pattern="###0.00" isBlankWhenNull="false">
 				<reportElement key="textField-3" mode="Opaque" x="146" y="1" width="57" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="6d97cc3a-b5fc-4590-a5d8-db0347dd6c57"/>

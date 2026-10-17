@@ -25,7 +25,7 @@ report.setReport("/com/mx/kylgis/pos/reports/sales_payments");
 report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 
 report.setSentence("SELECT " +
-    "LEFT(DATE(receipts.DATENEW),10) AS GROUPDATE, " +
+    "DATE(receipts.DATENEW) AS GROUPDATE, " +
     "receipts.DATENEW, " +
     "payments.PAYMENT, " +
     "payments.NOTES, " +

@@ -76,7 +76,7 @@
 						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 						<paragraph lineSpacing="Single"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{PARENTCAT} == null ? $F{CATNAME} : $F{PARENTCAT}]]></textFieldExpression>
+					<textFieldExpression><![CDATA["__DISCOUNT__".equals($F{PARENTCAT}) ? $R{label.discount} : ($F{PARENTCAT} == null ? ($F{CATNAME} == null ? $R{label.noproduct} : $F{CATNAME}) : $F{PARENTCAT})]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupHeader>
@@ -139,7 +139,7 @@
 					<textElement>
 						<font isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[$F{CATNAME}]]></textFieldExpression>
+					<textFieldExpression><![CDATA["__DISCOUNT__".equals($F{CATNAME}) ? $R{label.discount} : ($F{CATNAME} == null ? $R{label.noproduct} : $F{CATNAME})]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupHeader>
@@ -385,7 +385,7 @@
 		<band height="15" splitType="Stretch">
 			<textField>
 				<reportElement key="prodname" x="50" y="0" width="193" height="15" uuid="32632867-1f00-488a-a23a-613f2401643a"/>
-				<textFieldExpression><![CDATA[$F{PRODNAME}]]></textFieldExpression>
+				<textFieldExpression><![CDATA["__DISCOUNT__".equals($F{PRODNAME}) ? $R{label.discount} : ($F{PRODNAME} == null ? $R{label.noproduct} : $F{PRODNAME})]]></textFieldExpression>
 			</textField>
 			<textField pattern="###0.00" isBlankWhenNull="false">
 				<reportElement key="units" mode="Opaque" x="240" y="0" width="50" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="dc0c5498-6e53-4613-8ee4-c2bff51a18d6"/>
