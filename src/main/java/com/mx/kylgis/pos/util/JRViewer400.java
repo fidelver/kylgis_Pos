@@ -85,5 +85,8 @@ public final class JRViewer400 extends JRViewer {
         }
         viewerContext.loadReport(jrPrint);
         setZoomRatio(1.0f);
+        viewerContext.refreshPage();
+        revalidate();
+        repaint();
     }
 }
