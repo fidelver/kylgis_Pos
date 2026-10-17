@@ -316,6 +316,7 @@ public final class Session {
             case "HSQL Database Engine":
                 return new SessionDBHSQLDB();
             case "MySQL":
+            case "MariaDB":
                 return new SessionDBMySQL();
             case "PostgreSQL":
                 return new SessionDBPostgreSQL();

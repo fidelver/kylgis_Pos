@@ -134,8 +134,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             id = attr[0];
             m_jNumber.setText(Formats.STRING.formatValue(attr[1]));
             m_jNumber.setEnabled(false);
-            customerInfo = dlCustomers.getCustomerInfo(attr[2].toString());
-            m_jCustomer.setText(customerInfo.getName());
+            customerInfo = attr[2] == null ? null : dlCustomers.getCustomerInfo(attr[2].toString());
+            m_jCustomer.setText(customerInfo == null ? "" : customerInfo.getName());
             m_jCustomer.setEnabled(false);
             m_jAmount.setText(Formats.DOUBLE.formatValue(attr[3]));
             m_jAmount.setEnabled(false);
@@ -166,8 +166,8 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
             id = attr[0];
             m_jNumber.setText(Formats.STRING.formatValue(attr[1]));
             m_jNumber.setEnabled(true);
-            customerInfo = dlCustomers.getCustomerInfo(attr[2].toString());
-            m_jCustomer.setText(customerInfo.getName());
+            customerInfo = attr[2] == null ? null : dlCustomers.getCustomerInfo(attr[2].toString());
+            m_jCustomer.setText(customerInfo == null ? "" : customerInfo.getName());
             m_jCustomer.setEnabled(true);
             m_jAmount.setText(Formats.DOUBLE.formatValue(attr[3]));
             m_jAmount.setEnabled(true);
@@ -211,7 +211,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
 
     @Override
     public Object createValue() throws BasicException {
-        if (customerInfo == null) {
+        if (insertingVoucher && customerInfo == null) {
             throw new BasicException("Voucher requires a selected customer.");
         }
 
@@ -219,7 +219,7 @@ public final class VoucherEditor extends javax.swing.JPanel implements EditorRec
 
         attr[0] = id;
         attr[1] = VoucherCodeGenerator.normalize(m_jNumber.getText());
-        attr[2] = customerInfo.getId();
+        attr[2] = customerInfo == null ? null : customerInfo.getId();
         attr[3] = Formats.DOUBLE.parseValue(m_jAmount.getText());
         attr[4] = m_jStatus.getText();
         attr[5] = expiresAt;

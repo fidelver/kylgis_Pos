@@ -1291,6 +1291,8 @@ public class JRootApp extends JPanel implements AppView {
 
     private static void initOldClasses() {
         m_oldclasses = new HashMap<>();
+        // Stable logical alias used by customized Menu.Root resources for voucher maintenance.
+        m_oldclasses.put("voucher.campaigns", "com.mx.kylgis.pos.voucher.VoucherPanel");
         
         m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomers", "/com/mx/kylgis/pos/reports/customers.bs");
         m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomersB", "/com/mx/kylgis/pos/reports/customers_b.bs");
