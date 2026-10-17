@@ -394,9 +394,18 @@ public final class VoucherCampaignDialog extends JDialog {
         if (value == null || value.isEmpty()) {
             return "";
         }
-        char first = value.charAt(0);
-        return first == '=' || first == '+' || first == '-' || first == '@'
-                ? "'" + value : value;
+        int index = 0;
+        while (index < value.length() && Character.isWhitespace(value.charAt(index))) {
+            index++;
+        }
+        if (index < value.length()) {
+            char firstContent = value.charAt(index);
+            if (firstContent == '=' || firstContent == '+'
+                    || firstContent == '-' || firstContent == '@') {
+                return "'" + value;
+            }
+        }
+        return value;
     }
 
     private static String formatExpiry(Date value) {
