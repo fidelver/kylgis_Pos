@@ -1725,7 +1725,7 @@ System.out.println("PanelContainer : Focus Lost");
             } else if (cTrans == ' ' || cTrans == '=') {
                 if (m_oTicket.getLinesCount() > 0) {
                     if (closeTicket(m_oTicket, m_oTicketExt)) {
-                        m_ticketsbag.deleteTicket();  
+                        m_ticketsbag.deleteTicketAfterSale();  
                         String autoLogoff = (m_App.getProperties().getProperty("till.autoLogoff"));
                         if (autoLogoff != null){               
                             if (autoLogoff.equals("true")){                    

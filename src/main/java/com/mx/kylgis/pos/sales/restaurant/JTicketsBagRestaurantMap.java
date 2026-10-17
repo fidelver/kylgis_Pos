@@ -664,10 +664,22 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
      */
     @Override
     public void deleteTicket() {
+        deleteTicketInternal(false);
+    }
+
+    @Override
+    public void deleteTicketAfterSale() {
+        deleteTicketInternal(true);
+    }
+
+    private void deleteTicketInternal(boolean postSaleCleanup) {
         if (m_PlaceCurrent == null) {
             return;
         }
         if (!ensureActiveTableOwned()) {
+            if (postSaleCleanup) {
+                m_panelticket.setActiveTicket(null, null);
+            }
             return;
         }
 
@@ -694,6 +706,21 @@ public class JTicketsBagRestaurantMap extends JTicketsBag {
         } catch (BasicException e) {
             if (transactionStarted) {
                 rollbackRestaurantMoveTransaction();
+            }
+            if (postSaleCleanup) {
+                LOGGER.log(Level.WARNING,
+                        "Sale committed but restaurant table cleanup failed for table {0}: {1}",
+                        new Object[] { id, e.getMessage() });
+                JOptionPane.showMessageDialog(this,
+                        "La venta ya fue guardada correctamente, pero no se pudo liberar la mesa/comanda.\n"
+                        + "No vuelva a cobrar este ticket. Revise la mesa antes de reutilizarla.",
+                        "Venta guardada - limpieza pendiente",
+                        JOptionPane.WARNING_MESSAGE);
+                m_panelticket.setActiveTicket(null, null);
+                m_PlaceCurrent = null;
+                refreshRestaurantState();
+                printState();
+                return;
             }
             if (!ensureActiveTableOwned()) {
                 return;

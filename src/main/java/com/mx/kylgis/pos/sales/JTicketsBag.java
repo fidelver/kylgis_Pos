@@ -62,6 +62,16 @@ public abstract class JTicketsBag extends JPanel {
     public abstract void activate();
     public abstract boolean deactivate();
     public abstract void deleteTicket();
+
+    /**
+     * Removes the working ticket after a sale has already been committed.
+     * Implementations may override this to distinguish a post-commit cleanup
+     * failure from a failure to save the sale itself.
+     */
+    public void deleteTicketAfterSale() {
+        deleteTicket();
+    }
+
     protected abstract JComponent getBagComponent();
     protected abstract JComponent getNullComponent();
     
