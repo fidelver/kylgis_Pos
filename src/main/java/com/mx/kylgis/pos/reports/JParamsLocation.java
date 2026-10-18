@@ -139,13 +139,13 @@ public class JParamsLocation extends javax.swing.JPanel implements ReportEditorC
         m_jLocation = new javax.swing.JComboBox();
         jLabel8 = new javax.swing.JLabel();
 
-        setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
         setPreferredSize(new java.awt.Dimension(384, 50));
 
-        m_jLocation.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jLocation.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         m_jLocation.setPreferredSize(new java.awt.Dimension(250, 30));
 
-        jLabel8.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel8.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jLabel8.setText(AppLocal.getIntString("label.warehouse")); // NOI18N
         jLabel8.setPreferredSize(new java.awt.Dimension(110, 30));
 

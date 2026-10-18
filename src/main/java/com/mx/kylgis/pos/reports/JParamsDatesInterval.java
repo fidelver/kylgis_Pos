@@ -126,21 +126,21 @@ public class JParamsDatesInterval extends javax.swing.JPanel implements ReportEd
         btnDateStart = new javax.swing.JButton();
         btnDateEnd = new javax.swing.JButton();
 
-        setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         setPreferredSize(new java.awt.Dimension(750, 50));
 
-        jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jLabel1.setText(AppLocal.getIntString("label.StartDate")); // NOI18N
         jLabel1.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jTxtStartDate.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jTxtStartDate.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jTxtStartDate.setPreferredSize(new java.awt.Dimension(160, 30));
 
-        jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jLabel2.setText(AppLocal.getIntString("label.EndDate")); // NOI18N
         jLabel2.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jTxtEndDate.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jTxtEndDate.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jTxtEndDate.setPreferredSize(new java.awt.Dimension(160, 30));
 
         btnDateStart.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/date.png"))); // NOI18N
