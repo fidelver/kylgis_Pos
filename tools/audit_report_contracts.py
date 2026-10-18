@@ -135,6 +135,10 @@ def audit_file(path: Path) -> dict:
         errors.append("voucher_invalid_select_concatenation")
     if "getToday()" in raw and "getTodayMinutes()" in raw:
         warnings.append("defaults_to_today")
+        # Un intervalo aplicado pero ausente del cuerpo, encabezado y pie
+        # oculta a qué fechas corresponden cifras y movimientos.
+        if "$P{ARG}" not in expressions:
+            errors.append("filtered_period_not_rendered")
     nodata = any(e.tag.rsplit("}", 1)[-1] == "noData" for e in root)
     if not nodata:
         warnings.append("no_noData_band")

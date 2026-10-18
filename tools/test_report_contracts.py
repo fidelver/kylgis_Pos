@@ -31,11 +31,17 @@ class ReportContractTests(unittest.TestCase):
         expected = {
             "products_catalog", "sales_categorysalesmysql",
             "sales_extproducts_1", "sales_productsalesprofit_1", "vouchers",
+            "customers_debtors", "sales_closedpos_1",
+            "sales_extproducts", "suppliers_creditors",
         }
         failed = {n for n, r in records.items() if r["status"] == "FAIL"}
         self.assertTrue(failed.issubset(expected), f"Nuevas regresiones: {failed - expected}")
         self.assertEqual(len(records), 69)
         self.assertEqual(len(list(report.REPORTS.glob("*.jrxml"))), 67)
+
+    def test_period_context_guard(self):
+        result = report.audit_file(report.REPORTS / "sales_extproducts.bs")
+        self.assertIn("filtered_period_not_rendered", result["errors"])
 
     def test_profit_cartesian_guard(self):
         result = report.audit_file(report.REPORTS / "sales_productsalesprofit_1.bs")
