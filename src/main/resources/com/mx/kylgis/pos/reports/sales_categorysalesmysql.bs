@@ -26,18 +26,28 @@ report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 
 // JG - 8 Jan 14 Convert lowercasednname to UPPERCASE for compatability
 
-report.setSentence("SELECT categories.NAME, " +
-"Sum(ticketlines.UNITS) AS QTY, " +
-"Sum(ticketlines.PRICE * ticketlines.UNITS) AS CATPRICE, " +
-"Sum((products.PRICESELL * ticketlines.UNITS)-((products.ISVPRICE ) * (ticketlines.PRICE * ticketlines.UNITS))) AS DISC, " +
-"Sum((ticketlines.PRICE * taxes.RATE)* ticketlines.UNITS) AS CATTAX, " +
-"Sum((ticketlines.PRICE * ticketlines.UNITS) + ((ticketlines.PRICE * taxes.RATE)* ticketlines.UNITS)) AS CATTOTAL " +
-"FROM (tickets INNER JOIN receipts ON tickets.ID = receipts.ID) INNER JOIN ((categories INNER JOIN products ON categories.ID = products.CATEGORY) INNER JOIN (taxes INNER JOIN ticketlines ON taxes.ID = ticketlines.TAXID) ON products.ID = ticketlines.PRODUCT) ON tickets.ID = ticketlines.TICKET " +
-"WHERE ?(QBF_FILTER) " +
-"GROUP BY categories.NAME");
+// MySQL legacy variant uses the SAME seven-field contract as sales_categorysales.jrxml.
+// Aggregate source ticket lines, including discount/no-product rows, once per category.
+report.setSentence("SELECT MIN(R.DATENEW) AS DATENEW, " +
+    "COALESCE(C.ID, CASE WHEN TL.PRICE < 0 THEN '__DISCOUNT__' ELSE '__NOPRODUCT__' END) AS ID, " +
+    "CASE WHEN C.ID IS NULL AND TL.PRICE < 0 THEN '__DISCOUNT__' ELSE COALESCE(C.NAME, 'SIN CATEGORIA') END AS CATNAME, " +
+    "SUM(TL.PRICE * TL.UNITS) AS BASE, " +
+    "SUM(TL.PRICE * TL.UNITS * TX.RATE) AS AMOUNT, " +
+    "SUM(TL.PRICE * TL.UNITS * (1 + TX.RATE)) AS TOTAL, " +
+    "SUM(CASE WHEN TL.PRODUCT IS NULL AND TL.PRICE < 0 THEN 0 ELSE TL.UNITS END) AS UNITS " +
+    "FROM ticketlines TL " +
+    "JOIN tickets T ON TL.TICKET = T.ID " +
+    "JOIN receipts R ON T.ID = R.ID " +
+    "JOIN taxes TX ON TL.TAXID = TX.ID " +
+    "LEFT JOIN products P ON TL.PRODUCT = P.ID " +
+    "LEFT JOIN categories C ON P.CATEGORY = C.ID " +
+    "WHERE ?(QBF_FILTER) " +
+    "GROUP BY COALESCE(C.ID, CASE WHEN TL.PRICE < 0 THEN '__DISCOUNT__' ELSE '__NOPRODUCT__' END), " +
+    "CASE WHEN C.ID IS NULL AND TL.PRICE < 0 THEN '__DISCOUNT__' ELSE COALESCE(C.NAME, 'SIN CATEGORIA') END " +
+    "ORDER BY CATNAME");
 
-report.addParameter("receipts.DATENEW");
-report.addParameter("receipts.DATENEW");
+report.addParameter("R.DATENEW");
+report.addParameter("R.DATENEW");
 
 paramdates = new com.mx.kylgis.pos.reports.JParamsDatesInterval();
 
@@ -47,13 +57,12 @@ paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 
 report.addQBFFilter(paramdates);
 
+report.addField("DATENEW", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
 report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("PARENTID", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("QTY", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("CATPRICE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("DISC", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("CATTAX", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("CATTOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CATNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("BASE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("AMOUNT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("UNITS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

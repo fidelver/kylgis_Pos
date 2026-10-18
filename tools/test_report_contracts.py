@@ -24,7 +24,7 @@ class ReportContractTests(unittest.TestCase):
         self.assertNotIn("missing_jasper_fields", result["errors"])
         self.assertFalse(result["missing_fields"])
 
-    def test_five_inherited_failures_detected(self):
+    def test_all_inherited_failures_repaired(self):
         # La prueba debe detectar defectos pendientes: no confundir detección
         # de un fallo con certificación funcional.
         records = {x["name"]: x for x in report.audit()}
@@ -35,21 +35,21 @@ class ReportContractTests(unittest.TestCase):
             "sales_extproducts", "suppliers_creditors",
         }
         failed = {n for n, r in records.items() if r["status"] == "FAIL"}
-        self.assertTrue(failed.issubset(expected), f"Nuevas regresiones: {failed - expected}")
+        self.assertEqual(failed, set(), f"Bloqueos de contrato restantes: {failed}")
         self.assertEqual(len(records), 69)
         self.assertEqual(len(list(report.REPORTS.glob("*.jrxml"))), 67)
 
     def test_period_context_guard(self):
         result = report.audit_file(report.REPORTS / "sales_extproducts.bs")
-        self.assertIn("filtered_period_not_rendered", result["errors"])
+        self.assertNotIn("filtered_period_not_rendered", result["errors"])
 
     def test_profit_cartesian_guard(self):
         result = report.audit_file(report.REPORTS / "sales_productsalesprofit_1.bs")
-        self.assertIn("possible_cartesian_products_ticketlines", result["errors"])
+        self.assertNotIn("possible_cartesian_products_ticketlines", result["errors"])
 
     def test_voucher_filters_guard(self):
         result = report.audit_file(report.REPORTS / "vouchers.bs")
-        self.assertIn("voucher_filters_not_applied", result["errors"])
+        self.assertNotIn("voucher_filters_not_applied", result["errors"])
 
 
 if __name__ == "__main__":

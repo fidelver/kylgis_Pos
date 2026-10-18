@@ -106,7 +106,7 @@ def audit_file(path: Path) -> dict:
     if missing:
         errors.append("missing_jasper_fields")
     if not sql:
-        warnings.append("no_inline_select_or_report")
+        errors.append("no_inline_select_or_report")
     if columns and len(columns) != len(fields):
         # El parser de SQL es conservador: puede haber subconsultas o
         # transformaciones válidas. Exigir comprobación de SQL real.
@@ -137,7 +137,7 @@ def audit_file(path: Path) -> dict:
         warnings.append("defaults_to_today")
         # Un intervalo aplicado pero ausente del cuerpo, encabezado y pie
         # oculta a qué fechas corresponden cifras y movimientos.
-        if "$P{ARG}" not in expressions:
+        if "$P{ARG}" not in expressions and "$P{KYLGIS_REPORT_PERIOD}" not in expressions:
             errors.append("filtered_period_not_rendered")
     nodata = any(e.tag.rsplit("}", 1)[-1] == "noData" for e in root)
     if not nodata:
