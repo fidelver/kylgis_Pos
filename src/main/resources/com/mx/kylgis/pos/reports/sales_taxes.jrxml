@@ -173,9 +173,9 @@
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13">
+		<band height="16">
 			<textField pattern="" isBlankWhenNull="false">
-				<reportElement key="textField-6" mode="Opaque" x="0" y="0" width="199" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="06a40b5f-53e3-4066-a5c5-19561e253600"/>
+				<reportElement key="textField-6" mode="Opaque" x="0" y="0" width="199" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="06a40b5f-53e3-4066-a5c5-19561e253600"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -189,12 +189,12 @@
 				<textFieldExpression><![CDATA[$F{TAXNAME}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
-				<reportElement x="300" y="0" width="125" height="13" uuid="9f75216a-75fc-430b-8d86-76f33a2928e0"/>
+				<reportElement x="300" y="0" width="125" height="16" uuid="9f75216a-75fc-430b-8d86-76f33a2928e0"/>
 				<textElement textAlignment="Right"><font fontName="SansSerif" size="10"/></textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{TOTALBASE})]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
-				<reportElement key="textField-3" mode="Opaque" x="435" y="0" width="100" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="50f0a92a-0809-4f33-8e04-5e0c6e5a247f"/>
+				<reportElement key="textField-3" mode="Opaque" x="435" y="0" width="100" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="50f0a92a-0809-4f33-8e04-5e0c6e5a247f"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>

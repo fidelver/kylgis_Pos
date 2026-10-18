@@ -103,37 +103,37 @@ WHERE (CSVERROR <> 'New product')  and (CSVERROR <> 'Updated Price Details') and
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="16" splitType="Stretch">
 			<textField>
-				<reportElement x="180" y="0" width="53" height="13" uuid="770fb533-70a4-4be3-9c99-c0ee4ae007be"/>
+				<reportElement x="180" y="0" width="53" height="16" uuid="770fb533-70a4-4be3-9c99-c0ee4ae007be"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="347" y="0" width="188" height="13" uuid="c1885b0d-2985-4ab0-bed8-0a5bcf81a7df"/>
+				<reportElement x="347" y="0" width="188" height="16" uuid="c1885b0d-2985-4ab0-bed8-0a5bcf81a7df"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="0" y="0" width="24" height="13" uuid="86a95e83-7f30-4b7b-a42b-3c346063dcbc"/>
+				<reportElement x="0" y="0" width="24" height="16" uuid="86a95e83-7f30-4b7b-a42b-3c346063dcbc"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{rownumber}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="34" y="0" width="123" height="13" uuid="f1981fa8-7952-45b8-9d26-e5803085d782"/>
+				<reportElement x="34" y="0" width="123" height="16" uuid="f1981fa8-7952-45b8-9d26-e5803085d782"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{csverror}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="243" y="0" width="94" height="13" uuid="e2b3b463-e0e3-45a8-aa42-fadb40ad27fd"/>
+				<reportElement x="243" y="0" width="94" height="16" uuid="e2b3b463-e0e3-45a8-aa42-fadb40ad27fd"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>

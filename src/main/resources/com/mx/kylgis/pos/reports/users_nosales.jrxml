@@ -182,17 +182,17 @@
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13">
+		<band height="16">
 			<textField>
-				<reportElement x="0" y="0" width="100" height="13" uuid="a762209f-3c8c-466c-b6e7-75f10df43f4f"/>
+				<reportElement x="0" y="0" width="100" height="16" uuid="a762209f-3c8c-466c-b6e7-75f10df43f4f"/>
 				<textFieldExpression><![CDATA[$F{NAME}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="160" y="0" width="100" height="13" uuid="edda7117-1538-441e-af30-cf681939842f"/>
+				<reportElement x="160" y="0" width="100" height="16" uuid="edda7117-1538-441e-af30-cf681939842f"/>
 				<textFieldExpression><![CDATA[$F{OPENDATE}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="327" y="0" width="100" height="13" uuid="d2a43feb-5ddc-4cc9-be2a-02be683acb1f"/>
+				<reportElement x="327" y="0" width="100" height="16" uuid="d2a43feb-5ddc-4cc9-be2a-02be683acb1f"/>
 				<textElement textAlignment="Right"/>
 				<textFieldExpression><![CDATA[$F{TICKETID}]]></textFieldExpression>
 			</textField>

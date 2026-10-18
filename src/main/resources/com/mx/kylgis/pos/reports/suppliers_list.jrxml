@@ -182,7 +182,7 @@ ORDER BY NAME;]]>
 	<detail>
 		<band height="45">
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-16" x="0" y="0" width="60" height="13" uuid="a232c454-23e7-4805-bb22-2f51ade1b488"/>
+				<reportElement key="textField-16" x="0" y="0" width="60" height="16" uuid="a232c454-23e7-4805-bb22-2f51ade1b488"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -195,7 +195,7 @@ ORDER BY NAME;]]>
 				<textFieldExpression><![CDATA[$F{TAXID}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField" x="60" y="0" width="143" height="13" uuid="0b84f48b-1939-4fe9-aca7-30f9c008d1c5"/>
+				<reportElement key="textField" x="60" y="0" width="143" height="16" uuid="0b84f48b-1939-4fe9-aca7-30f9c008d1c5"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -208,15 +208,15 @@ ORDER BY NAME;]]>
 				<textFieldExpression><![CDATA[$F{NAME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="203" y="0" width="100" height="13" uuid="6e51ade3-125b-42ca-80fa-2c3596970b25"/>
+				<reportElement x="203" y="0" width="100" height="16" uuid="6e51ade3-125b-42ca-80fa-2c3596970b25"/>
 				<textFieldExpression><![CDATA[$F{FIRSTNAME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="305" y="0" width="100" height="13" uuid="41ad2e39-d738-446e-a40f-9209f1e37e6f"/>
+				<reportElement x="305" y="0" width="100" height="16" uuid="41ad2e39-d738-446e-a40f-9209f1e37e6f"/>
 				<textFieldExpression><![CDATA[$F{LASTNAME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-12" x="405" y="2" width="180" height="13" uuid="f14cc55f-c925-4915-8824-96b4c05488b2"/>
+				<reportElement key="textField-12" x="405" y="2" width="180" height="16" uuid="f14cc55f-c925-4915-8824-96b4c05488b2"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -229,23 +229,23 @@ ORDER BY NAME;]]>
 				<textFieldExpression><![CDATA[$F{ADDRESS}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="405" y="15" width="180" height="13" uuid="accb0254-ee15-4b9b-90b1-82013a514cad"/>
+				<reportElement x="405" y="15" width="180" height="16" uuid="accb0254-ee15-4b9b-90b1-82013a514cad"/>
 				<textFieldExpression><![CDATA[$F{ADDRESS2}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="405" y="28" width="130" height="13" uuid="033ba5da-b812-43eb-9cfd-9b16cfe81ece"/>
+				<reportElement x="405" y="28" width="130" height="16" uuid="033ba5da-b812-43eb-9cfd-9b16cfe81ece"/>
 				<textFieldExpression><![CDATA[$F{CITY}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="535" y="28" width="50" height="13" uuid="c35671fc-91bb-4a29-bfdb-4c045813bd97"/>
+				<reportElement x="535" y="28" width="50" height="16" uuid="c35671fc-91bb-4a29-bfdb-4c045813bd97"/>
 				<textFieldExpression><![CDATA[$F{POSTAL}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="634" y="2" width="146" height="13" uuid="4cbe5471-49b8-4b36-8327-5e6009f3b5cc"/>
+				<reportElement x="634" y="2" width="146" height="16" uuid="4cbe5471-49b8-4b36-8327-5e6009f3b5cc"/>
 				<textFieldExpression><![CDATA[$F{PHONE}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="634" y="16" width="146" height="13" uuid="15ad7e9d-141d-4ee2-865d-a8c0562be185"/>
+				<reportElement x="634" y="16" width="146" height="16" uuid="15ad7e9d-141d-4ee2-865d-a8c0562be185"/>
 				<textFieldExpression><![CDATA[$F{EMAIL}]]></textFieldExpression>
 			</textField>
 		</band>

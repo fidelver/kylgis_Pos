@@ -10,3 +10,5 @@ trap 'rm -rf -- "$TMP"' EXIT
 "$JDK/bin/javac" -cp "$RELEASE/kylgispos.jar:$RELEASE/lib/*" -d "$TMP" "$ROOT/tools/ReportTemplateCompileSmoke.java"
 "$JDK/bin/java" -Djava.awt.headless=true -cp "$TMP:$RELEASE/kylgispos.jar:$RELEASE/lib/*" \
   ReportTemplateCompileSmoke "$ROOT/src/main/resources/com/mx/kylgis/pos/reports"
+# Compilation alone is insufficient: verify content actually reaches rendered PDF.
+bash "$ROOT/tools/test_all_report_render.sh" "$RELEASE"
