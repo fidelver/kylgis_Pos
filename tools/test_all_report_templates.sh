@@ -3,6 +3,8 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 RELEASE="${1:?Read-only POS release with Jasper JARs required}"
 JDK=/usr/lib/jvm/java-21-temurin-jdk
+# First reject missing fonts and mismatched/stale templates in the candidate JAR.
+python3 "$ROOT/tools/test_report_font_portability.py" --jar "$RELEASE/kylgispos.jar"
 TMP="$(mktemp -d /tmp/kylgis-jrxml-compile.XXXXXXXX)"
 trap 'rm -rf -- "$TMP"' EXIT
 "$JDK/bin/javac" -cp "$RELEASE/kylgispos.jar:$RELEASE/lib/*" -d "$TMP" "$ROOT/tools/ReportTemplateCompileSmoke.java"
