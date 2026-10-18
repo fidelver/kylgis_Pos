@@ -15,6 +15,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_ROOT = ROOT / "src/main/resources/com/mx/kylgis/pos/reports"
 EDITOR_ROOT = ROOT / "src/main/java/com/mx/kylgis/pos/reports"
+TEMPLATE_ROOT = ROOT / "src/main/resources/com/mx/kylgis/pos/templates"
 LOGICAL = {"SansSerif", "Serif", "Monospaced", "Dialog", "DialogInput"}
 PDF_BASE14 = {
     "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
@@ -68,6 +69,14 @@ def audit(jar=None, expected_head=None):
         if not matching_java.exists():
             failures.append(f"{form.name}: missing matching generated Java source")
 
+    ticket_templates = sorted(TEMPLATE_ROOT.glob("*.xml"))
+    for source in ticket_templates:
+        try:
+            if b"arial" in source.read_bytes().lower():
+                failures.append(f"{source.name}: unsupported Arial in closing/ticket template")
+        except OSError as exc:
+            failures.append(f"{source.name}: read error: {exc}")
+
     packaged = 0
     if jar is not None:
         try:
@@ -92,6 +101,14 @@ def audit(jar=None, expected_head=None):
                         failures.append(f"JAR contains stale/modified template {source.name}")
                     if b"arial" in packaged_data.lower():
                         failures.append(f"JAR contains Arial in {source.name}")
+                # Protect closing/ticket resources from silently shipping older code.
+                ticket_prefix = "com/mx/kylgis/pos/templates/"
+                for source in ticket_templates:
+                    member = ticket_prefix + source.name
+                    if member not in names:
+                        failures.append(f"JAR missing ticket template {source.name}")
+                    elif archive.read(member) != source.read_bytes():
+                        failures.append(f"JAR contains stale ticket template {source.name}")
                 if expected_head is not None:
                     manifest = archive.read("META-INF/MANIFEST.MF").decode(
                         "utf-8", errors="replace"
@@ -114,6 +131,7 @@ def audit(jar=None, expected_head=None):
         f"fonts={dict(declared)}",
         f"editor_java={len(editor_java)}",
         f"editor_forms={len(editor_forms)}",
+        f"ticket_templates={len(ticket_templates)}",
         f"packaged={packaged if jar else 'not_checked'}",
     )
     return 0
