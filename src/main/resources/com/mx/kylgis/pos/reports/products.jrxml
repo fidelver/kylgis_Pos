@@ -8,6 +8,7 @@
 	<import value="net.sf.jasperreports.engine.*"/>
 	<import value="java.util.*"/>
 	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="KYLGIS_REPORT_TITLE" class="java.lang.String" isForPrompting="false"/>
 	<queryString>
 		<![CDATA[]]>
 	</queryString>
@@ -71,7 +72,7 @@
 					<font fontName="SansSerif" size="14" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$R{label.title}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$P{KYLGIS_REPORT_TITLE}]]></textFieldExpression>
 			</textField>
 			<textField evaluationTime="Report" pattern="dd/MM/yyyy h.mm a" isBlankWhenNull="false">
 				<reportElement key="textField" x="400" y="15" width="135" height="15" uuid="d35e49b4-8021-4c9c-84d4-3c1af409ba3d"/>

@@ -226,6 +226,11 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 // Construyo el mapa de los parametros.
                 Map reportparams = new HashMap();
                 reportparams.put("ARG", params);
+                // El título debe pertenecer al reporte abierto, no a una clave
+                // genérica duplicada entre distintos recursos heredados.
+                if (this instanceof PanelReportBean) {
+                    reportparams.put("KYLGIS_REPORT_TITLE", ((PanelReportBean) this).getTitle());
+                }
                 if (res != null) {
                       reportparams.put("REPORT_RESOURCE_BUNDLE", ResourceBundle.getBundle(res));
                 }                

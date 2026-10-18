@@ -43,6 +43,7 @@ public final class ReportContentSmoke {
             Locale.forLanguageTag("es-MX")
         );
         parameters.put(JRParameter.REPORT_RESOURCE_BUNDLE, bundle);
+        parameters.put("KYLGIS_REPORT_TITLE", "Catálogo de productos");
         JasperReport report;
         try (var stream = Files.newInputStream(template)) {
             report = JasperCompileManager.compileReport(stream);
