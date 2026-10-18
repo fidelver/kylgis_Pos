@@ -28,8 +28,8 @@ report.setResourceBundle("com/mx/kylgis/pos/reports/customers_messages");
 //                   "FROM customers " +
 //                   "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND CURDEBT IS NOT NULL AND CURDEBT > 0");
 
-// JG:uniCenta 9 Jan 11 to allow <> 0
-report.setSentence("SELECT ID, TAXID, NAME, ADDRESS, NOTES, CARD, MAXDEBT, CURDATE, CURDEBT " +
+// JG:uniCenta 9 Jan 11 to allow <> 0. Restore full column order expected by customers.jrxml.
+report.setSentence("SELECT ID, TAXID, NAME, ADDRESS, ADDRESS2, CITY, POSTAL, NOTES, CARD, MAXDEBT, CURDATE, CURDEBT " +
                    "FROM customers " +
                    "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND CURDEBT IS NOT NULL AND CURDEBT <> 0");
 
@@ -37,6 +37,9 @@ report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("TAXID", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("ADDRESS", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("ADDRESS2", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CITY", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("POSTAL", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("NOTES", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("CARD", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("MAXDEBT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
