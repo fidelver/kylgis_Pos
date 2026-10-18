@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import net.sf.jasperreports.engine.*;
@@ -49,6 +50,8 @@ import net.sf.jasperreports.engine.xml.JRXmlLoader;
  * @author JG uniCenta
  */
 public abstract class JPanelReport extends JPanel implements JPanelView, BeanFactoryApp   {
+
+    private static final Logger REPORT_LOG = Logger.getLogger(JPanelReport.class.getName());
     
     private JRViewer400 reportviewer = null;          
     private JasperReport jr = null;
@@ -212,6 +215,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
     private void launchreport() {     
         
         m_App.waitCursorBegin();
+        try {
         
         if (jr != null) {
             try {     
@@ -237,12 +241,19 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 }                
                 reportparams.put("TAXESLOGIC", taxeslogic); 
                 
-                JasperPrint jp = JasperFillManager.fillReport(jr, reportparams, data);    
+                long fillStarted = System.nanoTime();
+                REPORT_LOG.info(() -> "KYL-JASPER fill_started report=" + getReport());
+                JasperPrint jp = JasperFillManager.fillReport(jr, reportparams, data);
+                final int rowsRead = data.getRowsRead();
+                final int pages = jp.getPages().size();
+                final long fillMs = (System.nanoTime() - fillStarted) / 1_000_000L;
+                REPORT_LOG.info(() -> "KYL-JASPER fill_completed report=" + getReport()
+                        + " rows=" + rowsRead + " pages=" + pages + " elapsed_ms=" + fillMs);    
             
                 // Jasper may return zero pages, or an empty title page, when the
                 // BeanShell query yielded no records. Do not present it as a report.
                 // Retain filters so operators can extend dates or adjust criteria.
-                if (data.getRowsRead() == 0) {
+                if (rowsRead == 0 || pages == 0) {
                     reportviewer.loadJasperPrint(null);
                     setVisibleFilter(true);
                     new MessageInf(MessageInf.SGN_NOTICE,
@@ -254,12 +265,19 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                     revalidate();
                     doLayout();
                     reportviewer.loadJasperPrint(jp);
+                    REPORT_LOG.info(() -> "KYL-JASPER viewer_loaded report=" + getReport()
+                            + " pages=" + pages + " showing=" + reportviewer.isShowing()
+                            + " size=" + reportviewer.getWidth() + "x" + reportviewer.getHeight());
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        reportviewer.revalidate();
+                        reportviewer.repaint();
+                    });
                 }
                 
             } catch (MissingResourceException e) {    
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadresourcedata"), e);
                 msg.show(this);
-            } catch (JRException e) {
+            } catch (JRException | RuntimeException e) {
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotfillreport"), e);
                 msg.show(this);
             } catch (BasicException e) {
@@ -268,7 +286,9 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
             }
         }
         
-        m_App.waitCursorEnd();
+        } finally {
+            m_App.waitCursorEnd();
+        }
     }
     
     /** This method is called from within the constructor to

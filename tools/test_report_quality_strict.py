@@ -89,6 +89,34 @@ class StrictReportQuality(unittest.TestCase):
             self.assertNotIn('addParameter("CURDATE")', txt)
             self.assertIn("COALESCE(CURDEBT, 0) <> 0", txt)
 
+    def test_inventory_diary_includes_hidden_stock_items(self):
+        # Sales-catalog visibility must not hide stock movements or ingredients.
+        statement = sql("inventory_diary").upper()
+        self.assertNotIn("PRODUCTS.VISIBLE", statement)
+        self.assertIn("FROM ((STOCKDIARY STOCKDIARY", statement)
+        self.assertIn("LEFT OUTER JOIN SUPPLIERS", statement)
+        self.assertIn("?(QBF_FILTER)", statement)
+        self.assertIn("SUM(STOCKDIARY.UNITS * STOCKDIARY.PRICE)", statement)
+
+    def test_product_sales_chart_fields_and_viewer_diagnostics(self):
+        statement = sql("sales_chart_productsales").upper()
+        self.assertIn("GROUP BY PRODUCTS.REFERENCE, PRODUCTS.NAME", statement)
+        self.assertIn("SUM(TICKETLINES.UNITS) AS UNITS", statement)
+        self.assertIn("?(QBF_FILTER)", statement)
+        chart_xml = root("sales_chart_productsales")
+        expressions = " ".join(
+            (node.text or "") for node in chart_xml.iter()
+            if node.tag.rsplit("}", 1)[-1].endswith("Expression"))
+        self.assertIn("$F{NAME}", expressions)
+        self.assertIn("$F{UNITS}", expressions)
+        viewer = audit.ROOT / "src/main/java/com/mx/kylgis/pos/reports/JPanelReport.java"
+        # The portable QA script is rooted at src/main/resources/...;
+        # Java source lives in src/main/java/...
+        self.assertTrue(viewer.is_file())
+        source = viewer.read_text(encoding="utf-8")
+        self.assertIn("KYL-JASPER fill_completed", source)
+        self.assertIn("rowsRead == 0 || pages == 0", source)
+
     def test_sql_source_present_for_all_scripts(self):
         for name in (file.stem for file in R.glob("*.bs")):
             self.assertTrue(sql(name).lstrip().upper().startswith("SELECT"), name)
