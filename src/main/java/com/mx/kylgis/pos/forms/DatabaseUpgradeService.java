@@ -1136,16 +1136,6 @@ public final class DatabaseUpgradeService {
     }
 
     private static void patchMenuRootForRecipes(Connection connection) throws SQLException {
-        final String recipeClass = "com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel";
-        final String productionClass = "com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel";
-        final String historyClass = "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel";
-        final String bundleLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/bundle.png\", \"Menu.Bundle\", \"com.mx.kylgis.pos.inventory.BundlePanel\");";
-        final String recipeLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/bundle.png\", \"Menu.Recipes\", \""
-                + recipeClass + "\");";
-        final String productionLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/stockmaint.png\", \"Menu.RecipeProduction\", \""
-                + productionClass + "\");";
-        final String historyLine = "        submenu.addPanel(\"/com/mx/kylgis/pos/images/reports.png\", \"Menu.TransformationHistory\", \""
-                + historyClass + "\");";
         byte[] content;
         try (PreparedStatement select = connection.prepareStatement(
                 "SELECT CONTENT FROM resources WHERE NAME = ? FOR UPDATE")) {
@@ -1161,22 +1151,7 @@ public final class DatabaseUpgradeService {
             throw new SQLException("Menu.Root content is null; recipe entries cannot be installed safely.");
         }
         String text = new String(content, StandardCharsets.UTF_8);
-        String newline = text.contains("\r\n") ? "\r\n" : "\n";
-        String patched = text;
-        if (!patched.contains(recipeClass) && patched.contains(bundleLine)) {
-            patched = patched.replace(bundleLine, bundleLine + newline + recipeLine);
-        }
-        if (!patched.contains(productionClass) && patched.contains(recipeLine)) {
-            patched = patched.replace(recipeLine, recipeLine + newline + productionLine);
-        }
-        if (!patched.contains(historyClass) && patched.contains(productionLine)) {
-            patched = patched.replace(productionLine, productionLine + newline + historyLine);
-        }
-        if (!patched.contains(recipeClass) || !patched.contains(productionClass)
-                || !patched.contains(historyClass)) {
-            throw new SQLException("Menu.Root could not be patched with all recipe/transform entries; "
-                    + "review the customized menu before completing the 1.3 upgrade.");
-        }
+        String patched = patchRecipeMenuText(text);
         if (patched.equals(text)) {
             return;
         }
@@ -1188,6 +1163,128 @@ public final class DatabaseUpgradeService {
                 throw new SQLException("Menu.Root recipe entries were not updated exactly once.");
             }
         }
+    }
+
+    /**
+     * Insert recipe panels into a customized inventory submenu without relying
+     * on the stock template's exact icon path, namespace or whitespace.
+     */
+    static String patchRecipeMenuText(String text) throws SQLException {
+        if (text == null) {
+            throw new SQLException("Menu.Root has null content.");
+        }
+        final String[] classes = {
+            "com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel",
+            "com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel",
+            "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel"
+        };
+        final String[] keys = {
+            "Menu.Recipes", "Menu.RecipeProduction", "Menu.TransformationHistory"
+        };
+        final String[] icons = {"bundle.png", "stockmaint.png", "reports.png"};
+        int missing = 0;
+        for (int i = 0; i < classes.length; i++) {
+            if (!text.contains(classes[i])) {
+                if (text.contains("\"" + keys[i] + "\"")) {
+                    throw new SQLException("Menu.Root has a conflicting menu key: " + keys[i]);
+                }
+                missing++;
+            }
+        }
+        if (missing == 0) {
+            return text;
+        }
+
+        String[] lines = text.split("\n", -1);
+        int inventoryStart = -1;
+        for (int i = 0; i < lines.length; i++) {
+            String trimmed = lines[i].trim();
+            if (!trimmed.startsWith("//") && !trimmed.startsWith("#")
+                    && trimmed.contains(".addSubmenu(")
+                    && trimmed.contains("\"Menu.StockManagement\"")) {
+                if (inventoryStart >= 0) {
+                    throw new SQLException("Menu.Root contains multiple inventory submenus.");
+                }
+                inventoryStart = i;
+            }
+        }
+        int start = inventoryStart < 0 ? 0 : inventoryStart + 1;
+        int end = lines.length;
+        if (inventoryStart >= 0) {
+            for (int i = start; i < lines.length; i++) {
+                String compact = lines[i].trim().replace(" ", "").replace("\t", "");
+                if (compact.startsWith("//")) {
+                    continue;
+                }
+                if (compact.contains("=group.addSubmenu(")
+                        || compact.contains("=menu.addGroup(")) {
+                    end = i;
+                    break;
+                }
+            }
+        }
+
+        int anchor = -1;
+        int best = Integer.MAX_VALUE;
+        for (int i = start; i < end; i++) {
+            String line = lines[i].trim();
+            if (line.startsWith("//") || !line.contains("submenu.addPanel(")) {
+                continue;
+            }
+            int priority = Integer.MAX_VALUE;
+            if (line.contains("\"Menu.Bundle\"")) {
+                priority = 0;
+            } else if (line.contains("\"Menu.Products\"")
+                    && line.contains("inventory.ProductsPanel")) {
+                priority = 1;
+            } else if (inventoryStart >= 0
+                    && line.contains("\"Menu.StockMovement\"")) {
+                priority = 2;
+            }
+            if (priority < best) {
+                best = priority;
+                anchor = i;
+            }
+        }
+        if (anchor < 0 && inventoryStart >= 0
+                && lines[inventoryStart].replace(" ", "").replace("\t", "")
+                        .contains("submenu=group.addSubmenu(")) {
+            anchor = inventoryStart;
+        }
+        if (anchor < 0) {
+            throw new SQLException("Menu.Root inventory submenu cannot be identified safely; "
+                    + "no recipe entries were written.");
+        }
+
+        int panelAt = lines[anchor].indexOf("submenu.addPanel(");
+        String indent = panelAt < 0 ? "        " : lines[anchor].substring(0, panelAt);
+        String newline = text.contains("\r\n") ? "\r\n" : "\n";
+        StringBuilder insert = new StringBuilder();
+        for (int i = 0; i < classes.length; i++) {
+            if (!text.contains(classes[i])) {
+                insert.append(indent).append("submenu.addPanel(\"/com/mx/kylgis/pos/images/")
+                        .append(icons[i]).append("\", \"").append(keys[i])
+                        .append("\", \"").append(classes[i]).append("\");")
+                        .append(newline);
+            }
+        }
+        int offset = 0;
+        for (int i = 0; i <= anchor; i++) {
+            offset += lines[i].length();
+            if (i < lines.length - 1) {
+                offset++; // Preserve the original LF, including any preceding CR.
+            }
+        }
+        if (offset == text.length() && !text.endsWith("\n")) {
+            insert.insert(0, newline);
+        }
+        String patched = text.substring(0, offset) + insert + text.substring(offset);
+        for (String className : classes) {
+            if (!patched.contains(className)) {
+                throw new SQLException("Menu.Root recipe patch incomplete: " + className);
+            }
+        }
+        return patched;
     }
 
     private static void patchStandardRoleForRecipes(Connection connection, String roleId,
