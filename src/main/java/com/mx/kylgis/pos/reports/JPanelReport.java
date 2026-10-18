@@ -221,7 +221,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 
                 // Parametros y los datos
                 Object params = (editor == null) ? null : editor.createValue();                
-                JRDataSource data = new JRDataSourceBasic(getSentence(), getReportFields(), params);
+                JRDataSourceBasic data = new JRDataSourceBasic(getSentence(), getReportFields(), params);
                 
                 // Construyo el mapa de los parametros.
                 Map reportparams = new HashMap();
@@ -233,13 +233,22 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 
                 JasperPrint jp = JasperFillManager.fillReport(jr, reportparams, data);    
             
-                // Relayout first, then load/refresh the JasperPrint at its final size.
-                // Loading before hiding the filter left the viewer with stale geometry and
-                // could produce blank/partially painted detail until page navigation.
-                setVisibleFilter(false);
-                revalidate();
-                doLayout();
-                reportviewer.loadJasperPrint(jp);
+                // Jasper may return zero pages, or an empty title page, when the
+                // BeanShell query yielded no records. Do not present it as a report.
+                // Retain filters so operators can extend dates or adjust criteria.
+                if (data.getRowsRead() == 0) {
+                    reportviewer.loadJasperPrint(null);
+                    setVisibleFilter(true);
+                    new MessageInf(MessageInf.SGN_NOTICE,
+                            AppLocal.getIntString("message.reportnodata")).show(this);
+                } else {
+                    // Relayout first, then load/refresh the JasperPrint at its final size.
+                    // Loading before hiding the filter left stale viewer geometry.
+                    setVisibleFilter(false);
+                    revalidate();
+                    doLayout();
+                    reportviewer.loadJasperPrint(jp);
+                }
                 
             } catch (MissingResourceException e) {    
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadresourcedata"), e);
