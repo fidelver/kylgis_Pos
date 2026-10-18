@@ -38,7 +38,7 @@ def audit(jar=None, expected_head=None):
         except (OSError, ET.ParseError) as exc:
             failures.append(f"{source.name}: XML/read error: {exc}")
             continue
-        if root.tag != NS + "jasperReport":
+        if root.tag.rsplit("}", 1)[-1] != "jasperReport":
             failures.append(f"{source.name}: unexpected Jasper root {root.tag}")
         if b"arial" in raw.lower():
             failures.append(f"{source.name}: legacy Arial literal")
