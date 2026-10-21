@@ -239,11 +239,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         return ticketstatus;
     }
     public void setTicketStatus(int ticketstatus) {
-        if (m_iTicketId >0) {
-            this.ticketstatus = m_iTicketId;
-        }else{
-            this.ticketstatus = ticketstatus;
-        }
+        this.ticketstatus = ticketstatus;
     }
     
     public void setPickupId(int iTicketId) {
