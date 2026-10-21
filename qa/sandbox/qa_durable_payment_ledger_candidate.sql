@@ -11,7 +11,7 @@ CREATE TABLE qa_sale_operation_intents (
  PRIMARY KEY (operation_uuid),
  UNIQUE KEY qa_unique_receipt (receipt_id),
  CONSTRAINT qa_operation_state_chk CHECK (state IN
- ('PREPARED','COMMIT_UNKNOWN','DB_CONFIRMED','DB_NOT_CONFIRMED','BANK_RECONCILIATION','RECONCILED')),
+ ('PREPARED','IN_FLIGHT','COMMIT_UNKNOWN','DB_CONFIRMED','DB_NOT_CONFIRMED','BANK_RECONCILIATION','RECONCILED')),
  CONSTRAINT qa_operation_uuid_nonempty CHECK (CHAR_LENGTH(operation_uuid)=36)
 ) ENGINE=InnoDB;
 CREATE TABLE qa_external_payment_intents (

@@ -72,4 +72,16 @@ reconcile="UPDATE qa_sale_operation_intents SET state='DB_CONFIRMED',revision=re
 [[ "$(query "$reconcile")" == 1 ]] || { echo QA_RECONCILE_CAS_FAILED;exit 10; }
 [[ "$(query "$reconcile")" == 0 ]] || { echo QA_DUPLICATE_RECONCILE_ALLOWED;exit 10; }
 echo "PASS_RECONCILIATION_SINGLE_WIN"
-echo "QA_LEDGER_CONSTRAINTS_PASS version=$version checks=13"
+# Claim must be exclusive BEFORE entering the POS sale transaction.
+query "INSERT INTO qa_sale_operation_intents(operation_uuid,receipt_id,terminal_id) VALUES ('00000000-0000-0000-0000-000000000004','CLAIM-R3','C1')"
+claim="UPDATE qa_sale_operation_intents SET state='IN_FLIGHT',revision=revision+1 WHERE receipt_id='CLAIM-R3' AND state='PREPARED' AND revision=0; SELECT ROW_COUNT()"
+query "$claim" > "$tmp/one" & one=$!
+query "$claim" > "$tmp/two" & two=$!
+wait "$one"
+wait "$two"
+[[ "$(sort -n "$tmp/one" "$tmp/two" | tr '\n' ',')" == '0,1,' ]] || { echo QA_CLAIM_MULTIPLE_WINNERS; exit 12; }
+[[ "$(query "SELECT CONCAT(state,':',revision) FROM qa_sale_operation_intents WHERE receipt_id='CLAIM-R3'")" == "IN_FLIGHT:1" ]] || { echo QA_CLAIM_STATE_BAD; exit 12; }
+# An in-flight operation cannot be claimed again or silently reset on timeout.
+[[ "$(query "$claim")" == 0 ]] || { echo QA_INFLIGHT_DUPLICATE_ALLOWED; exit 12; }
+echo "PASS_EXCLUSIVE_PRECOMMIT_CLAIM"
+echo "QA_LEDGER_CONSTRAINTS_PASS version=$version checks=15"
