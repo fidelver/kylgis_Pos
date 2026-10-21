@@ -1884,8 +1884,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
             @Override
             public void writeValues() throws BasicException {
-                setInt(1, ticket.getTicketId());
-                setInt(2, ticket.getTicketStatus());                
+                setInt(1, ticket.getTicketStatus());
+                setInt(2, ticket.getTicketId());                
             }
         });
 
