@@ -61,4 +61,15 @@ wait "$two"
 [[ "$(sort -n "$tmp/one" "$tmp/two" | tr '\n' ',')" == '0,1,' ]] || { echo QA_CONCURRENT_CAS_NOT_SINGLE_WINNER; cat "$tmp/one" "$tmp/two"; exit 9; }
 [[ "$(query "SELECT CONCAT(state,':',revision) FROM qa_sale_operation_intents WHERE receipt_id='RACE-R2'")" == "COMMIT_UNKNOWN:1" ]] || { echo QA_CONCURRENT_STATE_MISMATCH; exit 9; }
 echo "PASS_CAS_TWO_PROCESSES_ONE_WIN"
-echo "QA_LEDGER_CONSTRAINTS_PASS version=$version checks=10"
+# Simulate two independent terminals reconnecting after process restart.
+# The ledger must retain COMMIT_UNKNOWN and prevent any new payment authorization claim.
+[[ "$(query "SELECT state FROM qa_sale_operation_intents WHERE receipt_id='RACE-R2'")" == 'COMMIT_UNKNOWN' ]] || { echo QA_RESTART_STATE_LOST;exit 10; }
+echo "PASS_CROSS_PROCESS_UNKNOWN_PERSISTED"
+[[ "$(query "$race")" == 0 ]] || { echo QA_RESTART_RETRY_ALLOWED;exit 10; }
+echo "PASS_CROSS_PROCESS_RETRY_BLOCKED"
+# Reconciliation cannot infer COMMIT success; it must supply an independently checked DB confirmation.
+reconcile="UPDATE qa_sale_operation_intents SET state='DB_CONFIRMED',revision=revision+1 WHERE receipt_id='RACE-R2' AND state='COMMIT_UNKNOWN' AND revision=1;SELECT ROW_COUNT()"
+[[ "$(query "$reconcile")" == 1 ]] || { echo QA_RECONCILE_CAS_FAILED;exit 10; }
+[[ "$(query "$reconcile")" == 0 ]] || { echo QA_DUPLICATE_RECONCILE_ALLOWED;exit 10; }
+echo "PASS_RECONCILIATION_SINGLE_WIN"
+echo "QA_LEDGER_CONSTRAINTS_PASS version=$version checks=13"
