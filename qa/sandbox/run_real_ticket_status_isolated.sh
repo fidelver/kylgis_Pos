@@ -34,10 +34,13 @@ mkdir -p "$tmp/classes"
 "$jdk/bin/javac" --release 21 -cp "$sealed:$mysql:$commons" -d "$tmp/classes" \
  "$root/src/main/java/com/mx/kylgis/pos/ticket/TicketInfo.java" \
  "$root/src/main/java/com/mx/kylgis/pos/forms/DataLogicSales.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/data/loader/Transaction.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/data/loader/TransactionOutcomeUnknownException.java" \
  "$root/qa/manual/TicketStatusSchemaProbe.java" \
  "$root/qa/manual/RealTicketStatusSaveProbe.java" \
  "$root/qa/manual/RealVoucherDiscountRaceProbe.java" \
  "$root/qa/manual/RealSaveTicketAckLossProbe.java" \
+ "$root/qa/manual/UnknownCommitFlagSerializationProbe.java" \
  "$root/qa/manual/TicketStatusSetterProbe.java"
 echo STATUS_QA_COMPILED_REAL_CORE_CLASSES
 podman run -d --rm --name "$name" --network none --read-only --cpus 2 --memory 1g \
@@ -60,6 +63,9 @@ podman cp "$sealed" "$name:/tmp/qa-core13.jar"
 podman cp "$mysql" "$name:/tmp/qa-mysql.jar"
 podman cp "$commons" "$name:/tmp/qa-commons-lang.jar"
 cpvalue="/tmp/qa-status-classes:/tmp/qa-core13.jar:/tmp/qa-mysql.jar:/tmp/qa-commons-lang.jar"
+echo LOCAL_UNKNOWN_COMMIT_FLAG_SERIALIZATION_START
+podman exec "$name" /opt/jdk/bin/java -Xmx128m -Duser.home=/tmp/qa-home \
+ -cp "$cpvalue" UnknownCommitFlagSerializationProbe
 echo "REAL_CORE_SCHEMA_QA_START mariadb=$version"
 podman exec "$name" /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
  -cp "$cpvalue" TicketStatusSchemaProbe

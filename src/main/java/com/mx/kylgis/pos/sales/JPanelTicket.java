@@ -26,6 +26,7 @@ import com.mx.kylgis.pos.data.gui.ComboBoxValModel;
 import com.mx.kylgis.pos.data.gui.ListKeyed;
 import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.data.loader.SentenceList;
+import com.mx.kylgis.pos.data.loader.TransactionOutcomeUnknownException;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
 import com.mx.kylgis.pos.customers.CustomerInfoGlobal;
 import com.mx.kylgis.pos.customers.DataLogicCustomers;
@@ -98,6 +99,8 @@ import net.sf.jasperreports.engine.xml.JRXmlLoader;
  */
 public abstract class JPanelTicket extends JPanel implements JPanelView, BeanFactoryApp, TicketsEditor {
    
+    private static final String UNKNOWN_COMMIT_PROPERTY = "kylgis.commit.outcome.unknown";
+
     private final static int NUMBERZERO = 0;
     private final static int NUMBERVALID = 1;
     
@@ -1751,6 +1754,14 @@ System.out.println("PanelContainer : Focus Lost");
 
    
     private boolean closeTicket(TicketInfo ticket, Object ticketext) {
+        if ("true".equalsIgnoreCase(ticket.getProperty(UNKNOWN_COMMIT_PROPERTY))) {
+            JOptionPane.showMessageDialog(this,
+                    "El resultado anterior del COMMIT es desconocido. No vuelva a cobrar, "
+                    + "canjear el cupón ni reintentar la venta hasta conciliar con el servidor.\n"
+                    + "Identificador de recibo: " + ticket.getId(),
+                    "Venta pendiente de conciliación", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
         if (PlatformOrderDialog.isPlatformOrder(ticket)
                 && !PlatformOrderDialog.hasValidCode(ticket)) {
             JOptionPane.showMessageDialog(this,
@@ -1846,6 +1857,20 @@ System.out.println("PanelContainer : Focus Lost");
                             try {
                                 dlSales.saveTicket(ticket, m_App.getInventoryLocation());
                             } catch (BasicException eData) {
+                                if (eData instanceof TransactionOutcomeUnknownException) {
+                                    // A lost COMMIT response is not proof of rollback.
+                                    // Preserve the receipt and folio for authoritative reconciliation.
+                                    ticket.setProperty(UNKNOWN_COMMIT_PROPERTY, "true");
+                                    JOptionPane.showMessageDialog(this,
+                                            "La comunicación falló al confirmar la venta y el resultado "
+                                            + "puede estar registrado en MariaDB.\n"
+                                            + "No vuelva a cobrar, canjear cupones, imprimir cierre ni "
+                                            + "reintentar sin conciliación.\n"
+                                            + "Recibo: " + ticket.getId() + " / folio provisional: "
+                                            + ticket.getTicketId(),
+                                            "COMMIT de resultado desconocido", JOptionPane.ERROR_MESSAGE);
+                                    return false;
+                                }
                                 // saveTicket is transactional. A failed transaction may have
                                 // assigned a sequence value to this Java object before rollback;
                                 // it must not be treated as a committed folio on retry.

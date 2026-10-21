@@ -1,5 +1,6 @@
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.data.loader.Session;
+import com.mx.kylgis.pos.data.loader.TransactionOutcomeUnknownException;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.ticket.*;
 import com.mx.kylgis.pos.payment.PaymentInfoCash;
@@ -140,6 +141,12 @@ public final class RealSaveTicketAckLossProbe {
                     logic.saveTicket(sale,"0");
                     throw new AssertionError("COMMIT_ACK_WAS_NOT_LOST");
                 }catch(BasicException expected){
+                    ck(expected instanceof TransactionOutcomeUnknownException,
+                            "COMMIT_FAILURE_TYPED_UNKNOWN");
+                    TransactionOutcomeUnknownException unknown =
+                            (TransactionOutcomeUnknownException) expected;
+                    ck(unknown.getPhase()==TransactionOutcomeUnknownException.Phase.COMMIT,
+                            "COMMIT_FAILURE_PHASE_RECORDED");
                     clientReportedFailure=true;
                     System.out.println("EXPECTED_COMMIT_COMMUNICATION_FAILURE="
                             +expected.getClass().getSimpleName());
