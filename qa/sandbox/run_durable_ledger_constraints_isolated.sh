@@ -27,7 +27,8 @@ podman run -d --rm --name "$name" --network none --read-only \
 owned=1
 ready=0
 for _ in $(seq 1 90); do
- if podman exec "$name" mariadb -uroot --protocol=SOCKET -e 'SELECT 1' >/dev/null 2>&1; then ready=1;break;fi
+ if podman logs "$name" 2>&1 | grep -F 'MariaDB init process done. Ready for start up.' >/dev/null \
+ && podman exec "$name" mariadb -uroot --protocol=SOCKET -e 'SELECT 1' >/dev/null 2>&1; then ready=1;break;fi
  sleep 1
 done
 [[ "$ready" == 1 ]] || { echo "QA_DB_NOT_READY";exit 4; }
