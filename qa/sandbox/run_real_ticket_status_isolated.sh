@@ -36,6 +36,8 @@ mkdir -p "$tmp/classes"
  "$root/src/main/java/com/mx/kylgis/pos/forms/DataLogicSales.java" \
  "$root/qa/manual/TicketStatusSchemaProbe.java" \
  "$root/qa/manual/RealTicketStatusSaveProbe.java" \
+ "$root/qa/manual/RealVoucherDiscountRaceProbe.java" \
+ "$root/qa/manual/RealSaveTicketAckLossProbe.java" \
  "$root/qa/manual/TicketStatusSetterProbe.java"
 echo STATUS_QA_COMPILED_REAL_CORE_CLASSES
 podman run -d --rm --name "$name" --network none --read-only --cpus 2 --memory 1g \
@@ -66,3 +68,13 @@ podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
  -cp "$cpvalue" RealTicketStatusSaveProbe
 echo "REAL_SAVE_TICKET_STATUS_QA_PASS mariadb=$version"
+echo REAL_VOUCHER_DISCOUNT_RACE_START
+podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
+ /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+ -cp "$cpvalue" RealVoucherDiscountRaceProbe
+echo "REAL_VOUCHER_RACE_QA_PASS mariadb=$version"
+echo REAL_SAVE_TICKET_ACK_LOSS_START
+podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
+ /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+ -cp "$cpvalue" RealSaveTicketAckLossProbe
+echo "REAL_SAVE_TICKET_ACK_LOSS_QA_PASS mariadb=$version"
