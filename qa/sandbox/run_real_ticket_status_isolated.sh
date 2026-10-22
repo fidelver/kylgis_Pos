@@ -42,6 +42,7 @@ mkdir -p "$tmp/classes"
  "$root/qa/manual/RealTicketStatusSaveProbe.java" \
  "$root/qa/manual/RealVoucherDiscountRaceProbe.java" \
  "$root/qa/manual/RealSaveTicketAckLossProbe.java" \
+ "$root/qa/manual/RestartedSaleLedgerProbe.java" \
  "$root/qa/manual/UnknownCommitFlagSerializationProbe.java" \
  "$root/qa/manual/TicketStatusSetterProbe.java"
 echo STATUS_QA_COMPILED_REAL_CORE_CLASSES
@@ -91,5 +92,6 @@ echo REAL_SAVE_TICKET_ACK_LOSS_START
 podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS \
  -e KYLGIS_QA_LEDGER_ACK_OPTIN="${KYLGIS_QA_LEDGER_ACK_OPTIN:-0}" "$name" \
  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+ -Djdk.lang.Process.launchMechanism=FORK \
  -cp "$cpvalue" RealSaveTicketAckLossProbe
 echo "REAL_SAVE_TICKET_ACK_LOSS_QA_PASS mariadb=$version"

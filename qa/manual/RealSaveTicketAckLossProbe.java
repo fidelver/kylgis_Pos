@@ -199,6 +199,12 @@ public final class RealSaveTicketAckLossProbe {
                 } finally { retry.close(); }
                 ck(count(fresh,"SELECT COUNT(*) FROM payments WHERE receipt=?",sale.getId())==1,
                         "ACK_NO_DUPLICATE_PAYMENT_AFTER_RETRY");
+                Process restarted = new ProcessBuilder(
+                        System.getProperty("java.home") + "/bin/java",
+                        "-cp",System.getProperty("java.class.path"),
+                        "RestartedSaleLedgerProbe","isolated-restart-qa",operationId)
+                        .inheritIO().start();
+                ck(restarted.waitFor()==0,"ACK_RESTART_SEPARATE_JVM_PASS");
             }
         }
         System.out.println("CORE_SAVE_TICKET_TCP_ACK_LOSS_CONFIRMED checks="+checks);
