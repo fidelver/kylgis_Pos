@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Entirely synthetic MariaDB, real CORE1.3 Session and DataLogicSales.saveTicket.
 set -Eeuo pipefail
+if [[ "${KYLGIS_QA_LEDGER_ACK_OPTIN:-0}" == 1 && "${KYLGIS_QA_LEDGER_OPTIN:-0}" != 1 ]]; then
+ echo REFUSE_ACK_LEDGER_WITHOUT_SCHEMA >&2; exit 2
+fi
 version="${KYLGIS_QA_MARIADB_VERSION:-10.11}"
 case "$version" in 10.11|11.8|12.3.3) ;; *) echo REFUSE_IMAGE;exit 2;; esac
 image="docker.io/library/mariadb:$version"
@@ -43,6 +46,10 @@ mkdir -p "$tmp/classes"
  "$root/qa/manual/RealVoucherDiscountRaceProbe.java" \
  "$root/qa/manual/RealSaveTicketAckLossProbe.java" \
  "$root/qa/manual/RestartedSaleLedgerProbe.java" \
+ "$root/qa/manual/ExitedProcessSaleRecoveryProbe.java" \
+ "$root/qa/manual/IndependentCashboxesProbe.java" \
+ "$root/qa/manual/SyntheticBankService.java" \
+ "$root/qa/manual/IndependentBankFlowProbe.java" \
  "$root/qa/manual/UnknownCommitFlagSerializationProbe.java" \
  "$root/qa/manual/TicketStatusSetterProbe.java"
 echo STATUS_QA_COMPILED_REAL_CORE_CLASSES
@@ -90,8 +97,30 @@ podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
 echo "REAL_VOUCHER_RACE_QA_PASS mariadb=$version"
 echo REAL_SAVE_TICKET_ACK_LOSS_START
 podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS \
- -e KYLGIS_QA_LEDGER_ACK_OPTIN="${KYLGIS_QA_LEDGER_ACK_OPTIN:-0}" "$name" \
+ -e KYLGIS_QA_LEDGER_ACK_OPTIN="${KYLGIS_QA_LEDGER_ACK_OPTIN:-0}" \
+ -e KYLGIS_QA_RESTART_TICKET=/tmp/qa-home/ack-ticket.bin "$name" \
  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
  -Djdk.lang.Process.launchMechanism=FORK \
  -cp "$cpvalue" RealSaveTicketAckLossProbe
 echo "REAL_SAVE_TICKET_ACK_LOSS_QA_PASS mariadb=$version"
+
+if [[ "${KYLGIS_QA_LEDGER_ACK_OPTIN:-0}" == 1 ]]; then
+ echo FIRST_ACK_JVM_EXITED_BEFORE_RECOVERY_START
+ podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
+  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+  -cp "$cpvalue" ExitedProcessSaleRecoveryProbe
+fi
+if [[ "${KYLGIS_QA_LEDGER_OPTIN:-0}" == 1 ]]; then
+ podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
+  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+  -Djdk.lang.Process.launchMechanism=FORK \
+  -cp "$cpvalue" IndependentCashboxesProbe
+fi
+
+if [[ "${KYLGIS_QA_BANK_OPTIN:-0}" == 1 ]]; then
+ [[ "${KYLGIS_QA_LEDGER_OPTIN:-0}" == 1 ]] || { echo REFUSE_BANK_WITHOUT_LEDGER;exit 2; }
+ podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
+  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+  -Djdk.lang.Process.launchMechanism=FORK \
+  -cp "$cpvalue" IndependentBankFlowProbe
+fi

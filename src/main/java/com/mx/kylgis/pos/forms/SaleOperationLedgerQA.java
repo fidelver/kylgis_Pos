@@ -74,7 +74,36 @@ final class SaleOperationLedgerQA {
                 p.setString(1,id);
                 p.setString(2,ticket.getId());
                 p.setString(3,ticket.getActiveCash() == null ? "QA-UNKNOWN" : ticket.getActiveCash());
-                p.executeUpdate();
+                try {
+                    p.executeUpdate();
+                } catch (SQLException duplicate) {
+                    if (duplicate.getErrorCode() != 1062
+                            || !"23000".equals(duplicate.getSQLState())) throw duplicate;
+                    // A pre-payment QA coordinator may have durably reserved the
+                    // exact identity. A duplicate alone never authorizes a claim.
+                }
+            }
+            try (PreparedStatement p = c.prepareStatement(
+                    "SELECT receipt_id,terminal_id,state,revision FROM qa_sale_operation_intents WHERE operation_uuid=?")) {
+                p.setString(1,id);
+                try (ResultSet r = p.executeQuery()) {
+                    String terminal = ticket.getActiveCash() == null ? "QA-UNKNOWN" : ticket.getActiveCash();
+                    if (!r.next() || !ticket.getId().equals(r.getString(1))
+                            || !terminal.equals(r.getString(2))
+                            || !"PREPARED".equals(r.getString(3)) || r.getLong(4) != 0) {
+                        throw new SQLException("QA_LEDGER_RESERVED_IDENTITY_MISMATCH_OR_NOT_PREPARED");
+                    }
+                }
+            }
+            // Unknown/declined external components forbid the DB sale. QA only:
+            // provider authenticity is the private synthetic coordinator's job.
+            try (PreparedStatement p = c.prepareStatement(
+                    "SELECT COUNT(*) FROM qa_external_payment_intents WHERE operation_uuid=? AND state NOT IN ('APPROVED','RECONCILED')")) {
+                p.setString(1,id);
+                try (ResultSet r = p.executeQuery()) {
+                    if (!r.next() || r.getInt(1) != 0)
+                        throw new SQLException("QA_LEDGER_BANK_RECONCILIATION_REQUIRED");
+                }
             }
             int changed = transition(c, id, "PREPARED", "IN_FLIGHT", 0);
             if (changed != 1) {

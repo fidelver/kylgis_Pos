@@ -199,12 +199,23 @@ public final class RealSaveTicketAckLossProbe {
                 } finally { retry.close(); }
                 ck(count(fresh,"SELECT COUNT(*) FROM payments WHERE receipt=?",sale.getId())==1,
                         "ACK_NO_DUPLICATE_PAYMENT_AFTER_RETRY");
+                String restartFile = System.getenv("KYLGIS_QA_RESTART_TICKET");
+                if (restartFile != null) {
+                    if (!restartFile.equals("/tmp/qa-home/ack-ticket.bin"))
+                        throw new SecurityException("REFUSE_RESTART_PATH");
+                    try (ObjectOutputStream out = new ObjectOutputStream(
+                            new FileOutputStream(restartFile))) {
+                        out.writeObject(sale);
+                    }
+                    System.out.println("ACK_HANDOFF_DURABLE_FIRST_JVM_EXIT_PENDING");
+                } else {
                 Process restarted = new ProcessBuilder(
                         System.getProperty("java.home") + "/bin/java",
                         "-cp",System.getProperty("java.class.path"),
                         "RestartedSaleLedgerProbe","isolated-restart-qa",operationId)
                         .inheritIO().start();
                 ck(restarted.waitFor()==0,"ACK_RESTART_SEPARATE_JVM_PASS");
+                }
             }
         }
         System.out.println("CORE_SAVE_TICKET_TCP_ACK_LOSS_CONFIRMED checks="+checks);
