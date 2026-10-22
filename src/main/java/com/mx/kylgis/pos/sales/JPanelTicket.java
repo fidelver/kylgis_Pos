@@ -449,8 +449,11 @@ System.out.println("PanelContainer : Focus Lost");
        
         if (m_oTicket != null) {            
             m_oTicket.setUser(m_App.getAppUserView().getUser().getUserInfo());
-            m_oTicket.setActiveCash(m_App.getActiveCashIndex());
-            m_oTicket.setDate(new Date());
+            // Retain the originating cash session and timestamp until reconciliation.
+            if (!m_oTicket.requiresPaymentReconciliation()) {
+                m_oTicket.setActiveCash(m_App.getActiveCashIndex());
+                m_oTicket.setDate(new Date());
+            }
             
             if ("restaurant".equals(m_App.getProperties().getProperty("machine.ticketsbag"))
                     && !oTicket.getOldTicket()){            
@@ -1753,13 +1756,20 @@ System.out.println("PanelContainer : Focus Lost");
     }
 
    
-    private boolean closeTicket(TicketInfo ticket, Object ticketext) {
-        if (ticket.requiresPaymentReconciliation()) {
+    private boolean blockPendingPaymentRecovery(TicketInfo ticket) {
+        if (ticket != null && ticket.requiresPaymentReconciliation()) {
             JOptionPane.showMessageDialog(this,
                     "La venta contiene pagos recuperados o una confirmación pendiente. No vuelva a cobrar, "
                     + "canjear el cupón ni reintentar la venta hasta conciliar con el servidor.\n"
                     + "Identificador de recibo: " + ticket.getId(),
                     "Venta pendiente de conciliación", JOptionPane.ERROR_MESSAGE);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean closeTicket(TicketInfo ticket, Object ticketext) {
+        if (blockPendingPaymentRecovery(ticket)) {
             return false;
         }
         if (PlatformOrderDialog.isPlatformOrder(ticket)
@@ -3360,6 +3370,10 @@ System.out.println("PanelContainer : Focus Lost");
     }//GEN-LAST:event_btnReprint1ActionPerformed
 
     private void btnSplitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSplitActionPerformed
+        // Splitting creates a new receipt; check the source before any dialog or copy.
+        if (blockPendingPaymentRecovery(m_oTicket)) {
+            return;
+        }
 
         if (m_oTicket.getLinesCount() > 0) {
             ReceiptSplit splitdialog = ReceiptSplit.getDialog(this,

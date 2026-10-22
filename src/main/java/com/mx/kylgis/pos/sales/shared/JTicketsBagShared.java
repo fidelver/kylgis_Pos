@@ -104,7 +104,15 @@ public class JTicketsBagShared extends JTicketsBag {
      *
     */
     @Override
-    public void deleteTicket() {   
+    public void deleteTicket() {
+        TicketInfo active = m_panelticket.getActiveTicket();
+        if (active != null && active.requiresPaymentReconciliation()) {
+            JOptionPane.showMessageDialog(this,
+                    "La venta requiere conciliación y no se puede descartar.\n"
+                    + "Identificador de recibo: " + active.getId(),
+                    "Venta pendiente de conciliación", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         
         dlSystem.execTicketRemoved(
             new Object[] {
@@ -162,7 +170,7 @@ public class JTicketsBagShared extends JTicketsBag {
                     m_panelticket.getActiveTicket().getPickupId());
                     m_jListTickets.setText("*");
                 TicketInfo l = dlReceipts.getSharedTicket(m_sCurrentTicket);
-                    if(l.getLinesCount() == 0) {
+                    if(l.getLinesCount() == 0 && !l.requiresPaymentReconciliation()) {
                         dlReceipts.deleteSharedTicket(m_sCurrentTicket);
                     }             
             } catch (BasicException e) {
