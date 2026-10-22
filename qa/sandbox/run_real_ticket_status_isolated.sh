@@ -88,7 +88,8 @@ podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
  -cp "$cpvalue" RealVoucherDiscountRaceProbe
 echo "REAL_VOUCHER_RACE_QA_PASS mariadb=$version"
 echo REAL_SAVE_TICKET_ACK_LOSS_START
-podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
+podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS \
+ -e KYLGIS_QA_LEDGER_ACK_OPTIN="${KYLGIS_QA_LEDGER_ACK_OPTIN:-0}" "$name" \
  /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
  -cp "$cpvalue" RealSaveTicketAckLossProbe
 echo "REAL_SAVE_TICKET_ACK_LOSS_QA_PASS mariadb=$version"

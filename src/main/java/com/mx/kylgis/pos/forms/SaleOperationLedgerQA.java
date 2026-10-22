@@ -25,7 +25,19 @@ final class SaleOperationLedgerQA {
     }
 
     private static Connection connection(Session session) throws SQLException {
-        Connection independent = session.openIndependentConnectionForQA();
+        // The loopback-only override lets the QA COMMIT-ACK proxy carry the sale
+        // while ledger writes go to the independently reachable synthetic DB.
+        String qaDirect = System.getProperty("kylgis.qa.durableLedger.directJdbcUrl");
+        Connection independent;
+        if (qaDirect != null) {
+            if (!qaDirect.startsWith("jdbc:mysql://127.0.0.1:3306/pos_qa_status?")
+                    || !qaDirect.contains("useSSL=false")) {
+                throw new SQLException("QA_LEDGER_REFUSE_DIRECT_URL");
+            }
+            independent = java.sql.DriverManager.getConnection(qaDirect, "root", "");
+        } else {
+            independent = session.openIndependentConnectionForQA();
+        }
         try {
             if (!"pos_qa_status".equals(independent.getCatalog())) {
                 throw new SQLException("QA_LEDGER_REFUSE_NON_SYNTHETIC_DATABASE");

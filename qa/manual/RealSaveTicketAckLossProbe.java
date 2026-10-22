@@ -128,11 +128,16 @@ public final class RealSaveTicketAckLossProbe {
                         +"VALUES('QA-ACK-ID','QA-ACK-NUM',30,'A')");
             }
         }
+        boolean ledgerEnabled = "1".equals(System.getenv("KYLGIS_QA_LEDGER_ACK_OPTIN"));
         TicketInfo sale=ticket();
         boolean clientReportedFailure=false;
         try(AckDropProxy proxy=new AckDropProxy()){
             String url="jdbc:mysql://127.0.0.1:"+proxy.port()+"/"+DB
                     +"?useSSL=false&connectTimeout=3000&socketTimeout=5000";
+            if (ledgerEnabled) {
+                System.setProperty("kylgis.qa.durableLedger.enabled", "true");
+                System.setProperty("kylgis.qa.durableLedger.directJdbcUrl", DIRECT);
+            }
             Session session=new Session(url,"root","");
             try{
                 DataLogicSales logic=new DataLogicSales();
@@ -173,6 +178,28 @@ public final class RealSaveTicketAckLossProbe {
                     sale.getId())==1,"ACK_DURABLE_REDEMPTION");
             ck(count(fresh,"SELECT COUNT(*) FROM vouchers WHERE id=? AND status='D'",
                     "QA-ACK-ID")==1,"ACK_DURABLE_VOUCHER_CONSUMPTION");
+            if (ledgerEnabled) {
+                String operationId=sale.getProperty("kylgis.qa.durableLedger.operationUuid");
+                ck(operationId!=null && !operationId.isBlank(),"ACK_LEDGER_OPERATION_PERSISTED");
+                ck(count(fresh,"SELECT COUNT(*) FROM qa_sale_operation_intents "
+                        +"WHERE operation_uuid=? AND state='COMMIT_UNKNOWN' AND revision=2",
+                        operationId)==1,"ACK_LEDGER_UNKNOWN_DURABLE");
+                Session retry=new Session(DIRECT,"root","");
+                try {
+                    DataLogicSales sameSale=new DataLogicSales();
+                    sameSale.init(retry);
+                    try{
+                        sameSale.saveTicket(sale,"0");
+                        throw new AssertionError("ACK_DUPLICATE_SALE_ALLOWED");
+                    }catch(BasicException blocked){
+                        ck(blocked.getMessage()!=null
+                            && blocked.getMessage().contains("preparation is not confirmed"),
+                            "ACK_RETRY_SAME_RECEIPT_BLOCKED");
+                    }
+                } finally { retry.close(); }
+                ck(count(fresh,"SELECT COUNT(*) FROM payments WHERE receipt=?",sale.getId())==1,
+                        "ACK_NO_DUPLICATE_PAYMENT_AFTER_RETRY");
+            }
         }
         System.out.println("CORE_SAVE_TICKET_TCP_ACK_LOSS_CONFIRMED checks="+checks);
         System.out.println("NO_AUTOMATIC_RETRY_OR_REFUND_TESTED_OR_PERMITTED");
