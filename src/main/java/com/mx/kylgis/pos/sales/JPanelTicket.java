@@ -1754,9 +1754,9 @@ System.out.println("PanelContainer : Focus Lost");
 
    
     private boolean closeTicket(TicketInfo ticket, Object ticketext) {
-        if ("true".equalsIgnoreCase(ticket.getProperty(UNKNOWN_COMMIT_PROPERTY))) {
+        if (ticket.requiresPaymentReconciliation()) {
             JOptionPane.showMessageDialog(this,
-                    "El resultado anterior del COMMIT es desconocido. No vuelva a cobrar, "
+                    "La venta contiene pagos recuperados o una confirmación pendiente. No vuelva a cobrar, "
                     + "canjear el cupón ni reintentar la venta hasta conciliar con el servidor.\n"
                     + "Identificador de recibo: " + ticket.getId(),
                     "Venta pendiente de conciliación", JOptionPane.ERROR_MESSAGE);

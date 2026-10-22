@@ -14,6 +14,11 @@ public final class ExitedProcessSaleRecoveryProbe {
     try(ObjectInputStream in=new ObjectInputStream(new FileInputStream("/tmp/qa-home/ack-ticket.bin"))){
       ticket=(TicketInfo)in.readObject();
     }
+    ck(ticket.getPayments().size()==1,"EXITED_JVM_PAYMENT_CONTEXT_PRESERVED");
+    ck(ticket.getVoucherDiscounts().size()==1,"EXITED_JVM_VOUCHER_CONTEXT_PRESERVED");
+    ck(ticket.requiresPaymentReconciliation(),"EXITED_JVM_RECOVERED_CONTEXT_BLOCKED");
+    // QA-only bypass of the UI guard to independently test the durable barrier.
+    ticket.getProperties().remove(TicketInfo.PAYMENT_RECONCILIATION_PROPERTY);
     String op=ticket.getProperty("kylgis.qa.durableLedger.operationUuid");
     java.util.UUID.fromString(op);
     RestartedSaleLedgerProbe.main(new String[]{"isolated-restart-qa",op});

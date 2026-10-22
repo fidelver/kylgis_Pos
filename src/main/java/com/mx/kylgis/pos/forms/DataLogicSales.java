@@ -1742,6 +1742,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     }
 
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
+        if (ticket.requiresPaymentReconciliation()) {
+            throw new BasicException("Payment recovery preparation is not confirmed; reconcile before saving or charging.");
+        }
 
     Transaction t;
     t = new Transaction(s) {

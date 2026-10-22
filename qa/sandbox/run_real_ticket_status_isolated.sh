@@ -36,6 +36,9 @@ tmp="$(mktemp -d /tmp/kylgis-status-save.XXXXXX)"
 mkdir -p "$tmp/classes"
 "$jdk/bin/javac" --release 21 -cp "$sealed:$mysql:$commons" -d "$tmp/classes" \
  "$root/src/main/java/com/mx/kylgis/pos/ticket/TicketInfo.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/ticket/TicketPaymentContext.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/payment/PaymentInfoCash.java" \
+ "$root/qa/manual/PaymentContextSerializationProbe.java" \
  "$root/src/main/java/com/mx/kylgis/pos/forms/DataLogicSales.java" \
  "$root/src/main/java/com/mx/kylgis/pos/forms/SaleOperationLedgerQA.java" \
  "$root/src/main/java/com/mx/kylgis/pos/data/loader/Session.java" \
@@ -73,6 +76,9 @@ podman cp "$sealed" "$name:/tmp/qa-core13.jar"
 podman cp "$mysql" "$name:/tmp/qa-mysql.jar"
 podman cp "$commons" "$name:/tmp/qa-commons-lang.jar"
 cpvalue="/tmp/qa-status-classes:/tmp/qa-core13.jar:/tmp/qa-mysql.jar:/tmp/qa-commons-lang.jar"
+echo PAYMENT_CONTEXT_SERIALIZATION_START
+podman exec "$name" /opt/jdk/bin/java -Xmx128m -Duser.home=/tmp/qa-home \
+ -cp "$cpvalue" PaymentContextSerializationProbe
 echo LOCAL_UNKNOWN_COMMIT_FLAG_SERIALIZATION_START
 podman exec "$name" /opt/jdk/bin/java -Xmx128m -Duser.home=/tmp/qa-home \
  -cp "$cpvalue" UnknownCommitFlagSerializationProbe

@@ -141,6 +141,7 @@ public final class IndependentBankFlowProbe {
         blocked(t);
         ck("NOT_FOUND".equals(request("QUERY "+pay,1000)),"BANK_NO_CHARGE_BEFORE_DURABLE_DISPATCH_"+mode);
         TicketInfo conflicting=t.copyTicket();
+        conflicting.getProperties().remove(TicketInfo.PAYMENT_RECONCILIATION_PROPERTY); // QA: test ledger binding independently
         ck(!conflicting.getId().equals(t.getId()),"BANK_CONFLICT_FIXTURE_DIFFERENT_RECEIPT");
         blocked(conflicting);
         t.setActiveCash("QA-OTHER-TERMINAL");
