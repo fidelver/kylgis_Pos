@@ -1977,7 +1977,18 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         }
     };
 
-        t.execute();
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareAndClaim(s, ticket);
+            try {
+                t.execute();
+            } catch (BasicException uncertainty) {
+                SaleOperationLedgerQA.holdUnknown(s, ticket);
+                throw uncertainty;
+            }
+            SaleOperationLedgerQA.commitConfirmed(s, ticket);
+        } else {
+            t.execute();
+        }
 }
 
     /**

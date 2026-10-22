@@ -73,6 +73,21 @@ public final class RealTicketStatusSaveProbe {
             ck(oneInt(fresh,"SELECT COUNT(*) FROM ticketlines")==1,"ONE_TICKETLINE");
             ck(oneInt(fresh,"SELECT COUNT(*) FROM payments")==1,"ONE_PAYMENT");
             ck(oneInt(fresh,"SELECT COUNT(*) FROM receipts")==2,"TWO_RECEIPTS_EXPECTED");
+            if (Boolean.getBoolean("kylgis.qa.durableLedger.enabled")) {
+                String op = ticket.getProperty("kylgis.qa.durableLedger.operationUuid");
+                ck(op != null && !op.isBlank(), "DURABLE_OPERATION_UUID_SET");
+                try (PreparedStatement p = fresh.prepareStatement(
+                        "SELECT state,revision FROM qa_sale_operation_intents "
+                        + "WHERE operation_uuid=? AND receipt_id=?")) {
+                    p.setString(1,op);
+                    p.setString(2,ticket.getId());
+                    try (ResultSet rs=p.executeQuery()) {
+                        ck(rs.next() && "DB_CONFIRMED".equals(rs.getString(1))
+                            && rs.getInt(2)==2, "LEDGER_DB_CONFIRMED_AND_VERSION_2");
+                        ck(!rs.next(), "LEDGER_EXACTLY_ONE_OPERATION");
+                    }
+                }
+            }
         }
         System.out.println("REAL_SAVE_TICKET_STATUS_PASS checks="+checks);
     }

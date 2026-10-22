@@ -130,6 +130,14 @@ public final class Session {
      * @return
      * @throws SQLException
      */
+    /** Independent connection for the explicitly gated isolated sale-ledger QA.
+     * Never shares the transaction-bound connection with saveTicket(). */
+    public Connection openIndependentConnectionForQA() throws SQLException {
+        return (m_sappuser == null && m_spassword == null)
+                ? DriverManager.getConnection(m_surl)
+                : DriverManager.getConnection(m_surl, m_sappuser, m_spassword);
+    }
+
     public Connection getConnection() throws SQLException {
         
         if (!m_bInTransaction) {

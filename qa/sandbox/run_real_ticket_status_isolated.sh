@@ -34,6 +34,8 @@ mkdir -p "$tmp/classes"
 "$jdk/bin/javac" --release 21 -cp "$sealed:$mysql:$commons" -d "$tmp/classes" \
  "$root/src/main/java/com/mx/kylgis/pos/ticket/TicketInfo.java" \
  "$root/src/main/java/com/mx/kylgis/pos/forms/DataLogicSales.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/forms/SaleOperationLedgerQA.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/data/loader/Session.java" \
  "$root/src/main/java/com/mx/kylgis/pos/data/loader/Transaction.java" \
  "$root/src/main/java/com/mx/kylgis/pos/data/loader/TransactionOutcomeUnknownException.java" \
  "$root/qa/manual/TicketStatusSchemaProbe.java" \
@@ -70,8 +72,14 @@ echo "REAL_CORE_SCHEMA_QA_START mariadb=$version"
 podman exec "$name" /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
  -cp "$cpvalue" TicketStatusSchemaProbe
 echo REAL_SAVE_TICKET_STATUS_START
+ledger_opt=()
+if [[ "${KYLGIS_QA_LEDGER_OPTIN:-0}" == 1 ]]; then
+  podman exec -i "$name" mariadb -uroot --protocol=SOCKET --skip-ssl pos_qa_status < "$root/qa/sandbox/qa_durable_payment_ledger_candidate.sql"
+  ledger_opt=(-Dkylgis.qa.durableLedger.enabled=true)
+  echo QA_LEDGER_OPTIN_SCHEMA_READY
+fi
 podman exec -e KYLGIS_QA_SCOPE=ONLY_SYNTHETIC_POS_STATUS "$name" \
- /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home \
+ /opt/jdk/bin/java -Xmx192m -Duser.home=/tmp/qa-home "${ledger_opt[@]}" \
  -cp "$cpvalue" RealTicketStatusSaveProbe
 echo "REAL_SAVE_TICKET_STATUS_QA_PASS mariadb=$version"
 echo REAL_VOUCHER_DISCOUNT_RACE_START
