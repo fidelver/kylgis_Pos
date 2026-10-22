@@ -66,14 +66,18 @@ final class SaleOperationLedgerQA {
         } catch (IllegalArgumentException invalid) {
             throw new BasicException("QA ledger operation UUID is invalid", invalid);
         }
+        final String requestHash;
+        try { requestHash = SaleOperationPayloadQA.fingerprint(ticket); }
+        catch (java.io.IOException invalid) { throw new BasicException("QA request preparation is not confirmed", invalid); }
         try (Connection c = connection(session)) {
             // Do not silently accept a receipt that belongs to another operation.
             try (PreparedStatement p = c.prepareStatement(
                     "INSERT INTO qa_sale_operation_intents"
-                    + "(operation_uuid,receipt_id,terminal_id,state) VALUES (?,?,?,'PREPARED')")) {
+                    + "(operation_uuid,receipt_id,terminal_id,state,request_sha256) VALUES (?,?,?,'PREPARED',?)")) {
                 p.setString(1,id);
                 p.setString(2,ticket.getId());
                 p.setString(3,ticket.getActiveCash() == null ? "QA-UNKNOWN" : ticket.getActiveCash());
+                p.setString(4,requestHash);
                 try {
                     p.executeUpdate();
                 } catch (SQLException duplicate) {
@@ -84,26 +88,43 @@ final class SaleOperationLedgerQA {
                 }
             }
             try (PreparedStatement p = c.prepareStatement(
-                    "SELECT receipt_id,terminal_id,state,revision FROM qa_sale_operation_intents WHERE operation_uuid=?")) {
+                    "SELECT receipt_id,terminal_id,state,revision,request_sha256 FROM qa_sale_operation_intents WHERE operation_uuid=?")) {
                 p.setString(1,id);
                 try (ResultSet r = p.executeQuery()) {
                     String terminal = ticket.getActiveCash() == null ? "QA-UNKNOWN" : ticket.getActiveCash();
                     if (!r.next() || !ticket.getId().equals(r.getString(1))
                             || !terminal.equals(r.getString(2))
-                            || !"PREPARED".equals(r.getString(3)) || r.getLong(4) != 0) {
+                            || !"PREPARED".equals(r.getString(3)) || r.getLong(4) != 0
+                            || !requestHash.equals(r.getString(5))) {
                         throw new SQLException("QA_LEDGER_RESERVED_IDENTITY_MISMATCH_OR_NOT_PREPARED");
                     }
                 }
             }
-            // Unknown/declined external components forbid the DB sale. QA only:
-            // provider authenticity is the private synthetic coordinator's job.
+            java.util.Set<Integer> external = new java.util.HashSet<>();
             try (PreparedStatement p = c.prepareStatement(
-                    "SELECT COUNT(*) FROM qa_external_payment_intents WHERE operation_uuid=? AND state NOT IN ('APPROVED','RECONCILED')")) {
+                    "SELECT state,currency,amount,component_index,provider_reference FROM qa_external_payment_intents WHERE operation_uuid=?")) {
                 p.setString(1,id);
                 try (ResultSet r = p.executeQuery()) {
-                    if (!r.next() || r.getInt(1) != 0)
-                        throw new SQLException("QA_LEDGER_BANK_RECONCILIATION_REQUIRED");
+                    while (r.next()) {
+                        int index = r.getInt(4);
+                        if (r.wasNull() || index < 0 || index >= ticket.getPayments().size()
+                                || !external.add(index)
+                                || !("APPROVED".equals(r.getString(1)) || "RECONCILED".equals(r.getString(1)))
+                                || !"MXN".equals(r.getString(2)) || r.getString(5) == null || r.getString(5).isBlank())
+                            throw new SQLException("QA_LEDGER_BANK_RECONCILIATION_REQUIRED");
+                        com.mx.kylgis.pos.payment.PaymentInfo payment = ticket.getPayments().get(index);
+                        if (!("magcard".equals(payment.getName()) || "ccard".equals(payment.getName()))
+                                || r.getBigDecimal(3).compareTo(java.math.BigDecimal.valueOf(payment.getTotal())) != 0)
+                            throw new SQLException("QA_LEDGER_BANK_COMPONENT_AMOUNT_MISMATCH");
+                    }
                 }
+            }
+            for (int i=0;i<ticket.getPayments().size();i++) {
+                String name = ticket.getPayments().get(i).getName();
+                if (("magcard".equals(name) || "ccard".equals(name)) && !external.contains(i))
+                    throw new SQLException("QA_LEDGER_EXTERNAL_INTENT_MISSING");
+                if ("voucher".equals(name))
+                    throw new SQLException("QA_LEDGER_LEGACY_VOUCHER_TENDER_REQUIRES_REVIEW");
             }
             int changed = transition(c, id, "PREPARED", "IN_FLIGHT", 0);
             if (changed != 1) {
@@ -112,6 +133,27 @@ final class SaleOperationLedgerQA {
         } catch (SQLException failure) {
             // A lost PREPARE acknowledgement must never authorize the sale.
             throw new BasicException("QA durable operation preparation is not confirmed; no sale permitted", failure);
+        }
+    }
+
+    static String paymentRowId(Session session, TicketInfo ticket, int component) throws BasicException {
+        String operation = ticket.getProperty(OPERATION_PROPERTY);
+        try (Connection c = connection(session); PreparedStatement p = c.prepareStatement(
+                "SELECT payment_uuid FROM qa_external_payment_intents WHERE operation_uuid=? AND component_index=?")) {
+            p.setString(1, operation);
+            p.setInt(2, component);
+            try (ResultSet r = p.executeQuery()) {
+                if (r.next()) {
+                    String payment = r.getString(1);
+                    try { UUID.fromString(payment); }
+                    catch (IllegalArgumentException invalid) { throw new SQLException("QA_PAYMENT_IDENTITY_INVALID", invalid); }
+                    return payment;
+                }
+            }
+            return UUID.nameUUIDFromBytes((operation + ":payment:" + component)
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        } catch (SQLException failure) {
+            throw new BasicException("QA payment identity preparation is not confirmed", failure);
         }
     }
 

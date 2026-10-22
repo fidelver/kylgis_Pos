@@ -41,6 +41,7 @@ mkdir -p "$tmp/classes"
  "$root/qa/manual/PaymentContextSerializationProbe.java" \
  "$root/src/main/java/com/mx/kylgis/pos/forms/DataLogicSales.java" \
  "$root/src/main/java/com/mx/kylgis/pos/forms/SaleOperationLedgerQA.java" \
+ "$root/src/main/java/com/mx/kylgis/pos/forms/SaleOperationPayloadQA.java" \
  "$root/src/main/java/com/mx/kylgis/pos/data/loader/Session.java" \
  "$root/src/main/java/com/mx/kylgis/pos/data/loader/Transaction.java" \
  "$root/src/main/java/com/mx/kylgis/pos/data/loader/TransactionOutcomeUnknownException.java" \

@@ -1922,11 +1922,15 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "TENDERED, CARDNAME, VOUCHER) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 , SerializerWriteParams.INSTANCE);
 
-        for (final PaymentInfo payment : ticket.getPayments()) {
+        for (int component = 0; component < ticket.getPayments().size(); component++) {
+            final PaymentInfo payment = ticket.getPayments().get(component);
+            final String paymentRowId = SaleOperationLedgerQA.enabled()
+                    ? SaleOperationLedgerQA.paymentRowId(s, ticket, component)
+                    : UUID.randomUUID().toString();
             paymentinsert.exec(new DataParams() {
                 @Override
                 public void writeValues() throws BasicException {
-                    setString(1, UUID.randomUUID().toString());
+                    setString(1, paymentRowId);
                     setString(2, ticket.getId());
                     setString(3, payment.getName());
                     setDouble(4, payment.getTotal());

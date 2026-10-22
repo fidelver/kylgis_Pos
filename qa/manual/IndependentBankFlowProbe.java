@@ -58,12 +58,12 @@ public final class IndependentBankFlowProbe {
     t.setVoucherDiscounts(List.of(new VoucherDiscountInfo("QA-BANK-"+label,"QA-BANK-"+label,null,30,20)));
     t.setPayments(List.of(new PaymentInfoCash(4,4),new PaymentInfoTicket(6,"magcard")));
     update("INSERT INTO vouchers(id,voucher_number,amount,status) VALUES(?,?,30,'A')","QA-BANK-"+label,"QA-BANK-"+label);
-    update("INSERT INTO qa_sale_operation_intents(operation_uuid,receipt_id,terminal_id,state) VALUES(?,?,'QA-CASH','PREPARED')",t.getProperty(OP),t.getId());
+    update("INSERT INTO qa_sale_operation_intents(operation_uuid,receipt_id,terminal_id,state,request_sha256) VALUES(?,?,'QA-CASH','PREPARED',?)",t.getProperty(OP),t.getId(),com.mx.kylgis.pos.forms.SaleOperationPayloadQA.fingerprint(t));
     return t;
   }
   static String intent(TicketInfo t)throws Exception{
     String pay=UUID.randomUUID().toString();
-    update("INSERT INTO qa_external_payment_intents(payment_uuid,operation_uuid,provider,amount,currency,state) VALUES(?,?,'SYNTHETIC_BANK',6,'MXN','PREPARED')",pay,t.getProperty(OP));
+    update("INSERT INTO qa_external_payment_intents(payment_uuid,operation_uuid,provider,amount,currency,state,component_index) VALUES(?,?,'SYNTHETIC_BANK',6,'MXN','PREPARED',1)",pay,t.getProperty(OP));
     return pay;
   }
   static boolean dispatch(String pay,String mode)throws Exception{
@@ -94,6 +94,11 @@ public final class IndependentBankFlowProbe {
       catch(BasicException expected){ck(expected.getMessage()!=null&&expected.getMessage().contains("preparation is not confirmed"),"BANK_PENDING_REAL_SAVE_BLOCKED");}
     }finally{s.close();}
   }
+  static void immutableRejected(String sql,String...args)throws Exception{
+    boolean rejected=false;
+    try{update(sql,args);}catch(SQLException expected){rejected="45000".equals(expected.getSQLState());}
+    ck(rejected,"BANK_IMMUTABLE_OR_RETAINED_REQUEST_REJECTED");
+  }
   static void savedOnce(TicketInfo t)throws Exception{
     System.setProperty("kylgis.qa.durableLedger.directJdbcUrl",URL);
     try(RealSaveTicketAckLossProbe.AckDropProxy proxy=new RealSaveTicketAckLossProbe.AckDropProxy()){
@@ -110,6 +115,7 @@ public final class IndependentBankFlowProbe {
       for(String sql:new String[]{"SELECT COUNT(*) FROM receipts WHERE id=?","SELECT COUNT(*) FROM tickets WHERE id=?","SELECT COUNT(*) FROM voucher_redemptions WHERE receipt_id=?"})
         ck(RealSaveTicketAckLossProbe.count(c,sql,t.getId())==1,"BANK_REAL_ONE_"+sql.split("FROM ")[1].split(" ")[0]);
       ck(RealSaveTicketAckLossProbe.count(c,"SELECT COUNT(*) FROM payments WHERE receipt=?",t.getId())==2,"BANK_REAL_TWO_MIXED_COMPONENTS");
+      ck(RealSaveTicketAckLossProbe.count(c,"SELECT COUNT(*) FROM payments p JOIN qa_external_payment_intents i ON p.ID=i.payment_uuid WHERE p.receipt=? AND i.component_index=1 AND i.provider_reference IS NOT NULL",t.getId())==1,"BANK_PROVIDER_COMPONENT_ID_EQUALS_REAL_PAYMENT_ID");
       try(PreparedStatement p=c.prepareStatement("SELECT SUM(total) FROM payments WHERE receipt=?")){
         p.setString(1,t.getId());try(ResultSet r=p.executeQuery()){r.next();ck(r.getBigDecimal(1).compareTo(new java.math.BigDecimal("10.00"))==0,"BANK_MIXED_AMOUNT_EXACT");}
       }
@@ -155,7 +161,21 @@ public final class IndependentBankFlowProbe {
         }
         String state=applyResponse(pay,request("QUERY "+pay,2500));
         ck(state.equals(mode.equals("LOST_ACK")?"APPROVED":mode),"BANK_RECONCILIATION_"+mode);
-        if(state.equals("APPROVED"))savedOnce(t);else blocked(t);
+        if(state.equals("APPROVED")){
+          t.setPayments(List.of(new PaymentInfoCash(4,4),new PaymentInfoTicket(7,"magcard")));
+          blocked(t); // same UUID/receipt cannot authorize changed amount
+          t.setPayments(List.of(new PaymentInfoCash(4,4),new PaymentInfoTicket(6,"magcard")));
+          immutableRejected("UPDATE qa_external_payment_intents SET amount=7 WHERE payment_uuid=?",pay);
+          immutableRejected("UPDATE qa_external_payment_intents SET currency='USD' WHERE payment_uuid=?",pay);
+          immutableRejected("UPDATE qa_external_payment_intents SET state='UNKNOWN' WHERE payment_uuid=?",pay);
+          immutableRejected("UPDATE qa_external_payment_intents SET component_index=0 WHERE payment_uuid=?",pay);
+          immutableRejected("UPDATE qa_external_payment_intents SET provider_reference='OTHER' WHERE payment_uuid=?",pay);
+          immutableRejected("UPDATE qa_sale_operation_intents SET request_sha256=REPEAT('0',64) WHERE operation_uuid=?",t.getProperty(OP));
+          immutableRejected("UPDATE qa_sale_operation_intents SET receipt_id='OTHER' WHERE operation_uuid=?",t.getProperty(OP));
+          immutableRejected("DELETE FROM qa_external_payment_intents WHERE payment_uuid=?",pay);
+          immutableRejected("DELETE FROM qa_sale_operation_intents WHERE operation_uuid=?",t.getProperty(OP));
+          savedOnce(t);
+        }else blocked(t);
         String same=request("CHARGE "+pay+" 600 MXN "+mode,2500);
         ck(same.equals(request("QUERY "+pay,2500)),"BANK_SAME_KEY_NO_SECOND_CHARGE_"+mode);
         ck("CONFLICT".equals(request("CHARGE "+pay+" 601 MXN "+mode,2500)),"BANK_KEY_AMOUNT_CONFLICT_"+mode);
