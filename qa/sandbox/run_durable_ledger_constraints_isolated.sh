@@ -25,6 +25,7 @@ if podman container exists "$name"; then echo "QA_CONTAINER_NAME_OCCUPIED"; exit
 podman run -d --rm --name "$name" --network none --read-only \
  --tmpfs /var/lib/mysql:rw,size=512m --tmpfs /tmp:rw,size=128m \
  --tmpfs /run/mysqld:rw,size=8m --memory 1g --cpus 2 \
+ --mount type=bind,source=/usr/lib/jvm/temurin-21-jdk,target=/opt/jdk,readonly=true \
  -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 "$image" >/dev/null
 owned=1
 ready=0
@@ -84,4 +85,14 @@ wait "$two"
 # An in-flight operation cannot be claimed again or silently reset on timeout.
 [[ "$(query "$claim")" == 0 ]] || { echo QA_INFLIGHT_DUPLICATE_ALLOWED; exit 12; }
 echo "PASS_EXCLUSIVE_PRECOMMIT_CLAIM"
-echo "QA_LEDGER_CONSTRAINTS_PASS version=$version checks=15"
+# Actual Java/JDBC prototype: three distinct database connections, verified persistent PREPARED and UNKNOWN.
+jdk=/usr/lib/jvm/temurin-21-jdk
+driver=/home/fam/.m2/repository/org/mariadb/jdbc/mariadb-java-client/3.5.10/mariadb-java-client-3.5.10.jar
+[[ -x "$jdk/bin/javac" && -f "$driver" ]] || { echo QA_JDBC_DEPS_MISSING;exit 12; }
+"$jdk/bin/javac" --release 21 -cp "$driver" -d "$tmp" "$dir/../manual/IsolatedSaleOperationLedgerProbe.java"
+podman cp "$tmp/IsolatedSaleOperationLedgerProbe.class" "$name:/tmp/"
+podman cp "$driver" "$name:/tmp/ledger-jdbc.jar"
+# The JDK bind is only inside this private no-network test container.
+# Java is supplied via podman exec with a host JDK mount added in run arguments.
+podman exec "$name" /opt/jdk/bin/java -cp /tmp:/tmp/ledger-jdbc.jar IsolatedSaleOperationLedgerProbe isolated-ledger-qa
+echo "QA_LEDGER_CONSTRAINTS_PASS version=$version checks=23"
