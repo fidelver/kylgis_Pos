@@ -1447,8 +1447,9 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     public void exitToLogin() {
-        closeAppView();
-        showLogin();
+        if (closeAppView()) {
+            showLogin();
+        }
     }
     
     public boolean closeAppView() {

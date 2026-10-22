@@ -18,7 +18,13 @@ public final class IndependentCashboxesProbe {
   static TicketInfo load()throws Exception{
     try(ObjectInputStream in=new ObjectInputStream(Files.newInputStream(DIR.resolve("ticket.bin")))){
       TicketInfo t=(TicketInfo)in.readObject();
-      // Explicit synthetic reconstruction. Does not certify Swing suspend/restore.
+      // A context-free template is copied before operation preparation, not a recovered charge.
+      ck(!t.requiresPaymentReconciliation()&&t.getPayments().isEmpty()
+          &&t.getVoucherDiscounts().isEmpty()
+          &&t.getProperty("kylgis.qa.durableLedger.operationUuid")==null,
+          "CASHBOX_CONTEXT_FREE_TEMPLATE");
+      t.setProperty("kylgis.qa.durableLedger.operationUuid",Files.readString(DIR.resolve("operation.txt")));
+      // Fresh synthetic preparation. Does not certify Swing suspend/restore.
       t.setActiveCash("QA-CASH");
       t.setUser(new UserInfo("0","Administrator"));
       t.setDate(new java.util.Date());
@@ -56,9 +62,11 @@ public final class IndependentCashboxesProbe {
     Class.forName("com.mysql.jdbc.Driver");
     Files.createDirectory(DIR);
     TicketInfo t=new TicketInfo();
-    t.setProperty("kylgis.qa.durableLedger.operationUuid",UUID.randomUUID().toString());
+    String operation=UUID.randomUUID().toString();
+    Files.writeString(DIR.resolve("operation.txt"),operation,StandardOpenOption.CREATE_NEW);
     t.addLine(new TicketLineInfo("xxx999_999xxx_x9x9x9",1,30,new TaxInfo("002","IVA 0%","001",null,null,0,false,0)));
     try(ObjectOutputStream out=new ObjectOutputStream(Files.newOutputStream(DIR.resolve("ticket.bin")))){out.writeObject(t);}
+    t.setProperty("kylgis.qa.durableLedger.operationUuid",operation);
     try(Connection c=DriverManager.getConnection(URL,"root","");Statement st=c.createStatement()){
       ck("pos_qa_status".equals(c.getCatalog()),"CASHBOX_QA_CATALOG");
       st.executeUpdate("INSERT INTO vouchers(id,voucher_number,amount,status) VALUES('QA-JVM-ID','QA-JVM-NUM',30,'A')");

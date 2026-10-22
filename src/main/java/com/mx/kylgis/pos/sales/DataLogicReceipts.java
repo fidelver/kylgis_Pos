@@ -138,7 +138,7 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
         Object[] values = new Object[] {
             id, 
             ticket.getName(), 
-            ticket,
+            serializeSuspendedTicket(ticket),
             ticket.getUser().getId(),
             pickupid
 
@@ -147,7 +147,7 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
         datas = new Datas[] {
             Datas.STRING, 
             Datas.STRING, 
-            Datas.SERIALIZABLE, 
+            Datas.BYTES,
             Datas.STRING,            
             Datas.INT
 
@@ -163,6 +163,43 @@ public class DataLogicReceipts extends BeanFactoryDataSingle {
             , new SerializerWriteBasicExt(datas, new int[] {0, 1, 2, 3, 4})).exec(values);                
     }
     
+    /** Strict serialization: never turn a failed ticket encoding into SQL NULL. */
+    private static byte[] serializeSuspendedTicket(final TicketInfo ticket) throws BasicException {
+        if (ticket == null || ticket.getUser() == null) {
+            throw new BasicException("Suspended ticket and operator are required.");
+        }
+        try {
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+            try (java.io.ObjectOutputStream out = new java.io.ObjectOutputStream(bytes)) {
+                out.writeObject(ticket);
+            }
+            return bytes.toByteArray();
+        } catch (java.io.IOException e) {
+            throw new BasicException("Cannot serialize suspended ticket; original retained.", e);
+        }
+    }
+
+    /** One atomic statement persists the owned recovery and releases its claim.
+     * A lost ACK may leave it saved and unlocked; it never authorizes a charge. */
+    public final boolean suspendSharedTicketIfOwned(final String id, final TicketInfo ticket,
+            int pickupid, final String owner) throws BasicException {
+        if (ticket == null || owner == null || owner.isBlank() || !ticket.requiresPaymentReconciliation()) {
+            throw new BasicException("A pending recovery and its owner are required.");
+        }
+        Object[] values = new Object[] {
+            id, ticket.getName(), serializeSuspendedTicket(ticket), ticket.getUser().getId(),
+            pickupid, owner
+        };
+        Datas[] datas = new Datas[] {
+            Datas.STRING, Datas.STRING, Datas.BYTES, Datas.STRING, Datas.INT, Datas.STRING
+        };
+        int updated = new PreparedSentence(s,
+                "UPDATE sharedtickets SET NAME = ?, CONTENT = ?, APPUSER = ?, PICKUPID = ?, LOCKED = NULL "
+                + "WHERE ID = ? AND LOCKED = ?",
+                new SerializerWriteBasicExt(datas, new int[] {1, 2, 3, 4, 0, 5})).exec(values);
+        return updated == 1;
+    }
+
     /** Inserts a restaurant ticket already owned by one POS instance. */
     public final void insertSharedTicketLocked(final String id, final TicketInfo ticket,
             int pickupid, final String owner) throws BasicException {

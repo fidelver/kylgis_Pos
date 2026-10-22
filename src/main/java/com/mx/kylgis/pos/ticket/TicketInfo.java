@@ -152,9 +152,10 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         taxes = null;
 
         ticketstatus = in.readInt();
-        if (!TicketPaymentContext.read(in, this)
-                && (getProperty("kylgis.qa.durableLedger.operationUuid") != null
-                    || "true".equalsIgnoreCase(getProperty("kylgis.commit.outcome.unknown")))) {
+        TicketPaymentContext.read(in, this);
+        // A pre-AUTH operation may not have payment components yet. Keep its identity held.
+        if (getProperty("kylgis.qa.durableLedger.operationUuid") != null
+                || "true".equalsIgnoreCase(getProperty("kylgis.commit.outcome.unknown"))) {
             setProperty(PAYMENT_RECONCILIATION_PROPERTY, "true");
         }
     }

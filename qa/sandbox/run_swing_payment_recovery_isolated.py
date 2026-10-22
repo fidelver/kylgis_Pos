@@ -42,7 +42,7 @@ def main():
     ap.add_argument("--core-sha256", required=True)
     ap.add_argument("--mariadb", choices=["10.11", "11.8", "12.3.3"], default="10.11")
     ap.add_argument("--verify-baseline", action="store_true",
-                    help="The prior sealed panel must fail the origin-cash assertion.")
+                    help="The prior sealed candidate must fail durable-copy and suspend-error checks.")
     args = ap.parse_args()
     core = Path(args.core_jar).resolve()
     if "target" in core.parts or hashlib.sha256(core.read_bytes()).hexdigest() != args.core_sha256:
@@ -58,9 +58,13 @@ def main():
     made_network = made_container = False
     try:
         # Freeze the exact Java sources before compiling or starting any JVM.
+        print("SEALED_CORE_INPUT_SHA256=" + args.core_sha256, flush=True)
         sources = [
             ROOT / "src/main/java/com/mx/kylgis/pos/sales/JPanelTicket.java",
             ROOT / "src/main/java/com/mx/kylgis/pos/sales/shared/JTicketsBagShared.java",
+            ROOT / "src/main/java/com/mx/kylgis/pos/sales/DataLogicReceipts.java",
+            ROOT / "src/main/java/com/mx/kylgis/pos/ticket/TicketInfo.java",
+            ROOT / "src/main/java/com/mx/kylgis/pos/forms/JRootApp.java",
             ROOT / "qa/manual/SwingPaymentRecoveryProbe.java"]
         frozen = []
         for src in sources:
@@ -104,7 +108,7 @@ def main():
         sql("""CREATE DATABASE pos_qa_swing;
 CREATE TABLE pos_qa_swing.sharedtickets(
  ID VARCHAR(255) PRIMARY KEY,NAME VARCHAR(255),CONTENT MEDIUMBLOB,
- APPUSER VARCHAR(255),PICKUPID INT,LOCKED VARCHAR(255)) ENGINE=InnoDB;
+ APPUSER VARCHAR(255),PICKUPID INT,LOCKED VARCHAR(20)) ENGINE=InnoDB;
 CREATE USER 'qa_swing'@'%' IDENTIFIED BY '';
 GRANT SELECT,INSERT,UPDATE,DELETE ON pos_qa_swing.* TO 'qa_swing'@'%';""")
         env = os.environ.copy()
@@ -132,10 +136,9 @@ GRANT SELECT,INSERT,UPDATE,DELETE ON pos_qa_swing.* TO 'qa_swing'@'%';""")
                 raise RuntimeError("SWING_SOCKET_LEFT")
             if baseline:
                 expected = {
-                    "split-regression": "SPLIT_BLOCKED_BEFORE_PAYMENT_OR_SPLIT_DIALOG",
-                    "delete-regression": "DELETE_BLOCKED_BEFORE_PAYMENT_OR_SPLIT_DIALOG",
-                    "empty-regression": "EMPTY_FINANCIAL_CONTEXT_RETAINED",
-                    "recover": "ORIGIN_CASH_PRESERVED_ON_OTHER_CASHBOX"}[mode]
+                    "logout-refusal": "REFUSED_DEACTIVATION_CANNOT_SHOW_LOGIN",
+                    "suspend-failure": "SUSPEND_FAILURE_RETAINS_ACTIVE_TICKET_DEACTIVATE",
+                    "recover-retention-regression": "RECOVERY_COPY_STAYS_DURABLE_WHILE_OPEN"}[mode]
                 if p.returncode != 1 or expected not in output:
                     raise RuntimeError("BASELINE_NOT_REPRODUCED\n" + output[-8000:])
                 print("PASS SEALED_BASELINE_REPRODUCES_" + expected, flush=True)
@@ -153,13 +156,13 @@ GRANT SELECT,INSERT,UPDATE,DELETE ON pos_qa_swing.* TO 'qa_swing'@'%';""")
         if args.verify_baseline:
             baseline = tmp / "baseline"
             baseline.mkdir()
-            run([str(JDK / "bin/javac"), "--release", "21", "-cp", cp, "-d", str(baseline),
+            run([str(JDK / "bin/javac"), "--release", "21", "-cp", str(classes) + ":" + cp, "-d", str(baseline),
                  frozen[-1]], timeout=90)
-            phase("split-regression", baseline=True)
-            phase("delete-regression", baseline=True)
-            phase("empty-regression", baseline=True)
+            phase("logout-refusal", baseline=True)
+            phase("suspend-failure", baseline=True)
+            sql("DELETE FROM pos_qa_swing.sharedtickets;")
             phase("suspend")
-            phase("recover", baseline=True)
+            phase("recover-retention-regression", baseline=True)
             sql("DELETE FROM pos_qa_swing.sharedtickets;")
         phase("suspend")
         print("PASS FIRST_SWING_JVM_EXITED_BEFORE_RECOVERY", flush=True)
@@ -169,6 +172,112 @@ GRANT SELECT,INSERT,UPDATE,DELETE ON pos_qa_swing.* TO 'qa_swing'@'%';""")
         phase("suspend-empty")
         phase("recover-empty")
         sql("DELETE FROM pos_qa_swing.sharedtickets;")
+        phase("suspend-failure")
+        # Only the owned synthetic fixture rejects releasing an existing claim.
+        sql("""DELIMITER //
+CREATE TRIGGER pos_qa_swing.qa_deny_release BEFORE UPDATE ON pos_qa_swing.sharedtickets
+FOR EACH ROW BEGIN
+ IF OLD.LOCKED IS NOT NULL AND NEW.LOCKED IS NULL THEN
+  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='QA injected suspension write rejection';
+ END IF;
+END//
+DELIMITER ;
+""")
+        phase("db-suspend-failure")
+        sql("DROP TRIGGER pos_qa_swing.qa_deny_release;")
+        def reset_owned_fixture_claim():
+            # This is fixture administration, not a product unlock or a financial decision.
+            sql("UPDATE pos_qa_swing.sharedtickets SET LOCKED=NULL;")
+            print("PASS QA_ONLY_FIXTURE_CLAIM_RESET_NO_PRODUCT_UNLOCK", flush=True)
+        reset_owned_fixture_claim()
+        phase("recover")
+        def check_reaped(p, mode):
+            if Path("/proc/" + str(p.pid)).exists():
+                raise RuntimeError("JVM_NOT_REAPED " + mode)
+            if "pid=" + str(p.pid) + "," in run(["/usr/sbin/ss", "-ntp"]):
+                raise RuntimeError("JVM_SOCKET_LEFT " + mode)
+            print("PASS INDEPENDENT_JVM_REAPED " + mode, flush=True)
+        # Kill exactly the owned JVM after its GUI has recovered and claimed the row.
+        ready = tmp / "crash.ready"
+        crash_log = tmp / "crash.log"
+        with crash_log.open("w") as out:
+            child = subprocess.Popen(java + ["-Dkylgis.qa.barrier=" + str(ready),
+                "-cp", str(classes) + ":" + cp, "SwingPaymentRecoveryProbe", port, "claim-crash"],
+                stdout=out, stderr=subprocess.STDOUT, text=True, env=env)
+            try:
+                deadline = time.monotonic() + 25
+                while not ready.exists():
+                    if child.poll() is not None or time.monotonic() > deadline:
+                        raise RuntimeError("CRASH_READY_NOT_OBSERVED\n" + crash_log.read_text()[-5000:])
+                    time.sleep(.05)
+                before_crash = sql("SELECT ID,SHA2(CONTENT,256),LOCKED FROM pos_qa_swing.sharedtickets;")
+                child.kill()
+                child.wait(timeout=8)
+                if child.returncode != -9 or "READY_FOR_FORCED_CRASH" not in crash_log.read_text():
+                    raise RuntimeError("OWNED_SIGKILL_NOT_CONFIRMED")
+                if before_crash != sql("SELECT ID,SHA2(CONTENT,256),LOCKED FROM pos_qa_swing.sharedtickets;"):
+                    raise RuntimeError("CRASH_CHANGED_DURABLE_COPY")
+                print("PASS SIGKILL_AFTER_GUI_RECOVERY_PRESERVES_DB_COPY_AND_CLAIM", flush=True)
+                check_reaped(child, "claim-crash")
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                    child.wait(timeout=8)
+        phase("after-crash")
+        reset_owned_fixture_claim()
+        phase("recover")
+        # Two independent GUI/JDBC JVMs race the same selector only after a file barrier.
+        children = []
+        outputs = []
+        try:
+            for side in ["A", "B"]:
+                path = tmp / ("race-" + side + ".log")
+                out = path.open("w")
+                outputs.append(out)
+                proc = subprocess.Popen(java + ["-Dkylgis.qa.barrier=" + str(tmp),
+                    "-cp", str(classes) + ":" + cp, "SwingPaymentRecoveryProbe", port, "claim-race-" + side],
+                    stdout=out, stderr=subprocess.STDOUT, text=True, env=env)
+                children.append((side, proc, path))
+            deadline = time.monotonic() + 25
+            while not all((tmp / ("race-" + side + ".ready")).exists() for side in ["A", "B"]):
+                if any(p.poll() is not None for _, p, _ in children) or time.monotonic() > deadline:
+                    raise RuntimeError("RACE_READY_NOT_OBSERVED")
+                time.sleep(.05)
+            durable = sql("SELECT ID,SHA2(CONTENT,256) FROM pos_qa_swing.sharedtickets;")
+            (tmp / "race.go").write_text("GO")
+            for side, proc, path in children:
+                proc.wait(timeout=30)
+                data = path.read_text()
+                if proc.returncode or "SWING_PAYMENT_RECOVERY_PASS phase=claim-race-" + side not in data:
+                    raise RuntimeError("RACE_JVM_FAILED\n" + data[-6000:])
+                for line in data.splitlines():
+                    if line.startswith(("PASS ", "CLAIM_RACE_RESULT ", "SWING_PAYMENT_")):
+                        print(line, flush=True)
+                check_reaped(proc, "claim-race-" + side)
+            outcomes = sorted((tmp / ("race-" + side + ".result")).read_text() for side in ["A", "B"])
+            if outcomes != ["LOSE", "WIN"]:
+                raise RuntimeError("RACE_NOT_EXCLUSIVE " + str(outcomes))
+            if durable != sql("SELECT ID,SHA2(CONTENT,256) FROM pos_qa_swing.sharedtickets;"):
+                raise RuntimeError("RACE_CHANGED_PERSISTED_PAYMENT_CONTEXT")
+            print("PASS TWO_GUI_JVMS_ONE_CLAIM_NO_DELETE_OR_CONTENT_CHANGE", flush=True)
+        finally:
+            for _, proc, _ in children:
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait(timeout=8)
+            for out in outputs:
+                out.close()
+        reset_owned_fixture_claim()
+        phase("recover")
+        sql("DELETE FROM pos_qa_swing.sharedtickets;")
+        phase("suspend")
+        phase("ack-suspend-failure")
+        phase("recover")
+        sql("DELETE FROM pos_qa_swing.sharedtickets;")
+        phase("operation-only-suspend")
+        phase("operation-only-recover")
+        sql("DELETE FROM pos_qa_swing.sharedtickets;")
+        phase("logout-refusal")
         phase("suspend", forced=True)
         print("SWING_PAYMENT_RECOVERY_ISOLATED_PASS mariadb=" + args.mariadb, flush=True)
     finally:
