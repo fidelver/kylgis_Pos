@@ -1741,12 +1741,33 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 }).list(receiptId);
     }
 
+    public final boolean hasRecordedRefund(final int saleTicketId) throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM tickets WHERE TICKETTYPE = 1 AND STATUS = ?",
+                SerializerWriteInteger.INSTANCE, SerializerReadInteger.INSTANCE).find(saleTicketId);
+        return count != null && count > 0;
+    }
+
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
 
     Transaction t;
     t = new Transaction(s) {
     @Override
     public Object transact() throws BasicException {
+
+        if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+            final int sourceTicketId = ticket.getTicketStatus();
+            if (sourceTicketId <= 0) {
+                throw new BasicException("La devolución no tiene una venta original válida.");
+            }
+            // Lock the source sale until commit so another cashier cannot refund it concurrently.
+            Integer sourceStatus = (Integer) new PreparedSentence(s,
+                    "SELECT STATUS FROM tickets WHERE TICKETTYPE = 0 AND TICKETID = ? FOR UPDATE",
+                    SerializerWriteInteger.INSTANCE, SerializerReadInteger.INSTANCE).find(sourceTicketId);
+            if (sourceStatus == null || sourceStatus != 0 || hasRecordedRefund(sourceTicketId)) {
+                throw new BasicException("Esta venta ya tiene una devolución o no está disponible para devolver.");
+            }
+        }
 
         Set<String> vouchersToConsume = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         for (VoucherDiscountInfo discount : ticket.getVoucherDiscounts()) {
@@ -1875,10 +1896,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
         });
         
-    // update status of existing ticket
-        new PreparedSentence(s
+    // Complete the locked sale only when saving a refund.
+        if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+        int updated = new PreparedSentence(s
             , "UPDATE tickets SET STATUS = ? "
-                + "WHERE TICKETTYPE = 0 AND TICKETID = ?"
+                + "WHERE TICKETTYPE = 0 AND TICKETID = ? AND STATUS = 0"
             , SerializerWriteParams.INSTANCE )
                 .exec(new DataParams() {
 
@@ -1888,6 +1910,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 setInt(2, ticket.getTicketStatus());                
             }
         });
+        if (updated != 1) {
+            throw new BasicException("La venta original cambió; se canceló la devolución sin generar un egreso.");
+        }
+        }
 
         SentenceExec ticketlineinsert = new PreparedSentence(s
             , "INSERT INTO ticketlines (TICKET, LINE, "

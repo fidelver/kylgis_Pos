@@ -252,7 +252,7 @@ public class JTicketsBagTicket extends JTicketsBag {
                             m_jRefund.setEnabled(false);                            
                         } else {
                             m_jEdit.setEnabled(true);
-                            m_jRefund.setEnabled(true);
+                            m_jRefund.setEnabled(isRefundAvailable());
                         }
                     }
                 try {
@@ -273,6 +273,18 @@ public class JTicketsBagTicket extends JTicketsBag {
         m_jTicketEditor.activate();
     }
     
+    private boolean isRefundAvailable() {
+        if (m_ticket == null || m_ticket.getTicketType() != TicketInfo.RECEIPT_NORMAL
+                || m_ticket.getTicketStatus() != 0) {
+            return false;
+        }
+        try {
+            return !m_dlSales.hasRecordedRefund(m_ticket.getTicketId());
+        } catch (BasicException ex) {
+            return false;
+        }
+    }
+
     private void printTicket() {
         
         try {
@@ -289,7 +301,7 @@ public class JTicketsBagTicket extends JTicketsBag {
         if (m_ticket != null
                 && (m_ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
                     &&  m_ticket.getTicketStatus() == 0)) {
-            m_jRefund.setEnabled(true);
+            m_jRefund.setEnabled(isRefundAvailable());
         }
 
         m_jPrint.setEnabled(m_ticket != null);
@@ -584,6 +596,24 @@ public class JTicketsBagTicket extends JTicketsBag {
 
     private void m_jRefundActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jRefundActionPerformed
         
+        try {
+            TicketInfo currentSale = m_ticket == null ? null
+                    : m_dlSales.loadTicket(TicketInfo.RECEIPT_NORMAL, m_ticket.getTicketId());
+            if (currentSale == null || currentSale.getTicketStatus() != 0
+                    || m_dlSales.hasRecordedRefund(currentSale.getTicketId())) {
+                m_jRefund.setEnabled(false);
+                JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
+                        "Esta venta ya fue devuelta o no está disponible para una nueva devolución."));
+                return;
+            }
+            m_ticket = currentSale;
+            taxeslogic.calculateTaxes(m_ticket);
+        } catch (BasicException | TaxesException ex) {
+            JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
+                    "No se pudo comprobar el estado actual de la venta.", ex));
+            return;
+        }
+
         java.util.List aRefundLines;
         try {
             aRefundLines = VoucherDiscountAllocator.buildRefundableLines(m_ticket, taxeslogic);
