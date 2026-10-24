@@ -31,6 +31,10 @@ import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.ticket.TaxInfo;
+import com.mx.kylgis.pos.fiscal.SatTaxProfileDialog;
+import com.mx.kylgis.pos.fiscal.SatProductMetadataDialog;
+import java.awt.BorderLayout;
+import javax.swing.JButton;
 import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -48,6 +52,10 @@ import javax.swing.JPanel;
 public class TaxEditor extends JPanel implements EditorRecord {
     
     private Object m_oId;
+    private final AppView satApp;
+    private JPanel satWrapper;
+    private JButton satButton;
+    private boolean satRecordSaved;
     
     private SentenceList taxcatsent;
     private ComboBoxValModel taxcatmodel;    
@@ -63,6 +71,7 @@ public class TaxEditor extends JPanel implements EditorRecord {
      * @param app
      * @param dirty */
     public TaxEditor(AppView app, DirtyManager dirty) {
+        this.satApp = app;
         
         DataLogicSales dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
         
@@ -142,6 +151,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
     @Override
     public void writeValueEOF() {
         m_oId = null;
+        satRecordSaved = false;
+        updateSatButton();
         m_jName.setText(null);
         taxcatmodel.setSelectedKey(null);
         taxcustcatmodel.setSelectedKey(null);
@@ -165,6 +176,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
     @Override
     public void writeValueInsert() {
         m_oId = UUID.randomUUID().toString();
+        satRecordSaved = false;
+        updateSatButton();
         m_jName.setText(null);
         taxcatmodel.setSelectedKey(null);
         taxcustcatmodel.setSelectedKey(null);
@@ -188,7 +201,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
      */
     @Override
     public void writeValueDelete(Object value) {
-
+        satRecordSaved = false;
+        updateSatButton();
         Object[] tax = (Object[]) value;
         m_oId = tax[0];
         m_jName.setText(Formats.STRING.formatValue(tax[1]));
@@ -214,7 +228,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
      */
     @Override
     public void writeValueEdit(Object value) {
-
+        satRecordSaved = true;
+        updateSatButton();
         Object[] tax = (Object[]) value;
         m_oId = tax[0];
         m_jName.setText(Formats.STRING.formatValue(tax[1]));
@@ -332,9 +347,35 @@ public class TaxEditor extends JPanel implements EditorRecord {
         return current != null;
     }
 
+    private void updateSatButton() {
+        if (satButton != null) {
+            satButton.setEnabled(satRecordSaved && m_oId != null);
+        }
+    }
+
     @Override
     public Component getComponent() {
-        return this;
+        if (satWrapper == null) {
+            satWrapper = new JPanel(new BorderLayout());
+            satWrapper.add(this, BorderLayout.CENTER);
+            satButton = new JButton(AppLocal.getIntString("sat.editor.open"));
+            satButton.setToolTipText(AppLocal.getIntString("sat.editor.open.help"));
+            satButton.addActionListener(e -> {
+                if (satRecordSaved && m_oId != null) {
+                    SatTaxProfileDialog.showEditor(satWrapper, satApp.getSession(), m_oId.toString());
+                }
+            });
+            JPanel footer = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+            footer.add(satButton);
+            JButton satProductButton = new JButton(AppLocal.getIntString("sat.product.open"));
+            satProductButton.setToolTipText(AppLocal.getIntString("sat.product.open.help"));
+            satProductButton.addActionListener(e ->
+                    SatProductMetadataDialog.showEditor(satWrapper, satApp.getSession()));
+            footer.add(satProductButton);
+            satWrapper.add(footer, BorderLayout.SOUTH);
+            updateSatButton();
+        }
+        return satWrapper;
     }
     
     /** This method is called from within the constructor to
