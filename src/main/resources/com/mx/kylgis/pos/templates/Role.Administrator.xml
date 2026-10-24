@@ -108,6 +108,7 @@
     <class name="com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel"/>
     <class name="com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel"/>
     <class name="com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel"/>
+    <class name="com.mx.kylgis.pos.inventory.transform.ProductUomConversionPanel"/>
     <class name="com.mx.kylgis.pos.inventory.CategoriesPanel"/>
 
     <class name="com.mx.kylgis.pos.inventory.ProductsPanel"/>

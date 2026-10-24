@@ -1176,12 +1176,14 @@ public final class DatabaseUpgradeService {
         final String[] classes = {
             "com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel",
             "com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel",
-            "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel"
+            "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel",
+            "com.mx.kylgis.pos.inventory.transform.ProductUomConversionPanel"
         };
         final String[] keys = {
-            "Menu.Recipes", "Menu.RecipeProduction", "Menu.TransformationHistory"
+            "Menu.Recipes", "Menu.RecipeProduction", "Menu.TransformationHistory",
+            "Menu.ProductUomConversions"
         };
-        final String[] icons = {"bundle.png", "stockmaint.png", "reports.png"};
+        final String[] icons = {"bundle.png", "stockmaint.png", "reports.png", "products.png"};
         int missing = 0;
         for (int i = 0; i < classes.length; i++) {
             if (!text.contains(classes[i])) {
@@ -1293,6 +1295,7 @@ public final class DatabaseUpgradeService {
         final String recipePermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel\"/>";
         final String productionPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel\"/>";
         final String historyPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel\"/>";
+        final String uomConversionPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.ProductUomConversionPanel\"/>";
         String roleName;
         byte[] permissions;
         try (PreparedStatement select = connection.prepareStatement(
@@ -1323,6 +1326,10 @@ public final class DatabaseUpgradeService {
         if (!patched.contains(historyPermission) && patched.contains(productionPermission)) {
             patched = patched.replace(productionPermission,
                     productionPermission + newline + "    " + historyPermission);
+        }
+        if (!patched.contains(uomConversionPermission) && patched.contains(historyPermission)) {
+            patched = patched.replace(historyPermission,
+                    historyPermission + newline + "    " + uomConversionPermission);
         }
         if (patched.equals(text)) {
             return;
