@@ -29,18 +29,18 @@ report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 // Amend: JG uniCenta April 2017
 // Amend: JG uniCenta September 2017
 
-report.setSentence("SELECT products.REFERENCE, " +
-       "products.NAME, " +
-       "products.PRICEBUY, " +
-       "products.PRICESELL, " +
-       "SUM(ticketlines.UNITS) AS SOLD_UNITS, " +
-       "SUM(ticketlines.UNITS * products.PRICEBUY) AS COST_VALUE, " +
-       "SUM(ticketlines.UNITS * products.PRICESELL) AS EXPECTED_SALES_VALUE, " +
+report.setSentence("SELECT COALESCE(products.REFERENCE, 'AJUSTES') AS REFERENCE, " +
+       "COALESCE(products.NAME, 'Ajustes sin producto') AS NAME, " +
+       "COALESCE(products.PRICEBUY, 0) AS PRICEBUY, " +
+       "COALESCE(products.PRICESELL, 0) AS PRICESELL, " +
+       "SUM(CASE WHEN products.ID IS NULL THEN 0 ELSE ticketlines.UNITS END) AS SOLD_UNITS, " +
+       "COALESCE(SUM(ticketlines.UNITS * products.PRICEBUY), 0) AS COST_VALUE, " +
+       "COALESCE(SUM(ticketlines.UNITS * products.PRICESELL), 0) AS EXPECTED_SALES_VALUE, " +
        "SUM(ticketlines.UNITS * ticketlines.PRICE) AS ACTUAL_SALES_VALUE, " +
-         "SUM(ticketlines.UNITS * products.PRICESELL) " +
-       "- SUM(ticketlines.UNITS * products.PRICEBUY) " +
+         "COALESCE(SUM(ticketlines.UNITS * products.PRICESELL), 0) " +
+       "- COALESCE(SUM(ticketlines.UNITS * products.PRICEBUY), 0) " +
           "AS EXPECTED_PROFIT, " +
-       "SUM(ticketlines.UNITS * ticketlines.PRICE) - SUM(ticketlines.UNITS * products.PRICEBUY) " +
+       "SUM(ticketlines.UNITS * ticketlines.PRICE) - COALESCE(SUM(ticketlines.UNITS * products.PRICEBUY), 0) " +
           "AS ACTUAL_PROFIT " +
   "FROM (ticketlines ticketlines " +
        "INNER JOIN receipts receipts " +

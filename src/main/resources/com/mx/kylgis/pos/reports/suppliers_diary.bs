@@ -36,7 +36,7 @@ report.setSentence("SELECT "
                         + "ON (stockdiary.supplier = suppliers.id)) "
                         + "INNER JOIN products products "
                         + "ON (stockdiary.product = products.ID) "
-                + "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND ?(QBF_FILTER)" 
+                + "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND ?(QBF_FILTER) " 
                     + "GROUP BY suppliers.id, stockdiary.id, products.id " 
                 + "ORDER BY suppliers.NAME, stockdiary.datenew DESC");
 

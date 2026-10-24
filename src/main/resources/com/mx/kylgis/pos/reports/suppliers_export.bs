@@ -25,8 +25,8 @@ report.setReport("/com/mx/kylgis/pos/reports/suppliers_export");
 report.setResourceBundle("com/mx/kylgis/pos/reports/suppliers_messages");
 
 report.setSentence("SELECT ID,TAXID, NAME,FIRSTNAME,LASTNAME,ADDRESS,ADDRESS2,CITY,POSTAL,PHONE,EMAIL " +
-                   "FROM SUPPLIERS " +
-                   "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND ?(QBF_FILTER)" +
+                   "FROM suppliers " +
+                   "WHERE VISIBLE = " + app.getSession().DB.TRUE() + " AND ?(QBF_FILTER) " +
                    "ORDER BY NAME ");
 
 report.addParameter("ID");

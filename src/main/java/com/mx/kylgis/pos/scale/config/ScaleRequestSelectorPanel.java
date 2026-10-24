@@ -5,6 +5,7 @@ package com.mx.kylgis.pos.scale.config;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.scale.ScaleRequestCatalog;
 import com.mx.kylgis.pos.scale.ScaleRequestCommand;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
@@ -32,6 +33,7 @@ public final class ScaleRequestSelectorPanel extends JPanel {
         for (String preset : ScaleRequestCatalog.presets()) {
             command.addItem(preset);
         }
+        UiHelp.set(command, "scale.request");
         add(command);
 
         nativeRequest.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));

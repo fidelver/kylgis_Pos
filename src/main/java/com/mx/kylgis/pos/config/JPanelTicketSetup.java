@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import javax.swing.JOptionPane;
 
@@ -105,8 +106,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
                 javax.swing.BorderFactory.createEmptyBorder(4, 8, 6, 8)));
 
         javax.swing.JLabel note = new javax.swing.JLabel(
-                "<html><b>Nota:</b> Pantalla y Ticket digital son copias de la impresora principal. "
-                + "Se recomienda usar Printer 1 para los recibos.</html>");
+                UiHelp.text("peripheral.ticket.note"));
         outputs.add(note, java.awt.BorderLayout.NORTH);
 
         javax.swing.JPanel checks = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));

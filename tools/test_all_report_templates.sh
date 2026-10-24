@@ -12,3 +12,5 @@ trap 'rm -rf -- "$TMP"' EXIT
   ReportTemplateCompileSmoke "$ROOT/src/main/resources/com/mx/kylgis/pos/reports"
 # Compilation alone is insufficient: verify content actually reaches rendered PDF.
 bash "$ROOT/tools/test_all_report_render.sh" "$RELEASE"
+# Ensure viewer reload remains functional after a report closes.
+bash "$ROOT/tools/test_report_viewer_lifecycle.sh" "$RELEASE"

@@ -41,6 +41,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
@@ -53,7 +54,9 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
 
     private static final Logger REPORT_LOG = Logger.getLogger(JPanelReport.class.getName());
     
-    private JRViewer400 reportviewer = null;          
+    private JRViewer400 reportviewer = null;
+    // Invalidate deferred repaints when a report is closed or executed again.
+    private long viewerGeneration = 0;          
     private JasperReport jr = null;
     private EditorCreator editor = null;
             
@@ -77,7 +80,9 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
     /** Creates new form JPanelReport */
     public JPanelReport() {
         
-        initComponents();      
+        initComponents();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jToggleFilter,"report.toggleFilters");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jButton1,"report.execute");
     }
     
     /**
@@ -116,7 +121,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 }
             }
 // JG 16 May 12 use multicatch
-        } catch (JRException | IOException | ClassNotFoundException e) {
+        } catch (JRException | IOException | ClassNotFoundException | RuntimeException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadreport"), e);
             msg.show(this);
             jr = null;
@@ -189,7 +194,8 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
      * @return
      */
     @Override
-    public boolean deactivate() {    
+    public boolean deactivate() {
+        ++viewerGeneration;    
         
         reportviewer.loadJasperPrint(null);
         return true;
@@ -212,7 +218,8 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         jToggleFilterActionPerformed(null);
     }
     
-    private void launchreport() {     
+    private void launchreport() {
+        final long generation = ++viewerGeneration;     
         
         m_App.waitCursorBegin();
         try {
@@ -268,24 +275,40 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                     REPORT_LOG.info(() -> "KYL-JASPER viewer_loaded report=" + getReport()
                             + " pages=" + pages + " showing=" + reportviewer.isShowing()
                             + " size=" + reportviewer.getWidth() + "x" + reportviewer.getHeight());
-                    javax.swing.SwingUtilities.invokeLater(() -> {
+                    SwingUtilities.invokeLater(() -> {
+                        if (generation != viewerGeneration || !reportviewer.isShowing()) {
+                            return;
+                        }
+                        revalidate();
                         reportviewer.revalidate();
                         reportviewer.repaint();
                     });
                 }
                 
-            } catch (MissingResourceException e) {    
+            } catch (MissingResourceException e) {
+                REPORT_LOG.warning("KYL-JASPER resource_bundle_missing report=" + getReport() + " cause=" + e.getClass().getSimpleName());
+                setVisibleFilter(true);
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadresourcedata"), e);
                 msg.show(this);
             } catch (JRException | RuntimeException e) {
+                REPORT_LOG.warning("KYL-JASPER fill_failed report=" + getReport() + " cause=" + e.getClass().getSimpleName());
+                setVisibleFilter(true);
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotfillreport"), e);
                 msg.show(this);
             } catch (BasicException e) {
+                REPORT_LOG.warning("KYL-JASPER data_failed report=" + getReport() + " cause=" + e.getClass().getSimpleName());
+                setVisibleFilter(true);
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadreportdata"), e);
                 msg.show(this);
             }
+        } else {
+            setVisibleFilter(true);
+            REPORT_LOG.warning("KYL-JASPER template_unavailable report=" + getReport());
+            new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.cannotloadreport"),
+                    new IllegalStateException("Jasper template unavailable: " + getReport())).show(this);
         }
-        
+
         } finally {
             m_App.waitCursorEnd();
         }

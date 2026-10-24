@@ -28,6 +28,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import java.io.IOException;
 import javax.swing.SwingUtilities;
 
@@ -115,6 +116,10 @@ public class StartPOS {
                 && svariant != null) {
             Locale.setDefault(Locale.of(slang, scountry, svariant));
         }
+
+        // Apply contextual help to all screens, including dynamic dialogs.
+        // Resources are bundled inside kylgispos.jar, never user-editable locales.
+        UiHelp.install();
 
         Formats.setIntegerPattern(config.getProperty("format.integer"));
         Formats.setDoublePattern(config.getProperty("format.double"));

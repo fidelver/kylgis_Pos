@@ -2,6 +2,8 @@
 //    Copyright (c) 2026 KylGis POS
 package com.mx.kylgis.pos.config;
 
+import com.mx.kylgis.pos.ui.help.UiHelp;
+
 import com.mx.kylgis.pos.config.provisioning.NodeConfigurationStore;
 import com.mx.kylgis.pos.config.provisioning.NodeConfigurationStore.NodeDefinition;
 import com.mx.kylgis.pos.forms.AppConfig;
@@ -49,8 +51,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private final DefaultListModel<String> moduleStackModel = new DefaultListModel<>();
     private final JList<String> moduleStackList = new JList<>(moduleStackModel);
     private final JComboBox<String> moduleCatalog = new JComboBox<>();
-    private final JButton addModuleButton = new JButton("Agregar");
-    private final JButton removeModuleButton = new JButton("Quitar");
+    private final JButton addModuleButton = new JButton(UiHelp.text("nodes.add"));
+    private final JButton removeModuleButton = new JButton(UiHelp.text("nodes.remove"));
     private final JButton moduleUpButton = new JButton("↑");
     private final JButton moduleDownButton = new JButton("↓");
     private final JTextField profile = new JTextField();
@@ -64,9 +66,9 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private final JLabel modulePath = new JLabel("-");
     private final JLabel bootstrapPath = new JLabel("-");
     private final JLabel status = new JLabel(" ");
-    private final JButton reloadButton = new JButton("Recargar");
-    private final JButton saveButton = new JButton("Guardar nodo");
-    private final JButton provisionButton = new JButton("Aprovisionar bootstrap");
+    private final JButton reloadButton = new JButton(UiHelp.text("nodes.reload"));
+    private final JButton saveButton = new JButton(UiHelp.text("nodes.save"));
+    private final JButton provisionButton = new JButton(UiHelp.text("nodes.provision"));
 
     private NodeConfigurationStore store;
     private String currentNodeId;
@@ -82,6 +84,8 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         initializeRoleSelector();
+        UiHelp.set(moduleUpButton,"nodes.module.up");
+        UiHelp.set(moduleDownButton,"nodes.module.down");
         add(buildHeader(), BorderLayout.NORTH);
         add(new JScrollPane(buildForm()), BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
@@ -91,7 +95,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private JPanel buildHeader() {
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
-        header.add(new JLabel("Nodo: "));
+        header.add(new JLabel(UiHelp.text("nodes.label") + " "));
         nodeSelector.setPrototypeDisplayValue("caja-plataformas        ");
         header.add(nodeSelector);
         header.add(Box.createHorizontalStrut(12));
@@ -111,25 +115,25 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         c.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
-        row = addComponent(form, c, row, "Funciones", rolesPanel);
-        row = addComponent(form, c, row, "Módulos reutilizables", buildModuleEditor());
-        row = addField(form, c, row, "Perfil", profile,
-                "Metadato operativo; no cambia la identidad del producto");
-        row = addField(form, c, row, "Servidor BBDD (override)", dbServer,
-                "Vacío = heredar del MASTER");
-        row = addField(form, c, row, "Puerto BBDD (override)", dbPort,
-                "Vacío = heredar del MASTER");
-        row = addField(form, c, row, "Base de datos", dbName,
-                "Nombre/esquema asignado a este nodo");
+        row = addComponent(form, c, row, UiHelp.text("nodes.form.roles"), rolesPanel);
+        row = addComponent(form, c, row, UiHelp.text("nodes.form.modules"), buildModuleEditor());
+        row = addField(form, c, row, UiHelp.text("nodes.form.profile"), profile,
+                "nodes.form.profile");
+        row = addField(form, c, row, UiHelp.text("nodes.form.dbserver"), dbServer,
+                "nodes.form.inherit");
+        row = addField(form, c, row, UiHelp.text("nodes.form.dbport"), dbPort,
+                "nodes.form.inherit");
+        row = addField(form, c, row, UiHelp.text("nodes.form.dbname"), dbName,
+                "nodes.form.dbname");
 
-        row = addValue(form, c, row, "Servidor efectivo", effectiveServer);
-        row = addValue(form, c, row, "Puerto efectivo", effectivePort);
-        row = addValue(form, c, row, "BBDD efectiva", effectiveDatabase);
-        row = addValue(form, c, row, "MASTER", masterPath);
-        row = addValue(form, c, row, "Módulos (orden)", modulePath);
-        row = addValue(form, c, row, "Bootstrap", bootstrapPath);
-        row = addValue(form, c, row, "Credenciales",
-                new JLabel("Gestionadas por MASTER / secrets.properties"));
+        row = addValue(form, c, row, UiHelp.text("nodes.form.serverEffective"), effectiveServer);
+        row = addValue(form, c, row, UiHelp.text("nodes.form.portEffective"), effectivePort);
+        row = addValue(form, c, row, UiHelp.text("nodes.form.dbEffective"), effectiveDatabase);
+        row = addValue(form, c, row, UiHelp.text("nodes.form.master"), masterPath);
+        row = addValue(form, c, row, UiHelp.text("nodes.form.moduleOrder"), modulePath);
+        row = addValue(form, c, row, UiHelp.text("nodes.form.bootstrap"), bootstrapPath);
+        row = addValue(form, c, row, UiHelp.text("nodes.form.credentials"),
+                new JLabel(UiHelp.text("nodes.secrets")));
 
         c.gridx = 0;
         c.gridy = row;
@@ -173,7 +177,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         rolesPanel.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
         for (NodeRole role : NodeRole.values()) {
             JCheckBox check = new JCheckBox(roleLabel(role));
-            check.setToolTipText("node.roles=" + role.getPropertyValue());
+            UiHelp.setContext(check,"nodes.role",roleLabel(role));
             check.addActionListener(e -> markRolesDirty());
             roleChecks.put(role, check);
             rolesPanel.add(check);
@@ -181,18 +185,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     }
 
     private String roleLabel(NodeRole role) {
-        switch (role) {
-            case MASTER: return "MASTER";
-            case SERVER: return "Servidor configuración";
-            case POS: return "Punto de venta";
-            case KITCHEN: return "Cocina";
-            case PRINTER_SERVICE: return "Servicio impresión";
-            case SCALE_SERVICE: return "Servicio báscula";
-            case SCANNER_SERVICE: return "Servicio scanner";
-            case DISPLAY_SERVICE: return "Servicio visor";
-            case REMOTE_SESSIONS: return "Sesiones remotas";
-            default: return role.getPropertyValue();
-        }
+        return UiHelp.text("nodes.role."+role.getPropertyValue());
     }
 
     private int addComponent(JPanel panel, GridBagConstraints c, int row,
@@ -210,17 +203,19 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     }
 
     private int addField(JPanel panel, GridBagConstraints c, int row,
-            String label, JTextField field, String tooltip) {
+            String label, JTextField field, String tooltipKey) {
         c.gridy = row;
         c.gridx = 0;
         c.gridwidth = 1;
         c.weightx = 0.0;
         c.fill = GridBagConstraints.HORIZONTAL;
-        panel.add(new JLabel(label + ":"), c);
+        JLabel caption = new JLabel(label + ":");
+        caption.setLabelFor(field);
+        panel.add(caption, c);
         c.gridx = 1;
         c.weightx = 1.0;
         field.setColumns(32);
-        field.setToolTipText(tooltip);
+        UiHelp.set(field,tooltipKey);
         panel.add(field, c);
         return row + 1;
     }
@@ -262,7 +257,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
     private void markDirty() {
         if (!loading) {
             dirty = true;
-            status.setText("Cambios pendientes en " + currentNodeId);
+            status.setText(UiHelp.text("nodes.status.pending") + currentNodeId);
         }
     }
 
@@ -287,7 +282,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         for (int i = 0; i < moduleStackModel.size(); i++) {
             if (module.equals(moduleStackModel.get(i))) {
                 moduleStackList.setSelectedIndex(i);
-                status.setText("El módulo ya está asignado: " + module);
+                status.setText(UiHelp.text("nodes.status.exists") + module);
                 return;
             }
         }
@@ -375,7 +370,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
         }
         try {
             loadNodeList(currentNodeId);
-            status.setText("Configuración recargada desde disco");
+            status.setText(UiHelp.text("nodes.status.reload"));
         } catch (IOException ex) {
             showError("No fue posible recargar los nodos", ex);
         }
@@ -390,7 +385,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             return true;
         }
         if (!administrationEnabled) {
-            status.setText("Modo consulta: este nodo no tiene rol master");
+            status.setText(UiHelp.text("nodes.status.readonly"));
             return false;
         }
         try {
@@ -418,7 +413,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
                 setAdministrationEnabled(false);
             }
             if (!silentSuccess) {
-                status.setText("Nodo guardado: " + savedNodeId);
+                status.setText(UiHelp.text("nodes.status.saved") + savedNodeId);
             }
             return true;
         } catch (IOException | IllegalArgumentException ex) {
@@ -452,7 +447,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             return;
         }
         if (!administrationEnabled) {
-            status.setText("Modo consulta: este nodo no tiene rol master");
+            status.setText(UiHelp.text("nodes.status.readonly"));
             return;
         }
         try {
@@ -471,7 +466,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             }
             File generated = store.provisionBootstrap(currentNodeId, overwrite);
             bootstrapPath.setText(generated.getAbsolutePath());
-            status.setText("Bootstrap listo para " + currentNodeId);
+            status.setText(UiHelp.text("nodes.status.bootstrap") + currentNodeId);
         } catch (IOException | IllegalArgumentException ex) {
             showError("No fue posible aprovisionar el nodo", ex);
         }
@@ -498,7 +493,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             loadNode(selected);
         } else {
             clearNode();
-            status.setText("El MASTER no contiene nodos registrados");
+            status.setText(UiHelp.text("nodes.status.empty"));
         }
     }
 
@@ -524,7 +519,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
                 bootstrapPath.setText(store.getBootstrapFile(nodeId).getAbsolutePath());
                 nodeSelector.setSelectedItem(nodeId);
                 dirty = false;
-                status.setText("Nodo cargado: " + nodeId);
+                status.setText(UiHelp.text("nodes.status.loaded") + nodeId);
             } finally {
                 loading = false;
             }
@@ -666,11 +661,11 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             loadAvailableModules();
             loadNodeList(currentNodeId);
             if (!administrationEnabled) {
-                status.setText("Modo consulta: " + runtimeNodeId + " no tiene rol master");
+                status.setText(UiHelp.text("nodes.status.readonlyfor") + runtimeNodeId + " — " + UiHelp.text("nodes.status.readonly"));
             }
         } catch (IOException ex) {
             clearNode();
-            status.setText("MASTER no disponible: " + ex.getMessage());
+            status.setText(UiHelp.text("nodes.status.unavailable") + ex.getMessage());
         }
     }
 
@@ -696,7 +691,7 @@ public final class JPanelConfigNodes extends JPanel implements PanelConfig {
             effectiveDatabase.setText(valueOrInherited(config.getProperty("database.name")));
             masterPath.setText(config.isRemoteCacheFallback()
                     ? "MASTER remoto (offline: cache cifrado)" : "MASTER remoto");
-            modulePath.setText("Gestionados por MASTER remoto");
+            modulePath.setText(UiHelp.text("nodes.status.remotepath"));
             bootstrapPath.setText(config.getConfigFile().getAbsolutePath());
             dirty = false;
             status.setText(config.isRemoteCacheFallback()

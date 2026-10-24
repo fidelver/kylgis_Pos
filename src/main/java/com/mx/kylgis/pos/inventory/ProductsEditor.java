@@ -130,6 +130,21 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     /** Creates new form JEditProduct
      * @param app
      * @param dirty */
+    private void installLocalizedProductButtonHelp() {
+        // Corrects legacy bold/italic tooltip duplication without editing
+        // NetBeans generated form code; all strings are embedded in the JAR.
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnBreak,"product.editor.break");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnColour,"product.editor.color");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnLarge,"product.editor.large");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnSmall,"product.editor.small");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnBold,"product.editor.bold");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnItalic,"product.editor.italic");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnImage,"product.editor.image");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnStyle,"product.editor.style");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnReset,"product.editor.reset");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(colourChooser,"product.editor.chooser");
+    }
+
     public ProductsEditor(AppView app, DirtyManager dirty) {
 
         setAppView(app);
@@ -138,6 +153,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
             m_dlSuppliers = (DataLogicSuppliers) app.getBean("com.mx.kylgis.pos.suppliers.DataLogicSuppliers");
             
         initComponents();
+        installLocalizedProductButtonHelp();
         jLabel17.setText(AppLocal.getIntString("label.productsupplier.preferredfield"));
         jBtnSupplier.setToolTipText(AppLocal.getIntString("menu.productsuppliers.manage"));
         

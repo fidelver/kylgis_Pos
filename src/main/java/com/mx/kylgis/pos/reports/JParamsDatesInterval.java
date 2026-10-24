@@ -41,6 +41,8 @@ public class JParamsDatesInterval extends javax.swing.JPanel implements ReportEd
     /** Creates new form JParamsClosedPos */
     public JParamsDatesInterval() {
         initComponents();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(btnDateStart,"report.startCalendar");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(btnDateEnd,"report.endCalendar");
     }
     
     /**
