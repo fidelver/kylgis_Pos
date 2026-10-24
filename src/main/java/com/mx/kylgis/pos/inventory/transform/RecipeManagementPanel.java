@@ -779,7 +779,7 @@ public final class RecipeManagementPanel extends JPanel implements JPanelView {
                 case 0: return row.versionNo;
                 case 1: return row.status;
                 case 2: return row.yieldQuantity;
-                case 3: return row.yieldUomId;
+                case 3: return row.yieldUomLabel();
                 case 4: return row.createdBy;
                 default: return null;
             }

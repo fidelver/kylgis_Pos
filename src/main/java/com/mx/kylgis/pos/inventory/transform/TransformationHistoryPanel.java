@@ -410,7 +410,7 @@ public final class TransformationHistoryPanel extends JPanel implements JPanelVi
                 case 0: return row.createdAt;
                 case 1: return row.type;
                 case 2: return row.status;
-                case 3: return row.locationId;
+                case 3: return row.locationLabel();
                 case 4: return row.expectedOutput;
                 case 5: return row.actualOutput;
                 case 6: return row.createdBy;
@@ -455,9 +455,9 @@ public final class TransformationHistoryPanel extends JPanel implements JPanelVi
             switch (columnIndex) {
                 case 0: return row.lineNo;
                 case 1: return row.direction;
-                case 2: return row.productId;
+                case 2: return row.productLabel();
                 case 3: return row.quantity;
-                case 4: return row.uomId;
+                case 4: return row.uomLabel();
                 case 5: return row.baseQuantity;
                 case 6: return row.unitCost;
                 case 7: return row.totalCost;

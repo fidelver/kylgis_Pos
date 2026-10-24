@@ -35,6 +35,7 @@ public final class RecipeTransformationSelfTest {
         testDuplicateWasteProductRejected();
         testZeroWasteQuantityRejected();
         testRecipeComponentLabels();
+        testTransformationLabels();
         testHistoryLimitBounds();
         System.out.println("KYLGIS_RECIPE_SELFTEST_OK tests=" + tests);
     }
@@ -205,6 +206,26 @@ public final class RecipeTransformationSelfTest {
                 "missing product catalog label must fall back to product id");
         require("uom-fallback".equals(fallback.uomLabel()),
                 "missing UOM catalog label must fall back to UOM id");
+        pass();
+    }
+
+    private static void testTransformationLabels() {
+        RecipeTransformationQueryService.TransformationLine line =
+                new RecipeTransformationQueryService.TransformationLine(
+                        1, "INPUT", "product-id", "REF-001", "Producto",
+                        null, new BigDecimal("2"), "uom-id", "Kilogramo",
+                        new BigDecimal("2"), new BigDecimal("1"), new BigDecimal("2"), "diary");
+        require("REF-001 - Producto".equals(line.productLabel()),
+                "history line must display product reference and name");
+        require("Kilogramo".equals(line.uomLabel()),
+                "history line must display UOM name");
+
+        RecipeTransformationQueryService.RecipeVersionSummary version =
+                new RecipeTransformationQueryService.RecipeVersionSummary(
+                        "version", "product", 1, "ACTIVE", BigDecimal.ONE,
+                        "uom-id", "Kilogramo", null, "user", null);
+        require("Kilogramo".equals(version.yieldUomLabel()),
+                "recipe version must display yield UOM name");
         pass();
     }
 

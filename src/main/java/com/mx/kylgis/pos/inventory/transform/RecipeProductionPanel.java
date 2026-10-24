@@ -239,7 +239,7 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
                     } else {
                         activeRecipe.setText("v" + activeVersion.versionNo + " — "
                                 + activeVersion.yieldQuantity.stripTrailingZeros().toPlainString()
-                                + " " + activeVersion.yieldUomId);
+                                + " " + activeVersion.yieldUomLabel());
                     }
                     updateExpectedLabel();
                 } catch (InterruptedException ex) {
@@ -261,7 +261,7 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
             return;
         }
         expectedOutput.setText(value.stripTrailingZeros().toPlainString()
-                + " " + activeVersion.yieldUomId);
+                + " " + activeVersion.yieldUomLabel());
     }
 
     private BigDecimal calculateExpectedOutput() {

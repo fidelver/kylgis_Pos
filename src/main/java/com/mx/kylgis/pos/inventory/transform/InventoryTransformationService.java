@@ -115,12 +115,12 @@ public final class InventoryTransformationService {
                                 recipeQuantity, component.uomId, product.inventoryUomId);
                         if (baseQuantity.signum() <= 0) {
                             throw new BasicException("Recipe component rounds to zero inventory units: "
-                                    + component.productId);
+                                    + product.displayLabel());
                         }
                         BigDecimal available = lockStock(connection, request.locationId, component.productId);
                         if (available.compareTo(baseQuantity) < 0) {
                             throw new BasicException("Insufficient stock for recipe component "
-                                    + component.productId + ": required=" + baseQuantity
+                                    + product.displayLabel() + ": required=" + baseQuantity
                                     + " available=" + available);
                         }
                         BigDecimal lineCost = money(product.unitCost.multiply(baseQuantity));
@@ -221,12 +221,12 @@ public final class InventoryTransformationService {
                                 requested, input.uomId, product.inventoryUomId);
                         if (base.signum() <= 0) {
                             throw new BasicException("Conversion input rounds to zero inventory units: "
-                                    + input.productId);
+                                    + product.displayLabel());
                         }
                         BigDecimal available = lockStock(connection, request.locationId, input.productId);
                         if (available.compareTo(base) < 0) {
                             throw new BasicException("Insufficient stock for conversion input "
-                                    + input.productId + ": required=" + base + " available=" + available);
+                                    + product.displayLabel() + ": required=" + base + " available=" + available);
                         }
                         BigDecimal lineCost = money(product.unitCost.multiply(base));
                         totalInputCost = money(totalInputCost.add(lineCost));
@@ -324,13 +324,13 @@ public final class InventoryTransformationService {
                                 requested, input.uomId, product.inventoryUomId);
                         if (base.signum() <= 0) {
                             throw new BasicException("Waste input rounds to zero inventory units: "
-                                    + input.productId);
+                                    + product.displayLabel());
                         }
                         BigDecimal available = lockStock(connection, request.locationId,
                                 input.productId);
                         if (available.compareTo(base) < 0) {
                             throw new BasicException("Insufficient stock for measured waste "
-                                    + input.productId + ": required=" + base
+                                    + product.displayLabel() + ": required=" + base
                                     + " available=" + available);
                         }
                         BigDecimal lineCost = money(product.unitCost.multiply(base));
@@ -525,7 +525,8 @@ public final class InventoryTransformationService {
         List<String> ordered = new ArrayList<>(productIds);
         Collections.sort(ordered);
         Map<String, ProductState> result = new HashMap<>();
-        String sql = "SELECT uom, attributeset_id, stockcost, pricebuy FROM products WHERE id = ? FOR UPDATE";
+        String sql = "SELECT p.uom, p.attributeset_id, p.stockcost, p.pricebuy, p.reference, p.name, u.name "
+                + "FROM products p LEFT JOIN uom u ON u.id = p.uom WHERE p.id = ? FOR UPDATE";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (String productId : ordered) {
                 statement.setString(1, productId);
@@ -545,7 +546,8 @@ public final class InventoryTransformationService {
                         throw new BasicException("Product has invalid negative cost: " + productId);
                     }
                     result.put(productId, new ProductState(productId, uom,
-                            row.getString(2), money(cost)));
+                            row.getString(2), money(cost), row.getString(5), row.getString(6),
+                            row.getString(7)));
                 }
             }
         }
@@ -555,7 +557,7 @@ public final class InventoryTransformationService {
     private static void requireNoAttributeSet(ProductState product) throws BasicException {
         if (!isBlank(product.attributeSetId)) {
             throw new BasicException("Prototype transformations do not yet support attribute-set products: "
-                    + product.productId);
+                    + product.displayLabel());
         }
     }
 
@@ -997,7 +999,6 @@ public final class InventoryTransformationService {
             }
         }
     }
-
     static String hashWasteRequest(WasteRequest request) throws BasicException {
         List<WasteInput> inputs = new ArrayList<>(request.inputs);
         inputs.sort((left, right) -> {
@@ -1447,13 +1448,30 @@ public final class InventoryTransformationService {
         final String inventoryUomId;
         final String attributeSetId;
         final BigDecimal unitCost;
+        final String reference;
+        final String name;
+        final String inventoryUomName;
 
         ProductState(String productId, String inventoryUomId,
-                String attributeSetId, BigDecimal unitCost) {
+                String attributeSetId, BigDecimal unitCost, String reference,
+                String name, String inventoryUomName) {
             this.productId = productId;
             this.inventoryUomId = inventoryUomId;
             this.attributeSetId = attributeSetId;
             this.unitCost = unitCost;
+            this.reference = reference;
+            this.name = name;
+            this.inventoryUomName = inventoryUomName;
+        }
+
+        String displayLabel() {
+            String displayName = name == null ? "" : name.trim();
+            String displayReference = reference == null ? "" : reference.trim();
+            String base = displayName.isEmpty() ? productId
+                    : (displayReference.isEmpty() ? displayName
+                    : displayReference + " - " + displayName);
+            String uom = inventoryUomName == null ? "" : inventoryUomName.trim();
+            return uom.isEmpty() ? base : base + " (" + uom + ")";
         }
     }
 
