@@ -24,6 +24,7 @@ import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.hardware.PeripheralPortCatalog;
+import com.mx.kylgis.pos.scale.ScaleRequestCatalog;
 import com.mx.kylgis.pos.scale.ScaleRequestCommand;
 import com.mx.kylgis.pos.scale.config.ScaleRequestSelectorPanel;
 import com.mx.kylgis.pos.util.ReportUtils;
@@ -271,6 +272,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         scaleRequestSelector = new ScaleRequestSelectorPanel();
         scaleRequestSelector.addActionListener(dirty);
         scaleRequestSelector.addDocumentListener(dirty);
+        scaleRequestSelector.setScaleType(comboValue(jcboMachineScale.getSelectedItem()));
 
         jPanel17.removeAll();
         jPanel17.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 1));
@@ -666,6 +668,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         }
         scaleRequestSelector.setConfiguredCommand(
                 config.getProperty(ScaleRequestCommand.PROPERTY));
+        scaleRequestSelector.setScaleType(sparam);
 
         p = new StringParser(config.getProperty("machine.scanner"));
         sparam = p.nextToken(':');
@@ -2440,6 +2443,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
             cl.show(m_jScaleParams, "comm");
         } else {
             cl.show(m_jScaleParams, "empty");
+        }
+        if (scaleRequestSelector != null) {
+            scaleRequestSelector.setScaleType(comboValue(jcboMachineScale.getSelectedItem()));
         }
     }//GEN-LAST:event_jcboMachineScaleActionPerformed
 
