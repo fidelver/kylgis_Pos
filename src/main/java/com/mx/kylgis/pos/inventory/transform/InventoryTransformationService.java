@@ -1176,10 +1176,16 @@ public final class InventoryTransformationService {
             BigDecimal existingUnitCost, BigDecimal addedQuantity,
             BigDecimal addedTotalCost) throws BasicException {
         if (existingQuantity == null || existingUnitCost == null || addedQuantity == null
-                || addedTotalCost == null || existingQuantity.signum() < 0
-                || existingUnitCost.signum() < 0 || addedQuantity.signum() <= 0
-                || addedTotalCost.signum() < 0) {
+                || addedTotalCost == null || existingUnitCost.signum() < 0
+                || addedQuantity.signum() <= 0 || addedTotalCost.signum() < 0) {
             throw new BasicException("Invalid values for weighted inventory cost addition.");
+        }
+        // Negative stock has no valid valuation to include in a weighted average.
+        // When a production replenishes it, value only the newly added quantity;
+        // this keeps the operation usable while preserving the incoming cost.
+        if (existingQuantity.signum() < 0) {
+            return money(addedTotalCost.divide(addedQuantity,
+                    QUANTITY_SCALE, RoundingMode.HALF_UP));
         }
         BigDecimal totalQuantity = quantity(existingQuantity.add(addedQuantity));
         if (totalQuantity.signum() <= 0) {

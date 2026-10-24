@@ -25,6 +25,7 @@ public final class RecipeTransformationSelfTest {
         testDepthGuardRejected();
         testUpgradeTransitions();
         testWeightedCostAddition();
+        testWeightedCostAdditionAfterNegativeStock();
         testWeightedCostRemoval();
         testWeightedCostRemovalToZero();
         testInvalidWeightedCostRemovalRejected();
@@ -99,6 +100,15 @@ public final class RecipeTransformationSelfTest {
                 new BigDecimal("10"), new BigDecimal("40"));
         require(result.compareTo(new BigDecimal("3.000000")) == 0,
                 "weighted add cost must be 3.000000");
+        pass();
+    }
+
+    private static void testWeightedCostAdditionAfterNegativeStock() throws Exception {
+        BigDecimal result = InventoryTransformationService.weightedCostAfterAdd(
+                new BigDecimal("-2"), new BigDecimal("4"),
+                new BigDecimal("3"), new BigDecimal("9"));
+        require(result.compareTo(new BigDecimal("3.000000")) == 0,
+                "negative stock replenishment must use incoming unit cost");
         pass();
     }
 
