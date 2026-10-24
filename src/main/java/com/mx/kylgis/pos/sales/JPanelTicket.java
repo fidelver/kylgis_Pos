@@ -1817,12 +1817,19 @@ System.out.println("PanelContainer : Focus Lost");
                     paymentdialog.setVoucherEditSourceReceiptId(
                             voucherEditAuthorizerId == null || voucherEditAuthorizerId.isBlank()
                                     ? null : voucherEditSourceReceiptId);
+                    // Reserve the durable operation before the payment dialog can
+                    // invoke the first external card authorization.
+                    ticket.setUser(m_App.getAppUserView().getUser().getUserInfo());
+                    ticket.setActiveCash(m_App.getActiveCashIndex());
+                    ticket.setDate(new Date());
+                    paymentdialog.setDurableOperationContext(ticket);
 
                     boolean paymentAccepted;
                     try {
                         paymentAccepted = paymentdialog.showDialog(ticket.getTotal(), ticket.getCustomer());
                     } finally {
                         paymentdialog.setVoucherEditSourceReceiptId(null);
+                        paymentdialog.clearDurableOperationContext();
                     }
 
                     if (paymentAccepted) {

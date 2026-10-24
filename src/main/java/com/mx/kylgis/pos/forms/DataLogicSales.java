@@ -1741,6 +1741,30 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 }).list(receiptId);
     }
 
+    /**
+     * QA-only bridge used by the payment dialog. The regular POS path is a no-op
+     * unless the isolated durable-ledger flag is explicitly enabled.
+     */
+    public void prepareDurableOperation(TicketInfo ticket) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareOperation(s, ticket);
+        }
+    }
+
+    public void prepareDurableCardIntent(TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareExternalIntent(s, ticket, component, payment);
+        }
+    }
+
+    public void finishDurableCardIntent(TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.finishExternalIntent(s, ticket, component, payment);
+        }
+    }
+
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
         if (ticket.requiresPaymentReconciliation()) {
             throw new BasicException("Payment recovery preparation is not confirmed; reconcile before saving or charging.");

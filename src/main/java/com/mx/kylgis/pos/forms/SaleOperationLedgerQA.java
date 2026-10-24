@@ -52,6 +52,154 @@ final class SaleOperationLedgerQA {
         }
     }
 
+    /**
+     * Persists the operation identity before any payment component can reach a
+     * gateway. This method deliberately leaves the operation in PREPARED; the
+     * final CAS claim remains in prepareAndClaim after all payments are bound.
+     */
+    static void prepareOperation(Session session, TicketInfo ticket) throws BasicException {
+        if (ticket == null || ticket.getId() == null || ticket.getId().isBlank()) {
+            throw new BasicException("QA ledger requires a stable receipt UUID");
+        }
+        String id = ticket.getProperty(OPERATION_PROPERTY);
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+            ticket.setProperty(OPERATION_PROPERTY, id);
+        }
+        try {
+            UUID.fromString(id);
+        } catch (IllegalArgumentException invalid) {
+            throw new BasicException("QA ledger operation UUID is invalid", invalid);
+        }
+        final String requestHash;
+        try {
+            requestHash = SaleOperationPayloadQA.operationFingerprint(ticket);
+        } catch (java.io.IOException invalid) {
+            throw new BasicException("QA request preparation is not confirmed", invalid);
+        }
+        try (Connection c = connection(session)) {
+            try (PreparedStatement p = c.prepareStatement(
+                    "INSERT INTO qa_sale_operation_intents"
+                    + "(operation_uuid,receipt_id,terminal_id,state,request_sha256) VALUES (?,?,?,'PREPARED',?)")) {
+                p.setString(1, id);
+                p.setString(2, ticket.getId());
+                p.setString(3, ticket.getActiveCash() == null ? "QA-UNKNOWN" : ticket.getActiveCash());
+                p.setString(4, requestHash);
+                try {
+                    p.executeUpdate();
+                } catch (SQLException duplicate) {
+                    if (duplicate.getErrorCode() != 1062
+                            || !"23000".equals(duplicate.getSQLState())) {
+                        throw duplicate;
+                    }
+                }
+            }
+            try (PreparedStatement p = c.prepareStatement(
+                    "SELECT receipt_id,terminal_id,state,revision,request_sha256"
+                    + " FROM qa_sale_operation_intents WHERE operation_uuid=?")) {
+                p.setString(1, id);
+                try (ResultSet r = p.executeQuery()) {
+                    String terminal = ticket.getActiveCash() == null ? "QA-UNKNOWN" : ticket.getActiveCash();
+                    if (!r.next() || !ticket.getId().equals(r.getString(1))
+                            || !terminal.equals(r.getString(2))
+                            || !"PREPARED".equals(r.getString(3)) || r.getLong(4) != 0
+                            || !requestHash.equals(r.getString(5))) {
+                        throw new SQLException("QA_LEDGER_RESERVED_IDENTITY_MISMATCH_OR_NOT_PREPARED");
+                    }
+                }
+            }
+        } catch (SQLException failure) {
+            throw new BasicException("QA durable operation preparation is not confirmed; no sale permitted", failure);
+        }
+    }
+
+    /**
+     * Binds a deterministic payment component and its caller-supplied provider
+     * reference before the gateway is invoked.
+     */
+    static void prepareExternalIntent(Session session, TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (ticket == null || payment == null || component < 0) {
+            throw new BasicException("QA payment intent requires operation, component and payment");
+        }
+        String operation = ticket.getProperty(OPERATION_PROPERTY);
+        String providerReference = payment.getTransactionID();
+        if (operation == null || providerReference == null || providerReference.isBlank()
+                || providerReference.length() > 128) {
+            throw new BasicException("QA payment intent requires a stable provider reference");
+        }
+        final String paymentUuid = UUID.nameUUIDFromBytes(
+                (operation + ":payment:" + component).getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .toString();
+        try (Connection c = connection(session)) {
+            try (PreparedStatement p = c.prepareStatement(
+                    "INSERT INTO qa_external_payment_intents"
+                    + "(payment_uuid,operation_uuid,provider,provider_reference,component_index,amount,currency,state)"
+                    + " VALUES (?,?,?, ?,?,?, 'MXN','PREPARED')")) {
+                p.setString(1, paymentUuid);
+                p.setString(2, operation);
+                p.setString(3, "card-gateway");
+                p.setString(4, providerReference);
+                p.setInt(5, component);
+                p.setBigDecimal(6, java.math.BigDecimal.valueOf(payment.getTotal()));
+                try {
+                    p.executeUpdate();
+                } catch (SQLException duplicate) {
+                    if (duplicate.getErrorCode() != 1062
+                            || !"23000".equals(duplicate.getSQLState())) {
+                        throw duplicate;
+                    }
+                }
+            }
+            try (PreparedStatement p = c.prepareStatement(
+                    "SELECT operation_uuid,provider,provider_reference,component_index,amount,currency,state"
+                    + " FROM qa_external_payment_intents WHERE payment_uuid=?")) {
+                p.setString(1, paymentUuid);
+                try (ResultSet r = p.executeQuery()) {
+                    if (!r.next()
+                            || !operation.equals(r.getString(1))
+                            || !"card-gateway".equals(r.getString(2))
+                            || !providerReference.equals(r.getString(3))
+                            || r.getInt(4) != component
+                            || r.getBigDecimal(5).compareTo(java.math.BigDecimal.valueOf(payment.getTotal())) != 0
+                            || !"MXN".equals(r.getString(6))
+                            || !"PREPARED".equals(r.getString(7))) {
+                        throw new SQLException("QA_LEDGER_PAYMENT_INTENT_NOT_PREPARED");
+                    }
+                }
+            }
+        } catch (SQLException failure) {
+            throw new BasicException("QA durable payment preparation is not confirmed; no authorization permitted", failure);
+        }
+    }
+
+    static void finishExternalIntent(Session session, TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        String operation = ticket == null ? null : ticket.getProperty(OPERATION_PROPERTY);
+        String providerReference = payment == null ? null : payment.getTransactionID();
+        if (operation == null || providerReference == null || providerReference.isBlank()) {
+            throw new BasicException("QA payment result has no durable identity");
+        }
+        String paymentUuid = UUID.nameUUIDFromBytes(
+                (operation + ":payment:" + component).getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .toString();
+        String next = payment.isPaymentOK() ? "APPROVED" : "DECLINED";
+        try (Connection c = connection(session);
+             PreparedStatement p = c.prepareStatement(
+                     "UPDATE qa_external_payment_intents SET state=?"
+                     + " WHERE payment_uuid=? AND operation_uuid=? AND provider_reference=? AND state='PREPARED'")) {
+            p.setString(1, next);
+            p.setString(2, paymentUuid);
+            p.setString(3, operation);
+            p.setString(4, providerReference);
+            if (p.executeUpdate() != 1) {
+                throw new SQLException("QA_LEDGER_PAYMENT_RESULT_NOT_RECORDED");
+            }
+        } catch (SQLException failure) {
+            throw new BasicException("QA durable payment result is not confirmed", failure);
+        }
+    }
+
     static void prepareAndClaim(Session session, TicketInfo ticket) throws BasicException {
         if (ticket == null || ticket.getId() == null || ticket.getId().isBlank()) {
             throw new BasicException("QA ledger requires a stable receipt UUID");
@@ -67,7 +215,7 @@ final class SaleOperationLedgerQA {
             throw new BasicException("QA ledger operation UUID is invalid", invalid);
         }
         final String requestHash;
-        try { requestHash = SaleOperationPayloadQA.fingerprint(ticket); }
+        try { requestHash = SaleOperationPayloadQA.operationFingerprint(ticket); }
         catch (java.io.IOException invalid) { throw new BasicException("QA request preparation is not confirmed", invalid); }
         try (Connection c = connection(session)) {
             // Do not silently accept a receipt that belongs to another operation.

@@ -88,8 +88,31 @@ public class JPaymentMagcard extends javax.swing.JPanel implements JPaymentInter
         jlblMessage.setText(null);
 
         PaymentInfoMagcard payinfo = m_cardpanel.getPaymentInfoMagcard();
+        PaymentAuthorizationCoordinator coordinator =
+                m_notifier instanceof PaymentAuthorizationCoordinator
+                        ? (PaymentAuthorizationCoordinator) m_notifier : null;
 
-        m_paymentgateway.execute(payinfo);
+        try {
+            if (coordinator != null) {
+                // No gateway call is allowed before the durable QA intent exists.
+                coordinator.beforeCardAuthorization(payinfo);
+            }
+            m_paymentgateway.execute(payinfo);
+            if (coordinator != null) {
+                coordinator.afterCardAuthorization(payinfo);
+            }
+        } catch (com.mx.kylgis.pos.basic.BasicException failure) {
+            if (coordinator != null) {
+                coordinator.markDurableCoordinationFailure(failure.getMessage());
+            }
+            payinfo.paymentError("Durable payment coordination failed", failure.getMessage());
+        } catch (RuntimeException failure) {
+            if (coordinator != null) {
+                coordinator.markDurableCoordinationFailure(failure.getMessage());
+            }
+            payinfo.paymentError("Payment gateway failed", failure.getMessage());
+        }
+
         if (payinfo.isPaymentOK()) {
             return payinfo;
         } else {
