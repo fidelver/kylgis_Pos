@@ -396,7 +396,7 @@ public final class InventoryTransformationService {
                         }
                         if (!productIds.add(line.productId)) {
                             throw new BasicException("Prototype reversal requires one stock line per product: "
-                                    + line.productId);
+                                    + displayProductLabel(connection, line.productId));
                         }
                     }
                     Map<String, ProductState> products = lockProducts(connection, productIds);
@@ -420,7 +420,7 @@ public final class InventoryTransformationService {
                         if (DIR_OUTPUT.equals(line.direction)
                                 && available.compareTo(line.baseQuantity) < 0) {
                             throw new BasicException("Cannot reverse transformation; output stock already consumed for product "
-                                    + line.productId + ": required=" + line.baseQuantity
+                                    + products.get(line.productId).displayLabel() + ": required=" + line.baseQuantity
                                     + " available=" + available);
                         }
                     }
@@ -520,6 +520,30 @@ public final class InventoryTransformationService {
         RecipeDefinitionService.assertAcyclic(graph);
     }
 
+    private static String displayProductLabel(Connection connection, String productId)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT p.reference, p.name, u.name FROM products p "
+                + "LEFT JOIN uom u ON u.id = p.uom WHERE p.id = ?")) {
+            statement.setString(1, productId);
+            try (ResultSet row = statement.executeQuery()) {
+                if (!row.next()) {
+                    return productId;
+                }
+                String reference = row.getString(1);
+                String name = row.getString(2);
+                String uom = row.getString(3);
+                String displayName = name == null ? "" : name.trim();
+                String displayReference = reference == null ? "" : reference.trim();
+                String base = displayName.isEmpty() ? productId
+                        : (displayReference.isEmpty() ? displayName
+                        : displayReference + " - " + displayName);
+                String displayUom = uom == null ? "" : uom.trim();
+                return displayUom.isEmpty() ? base : base + " (" + displayUom + ")";
+            }
+        }
+    }
+
     private static Map<String, ProductState> lockProducts(Connection connection, Set<String> productIds)
             throws SQLException, BasicException {
         List<String> ordered = new ArrayList<>(productIds);
@@ -532,18 +556,21 @@ public final class InventoryTransformationService {
                 statement.setString(1, productId);
                 try (ResultSet row = statement.executeQuery()) {
                     if (!row.next()) {
-                        throw new BasicException("Unknown product in transformation: " + productId);
+                        throw new BasicException("Unknown product in transformation: "
+                                + displayProductLabel(connection, productId));
                     }
                     String uom = row.getString(1);
                     if (isBlank(uom)) {
-                        throw new BasicException("Product has no inventory UOM: " + productId);
+                        throw new BasicException("Product has no inventory UOM: "
+                                + displayProductLabel(connection, productId));
                     }
                     BigDecimal stockCost = row.getBigDecimal(3);
                     BigDecimal priceBuy = row.getBigDecimal(4);
                     BigDecimal cost = stockCost != null && stockCost.signum() > 0
                             ? stockCost : (priceBuy == null ? BigDecimal.ZERO : priceBuy);
                     if (cost.signum() < 0) {
-                        throw new BasicException("Product has invalid negative cost: " + productId);
+                        throw new BasicException("Product has invalid negative cost: "
+                                + displayProductLabel(connection, productId));
                     }
                     result.put(productId, new ProductState(productId, uom,
                             row.getString(2), money(cost), row.getString(5), row.getString(6),
@@ -576,11 +603,13 @@ public final class InventoryTransformationService {
             statement.setBoolean(4, true);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
-                    throw new BasicException("Missing direct UOM conversion for product " + productId);
+                    throw new BasicException("Missing direct UOM conversion for product "
+                            + displayProductLabel(connection, productId));
                 }
                 BigDecimal factor = row.getBigDecimal(1);
                 if (factor == null || factor.signum() <= 0) {
-                    throw new BasicException("Invalid UOM conversion factor for product " + productId);
+                    throw new BasicException("Invalid UOM conversion factor for product "
+                            + displayProductLabel(connection, productId));
                 }
                 return quantity(quantity.multiply(factor));
             }
@@ -600,7 +629,8 @@ public final class InventoryTransformationService {
                 }
                 BigDecimal units = quantity(row.getBigDecimal(1));
                 if (row.next()) {
-                    throw new SQLException("Duplicate stockcurrent rows for product " + productId
+                    throw new SQLException("Duplicate stockcurrent rows for product "
+                            + displayProductLabel(connection, productId)
                             + " at location " + locationId + " with NULL attribute instance.");
                 }
                 return units;
@@ -617,7 +647,8 @@ public final class InventoryTransformationService {
             statement.setString(2, productId);
             try (ResultSet rows = statement.executeQuery()) {
                 if (rows.next() && rows.next()) {
-                    throw new SQLException("Duplicate stockcurrent rows for product " + productId
+                    throw new SQLException("Duplicate stockcurrent rows for product "
+                            + displayProductLabel(connection, productId)
                             + " at location " + locationId + " with NULL attribute instance.");
                 }
                 // Lock only; the product row is also locked to serialize missing-row inserts.
@@ -651,7 +682,8 @@ public final class InventoryTransformationService {
                 }
             }
         } else if (changed != 1) {
-            throw new SQLException("Unexpected stock row cardinality for product " + productId);
+            throw new SQLException("Unexpected stock row cardinality for product "
+                    + displayProductLabel(connection, productId));
         }
     }
 
@@ -999,6 +1031,7 @@ public final class InventoryTransformationService {
             }
         }
     }
+
     static String hashWasteRequest(WasteRequest request) throws BasicException {
         List<WasteInput> inputs = new ArrayList<>(request.inputs);
         inputs.sort((left, right) -> {
