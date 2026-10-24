@@ -222,9 +222,9 @@ public final class UiHelpLocaleSmoke {
             JTextField secondaryName=(JTextField)secondaryField.get(dbPanel);
             boolean before=secondaryName.isEnabled();
             multidb.setSelected(!multidb.isSelected());
-            for(java.awt.event.ActionListener action:multidb.getActionListeners()) {
-                if(action.getClass().getName().contains("JPanelConfigDatabase")) {
-                    action.actionPerformed(new java.awt.event.ActionEvent(
+            for(java.awt.event.ActionListener toggleListener:multidb.getActionListeners()) {
+                if(toggleListener.getClass().getName().contains("JPanelConfigDatabase")) {
+                    toggleListener.actionPerformed(new java.awt.event.ActionEvent(
                         multidb,java.awt.event.ActionEvent.ACTION_PERFORMED,"toggle"));
                 }
             }

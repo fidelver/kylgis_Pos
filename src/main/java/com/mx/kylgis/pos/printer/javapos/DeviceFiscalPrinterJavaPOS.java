@@ -1,3 +1,4 @@
+
 //    KylGis POS Punto de Venta Táctil
 //    Copyright (c) 2026 KylGis POS
 //    Portions Copyright (c) 2015-2021 John Lewis (Chromis POS / ChromisKitchenScreen)
@@ -60,8 +61,12 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
         }
         
         initComponents();
-        
-        
+        // The former "Receipt Title" panel consisted of inert placeholder
+        // fields. Fiscal X/Z operations remain wired to their JPOS calls.
+        jButton1.setText(com.mx.kylgis.pos.ui.help.UiHelp.text("fiscal.xreport.label"));
+        jButton2.setText(com.mx.kylgis.pos.ui.help.UiHelp.text("fiscal.zreport.label"));
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jButton1,"fiscal.xreport");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jButton2,"fiscal.zreport");
     }
  
     /**
@@ -204,20 +209,10 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
     private void initComponents() {
 
         jButton1 = new javax.swing.JButton();
-        jPanel1 = new javax.swing.JPanel();
-        jTextField1 = new javax.swing.JTextField();
-        jCheckBox1 = new javax.swing.JCheckBox();
-        jTextField2 = new javax.swing.JTextField();
-        jCheckBox2 = new javax.swing.JCheckBox();
-        jTextField3 = new javax.swing.JTextField();
-        jTextField4 = new javax.swing.JTextField();
-        jTextField5 = new javax.swing.JTextField();
-        jCheckBox3 = new javax.swing.JCheckBox();
-        jCheckBox4 = new javax.swing.JCheckBox();
-        jCheckBox5 = new javax.swing.JCheckBox();
         jButton2 = new javax.swing.JButton();
 
         setLayout(null);
+        setPreferredSize(new java.awt.Dimension(360, 64));
 
         jButton1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jButton1.setText("*X Report");
@@ -227,71 +222,7 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
             }
         });
         add(jButton1);
-        jButton1.setBounds(30, 10, 130, 23);
-
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("*Receipt Title"));
-        jPanel1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jPanel1.setLayout(null);
-
-        jTextField1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jTextField1.setText("jTextField1");
-        jPanel1.add(jTextField1);
-        jTextField1.setBounds(20, 30, 260, 25);
-
-        jCheckBox1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jCheckBox1.setText("jCheckBox1");
-        jCheckBox1.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        jCheckBox1.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        jPanel1.add(jCheckBox1);
-        jCheckBox1.setBounds(290, 30, 110, 25);
-
-        jTextField2.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jTextField2.setText("jTextField2");
-        jPanel1.add(jTextField2);
-        jTextField2.setBounds(20, 60, 260, 25);
-
-        jCheckBox2.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jCheckBox2.setText("jCheckBox2");
-        jCheckBox2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        jCheckBox2.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        jPanel1.add(jCheckBox2);
-        jCheckBox2.setBounds(290, 60, 110, 25);
-
-        jTextField3.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jTextField3.setText("jTextField3");
-        jPanel1.add(jTextField3);
-        jTextField3.setBounds(20, 90, 260, 25);
-
-        jTextField4.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jTextField4.setText("jTextField4");
-        jPanel1.add(jTextField4);
-        jTextField4.setBounds(20, 120, 260, 25);
-
-        jTextField5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jTextField5.setText("jTextField5");
-        jPanel1.add(jTextField5);
-        jTextField5.setBounds(20, 150, 260, 25);
-
-        jCheckBox3.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jCheckBox3.setText("jCheckBox3");
-        jCheckBox3.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        jCheckBox3.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        jPanel1.add(jCheckBox3);
-        jCheckBox3.setBounds(290, 90, 110, 25);
-
-        jCheckBox4.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jCheckBox4.setText("jCheckBox4");
-        jCheckBox4.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        jCheckBox4.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        jPanel1.add(jCheckBox4);
-        jCheckBox4.setBounds(290, 120, 110, 25);
-
-        jCheckBox5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jCheckBox5.setText("jCheckBox5");
-        jCheckBox5.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        jCheckBox5.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        jPanel1.add(jCheckBox5);
-        jCheckBox5.setBounds(290, 150, 110, 25);
+        jButton1.setBounds(18, 12, 150, 34);
 
         jButton2.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jButton2.setText("*Z Report");
@@ -300,11 +231,8 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
                 jButton2ActionPerformed(evt);
             }
         });
-        jPanel1.add(jButton2);
-        jButton2.setBounds(20, 220, 130, 23);
-
-        add(jPanel1);
-        jPanel1.setBounds(10, 60, 470, 260);
+        add(jButton2);
+        jButton2.setBounds(190, 12, 150, 34);
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
@@ -323,17 +251,6 @@ public class DeviceFiscalPrinterJavaPOS extends javax.swing.JPanel implements De
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
-    private javax.swing.JCheckBox jCheckBox1;
-    private javax.swing.JCheckBox jCheckBox2;
-    private javax.swing.JCheckBox jCheckBox3;
-    private javax.swing.JCheckBox jCheckBox4;
-    private javax.swing.JCheckBox jCheckBox5;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
-    private javax.swing.JTextField jTextField3;
-    private javax.swing.JTextField jTextField4;
-    private javax.swing.JTextField jTextField5;
     // End of variables declaration//GEN-END:variables
     
 }

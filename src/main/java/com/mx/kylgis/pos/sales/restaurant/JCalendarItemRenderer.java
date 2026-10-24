@@ -152,7 +152,7 @@ public class JCalendarItemRenderer extends javax.swing.JPanel implements ListCel
         setLayout(new java.awt.BorderLayout());
 
         m_jDescription.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jDescription.setText("<html>This is a test comment that shows how a long line is printed with this renderer.");
+        m_jDescription.setText("");
         m_jDescription.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         m_jDescription.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 20, 5, 20));
         add(m_jDescription, java.awt.BorderLayout.CENTER);
@@ -162,15 +162,15 @@ public class JCalendarItemRenderer extends javax.swing.JPanel implements ListCel
 
         m_jTime.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         m_jTime.setForeground(new java.awt.Color(0, 0, 255));
-        m_jTime.setText("10:20");
+        m_jTime.setText("");
         jPanel1.add(m_jTime, java.awt.BorderLayout.WEST);
 
         m_jTitle.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jTitle.setText(" This is a test");
+        m_jTitle.setText("");
         m_jTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 0));
         jPanel1.add(m_jTitle, java.awt.BorderLayout.CENTER);
 
-        m_jChairs.setText("5");
+        m_jChairs.setText("");
         jPanel1.add(m_jChairs, java.awt.BorderLayout.EAST);
 
         add(jPanel1, java.awt.BorderLayout.NORTH);

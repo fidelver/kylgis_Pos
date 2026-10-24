@@ -286,7 +286,6 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jTextField2 = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
         jReceiptSize = new javax.swing.JSpinner();
         jLabel3 = new javax.swing.JLabel();
@@ -301,7 +300,6 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         jLabel5 = new javax.swing.JLabel();
         jTicketWidth = new javax.swing.JSpinner();
 
-        jTextField2.setText("jTextField2");
 
         setBackground(new java.awt.Color(255, 255, 255));
         setOpaque(false);
@@ -574,7 +572,6 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private javax.swing.JSpinner jTicketWidth;
     private javax.swing.JSpinner jPickupSize;
     private javax.swing.JSpinner jReceiptSize;
-    private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextReceiptPrefix;
     private javax.swing.JTextField jTicketExample;
     private javax.swing.JButton jbtnReset;

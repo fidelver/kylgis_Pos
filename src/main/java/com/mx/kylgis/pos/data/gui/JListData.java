@@ -97,9 +97,6 @@ public class JListData extends javax.swing.JDialog {
         m_jCancel = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         m_jData = new javax.swing.JList();
-        jToolBar1 = new javax.swing.JToolBar();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -135,15 +132,6 @@ public class JListData extends javax.swing.JDialog {
 
         getContentPane().add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
-        jToolBar1.setFloatable(false);
-
-        jButton1.setText("jButton1");
-        jToolBar1.add(jButton1);
-
-        jButton2.setText("jButton2");
-        jToolBar1.add(jButton2);
-
-        getContentPane().add(jToolBar1, java.awt.BorderLayout.NORTH);
 
         setSize(new java.awt.Dimension(264, 337));
         setLocationRelativeTo(null);
@@ -163,11 +151,8 @@ public class JListData extends javax.swing.JDialog {
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JToolBar jToolBar1;
     private javax.swing.JButton m_jCancel;
     private javax.swing.JList m_jData;
     private javax.swing.JButton m_jOK;

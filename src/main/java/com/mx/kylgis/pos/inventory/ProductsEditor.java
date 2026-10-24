@@ -133,6 +133,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     private void installLocalizedProductButtonHelp() {
         // Corrects legacy bold/italic tooltip duplication without editing
         // NetBeans generated form code; all strings are embedded in the JAR.
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jService,"product.service");
         com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnBreak,"product.editor.break");
         com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnColour,"product.editor.color");
         com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnLarge,"product.editor.large");

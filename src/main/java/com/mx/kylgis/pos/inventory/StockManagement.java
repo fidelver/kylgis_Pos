@@ -143,6 +143,9 @@ public class StockManagement extends JPanel implements JPanelView {
         m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
 
         initComponents();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jBtnDelete,"stock.clear");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jLabel9,"stock.supplierDocument");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jSupplierDoc,"stock.supplierDocument");
         installSupplierRenderer();
         installResponsiveInventoryLayout();
         
@@ -1201,14 +1204,14 @@ public class StockManagement extends JPanel implements JPanelView {
 
         jLabel9.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel9.setText(AppLocal.getIntString("label.supplierdocment")); // NOI18N
-        jLabel9.setToolTipText("null");
+        // Localized tooltip is installed after initComponents().
         jLabel9.setMaximumSize(new java.awt.Dimension(40, 25));
         jLabel9.setMinimumSize(new java.awt.Dimension(40, 25));
         jLabel9.setPreferredSize(new java.awt.Dimension(70, 30));
         jPanel8.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(5, 180, 160, -1));
 
         m_jSupplierDoc.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jSupplierDoc.setToolTipText(AppLocal.getIntString("button.exit")); // NOI18N
+        // This field describes the supplier document, not the Exit button.
         m_jSupplierDoc.setPreferredSize(new java.awt.Dimension(160, 30));
         jPanel8.add(m_jSupplierDoc, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 180, 270, -1));
 

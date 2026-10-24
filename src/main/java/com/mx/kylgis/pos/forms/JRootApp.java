@@ -224,7 +224,7 @@ public class JRootApp extends JPanel implements AppView {
         m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
         m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
         m_healthRefreshButton.setFocusable(false);
-        m_healthRefreshButton.setToolTipText("Verificar BBDD y volver al inicio de sesión");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_healthRefreshButton,"app.health.returnLogin");
         m_healthRefreshButton.setPreferredSize(new java.awt.Dimension(105, 24));
         m_healthRefreshButton.addActionListener(evt -> returnToLoginAfterDatabaseCheck());
         panelTask.add(m_healthPeripherals, 1);
@@ -639,7 +639,7 @@ public class JRootApp extends JPanel implements AppView {
         String newText = m_props.getProperty("start.text");
         if (newText != null) {
             if (newText.equals("")){
-                jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
+                jLabel1.setText("<html><center>" + com.mx.kylgis.pos.ui.help.UiHelp.text("app.welcome.title") + "<br>" +
                 "Copyright \u00A9 2026 KylGis POS<br>" +
                 "https://pos.kylgis.com<br>" +
                 "<br>" +
@@ -1606,7 +1606,7 @@ public class JRootApp extends JPanel implements AppView {
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png"))); // NOI18N
-        jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
+        jLabel1.setText("<html><center>" + com.mx.kylgis.pos.ui.help.UiHelp.text("app.welcome.title") + "<br>" +
             "Copyright \u00A9 2026 KylGis POS<br>" +
             "https://pos.kylgis.com<br>" +
             "<br>" +
