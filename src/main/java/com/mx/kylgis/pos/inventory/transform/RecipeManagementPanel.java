@@ -810,9 +810,9 @@ public final class RecipeManagementPanel extends JPanel implements JPanelView {
             RecipeTransformationQueryService.RecipeComponent row = rows.get(rowIndex);
             switch (columnIndex) {
                 case 0: return row.lineNo;
-                case 1: return row.productId;
+                case 1: return row.productLabel();
                 case 2: return row.quantity;
-                case 3: return row.uomId;
+                case 3: return row.uomLabel();
                 case 4: return row.wasteAllowance;
                 default: return null;
             }

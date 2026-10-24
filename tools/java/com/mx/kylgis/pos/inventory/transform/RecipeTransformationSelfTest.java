@@ -34,6 +34,7 @@ public final class RecipeTransformationSelfTest {
         testWasteHashOrderIndependent();
         testDuplicateWasteProductRejected();
         testZeroWasteQuantityRejected();
+        testRecipeComponentLabels();
         testHistoryLimitBounds();
         System.out.println("KYLGIS_RECIPE_SELFTEST_OK tests=" + tests);
     }
@@ -183,6 +184,27 @@ public final class RecipeTransformationSelfTest {
                         List.of(zero), "USER", null);
         expectBasicException(() -> InventoryTransformationService.validateWasteRequest(request),
                 "zero waste quantity");
+        pass();
+    }
+
+    private static void testRecipeComponentLabels() {
+        RecipeTransformationQueryService.RecipeComponent named =
+                new RecipeTransformationQueryService.RecipeComponent(
+                        1, "product-id", "ARZ-001", "Arroz", new BigDecimal("2"),
+                        "uom-id", "Kilogramo", BigDecimal.ZERO);
+        require("ARZ-001 - Arroz".equals(named.productLabel()),
+                "recipe component must display product reference and name");
+        require("Kilogramo".equals(named.uomLabel()),
+                "recipe component must display UOM name");
+
+        RecipeTransformationQueryService.RecipeComponent fallback =
+                new RecipeTransformationQueryService.RecipeComponent(
+                        2, "product-fallback", null, null, BigDecimal.ONE,
+                        "uom-fallback", null, BigDecimal.ZERO);
+        require("product-fallback".equals(fallback.productLabel()),
+                "missing product catalog label must fall back to product id");
+        require("uom-fallback".equals(fallback.uomLabel()),
+                "missing UOM catalog label must fall back to UOM id");
         pass();
     }
 

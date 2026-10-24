@@ -144,13 +144,18 @@ public final class RecipeTransformationQueryService {
 
             List<RecipeComponent> components = new ArrayList<>();
             try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT line_no, component_product_id, quantity, uom_id, waste_allowance "
-                    + "FROM recipe_components WHERE recipe_version_id = ? ORDER BY line_no")) {
+                    "SELECT rc.line_no, rc.component_product_id, p.reference, p.name, "
+                    + "rc.quantity, rc.uom_id, u.name, rc.waste_allowance "
+                    + "FROM recipe_components rc "
+                    + "LEFT JOIN products p ON p.id = rc.component_product_id "
+                    + "LEFT JOIN uom u ON u.id = rc.uom_id "
+                    + "WHERE rc.recipe_version_id = ? ORDER BY rc.line_no")) {
                 statement.setString(1, recipeVersionId);
                 try (ResultSet rows = statement.executeQuery()) {
                     while (rows.next()) {
                         components.add(new RecipeComponent(rows.getInt(1), rows.getString(2),
-                                rows.getBigDecimal(3), rows.getString(4), rows.getBigDecimal(5)));
+                                rows.getString(3), rows.getString(4), rows.getBigDecimal(5),
+                                rows.getString(6), rows.getString(7), rows.getBigDecimal(8)));
                     }
                 }
             }
@@ -287,17 +292,38 @@ public final class RecipeTransformationQueryService {
     public static final class RecipeComponent {
         public final int lineNo;
         public final String productId;
+        public final String productReference;
+        public final String productName;
         public final BigDecimal quantity;
         public final String uomId;
+        public final String uomName;
         public final BigDecimal wasteAllowance;
 
-        RecipeComponent(int lineNo, String productId, BigDecimal quantity,
-                String uomId, BigDecimal wasteAllowance) {
+        RecipeComponent(int lineNo, String productId, String productReference,
+                String productName, BigDecimal quantity, String uomId, String uomName,
+                BigDecimal wasteAllowance) {
             this.lineNo = lineNo;
             this.productId = productId;
+            this.productReference = productReference;
+            this.productName = productName;
             this.quantity = quantity;
             this.uomId = uomId;
+            this.uomName = uomName;
             this.wasteAllowance = wasteAllowance;
+        }
+
+        public String productLabel() {
+            String name = productName == null ? "" : productName.trim();
+            String reference = productReference == null ? "" : productReference.trim();
+            if (name.isEmpty()) {
+                return productId;
+            }
+            return reference.isEmpty() ? name : reference + " - " + name;
+        }
+
+        public String uomLabel() {
+            String name = uomName == null ? "" : uomName.trim();
+            return name.isEmpty() ? uomId : name;
         }
     }
 
