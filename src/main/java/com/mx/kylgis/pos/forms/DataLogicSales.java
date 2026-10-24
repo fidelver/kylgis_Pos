@@ -1765,6 +1765,19 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         }
     }
 
+    /**
+     * Returns whether a refund ticket has already been recorded for the source sale.
+     * The check is deliberately scoped to completed refund rows so a second refund
+     * cannot be created after the original sale has been marked as refunded.
+     */
+    public final boolean hasRecordedRefund(final int saleTicketId) throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM tickets WHERE TICKETTYPE = 1 AND STATUS = ?",
+                SerializerWriteInteger.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(saleTicketId);
+        return count != null && count > 0;
+    }
+
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
         if (ticket.requiresPaymentReconciliation()) {
             throw new BasicException("Payment recovery preparation is not confirmed; reconcile before saving or charging.");
@@ -1774,6 +1787,20 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     t = new Transaction(s) {
     @Override
     public Object transact() throws BasicException {
+
+        if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+            final int sourceTicketId = ticket.getTicketStatus();
+            if (sourceTicketId <= 0) {
+                throw new BasicException("La devolución no tiene una venta original válida.");
+            }
+            Integer sourceStatus = (Integer) new PreparedSentence(s,
+                    "SELECT STATUS FROM tickets WHERE TICKETTYPE = 0 AND TICKETID = ? FOR UPDATE",
+                    SerializerWriteInteger.INSTANCE,
+                    SerializerReadInteger.INSTANCE).find(sourceTicketId);
+            if (sourceStatus == null || sourceStatus != 0 || hasRecordedRefund(sourceTicketId)) {
+                throw new BasicException("Esta venta ya tiene una devolución o no está disponible para devolver.");
+            }
+        }
 
         Set<String> vouchersToConsume = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         for (VoucherDiscountInfo discount : ticket.getVoucherDiscounts()) {
@@ -1902,10 +1929,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
         });
         
+    if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
     // update status of existing ticket
         new PreparedSentence(s
             , "UPDATE tickets SET STATUS = ? "
-                + "WHERE TICKETTYPE = 0 AND TICKETID = ?"
+                + "WHERE TICKETTYPE = 0 AND TICKETID = ? AND STATUS = 0"
             , SerializerWriteParams.INSTANCE )
                 .exec(new DataParams() {
 
@@ -1915,6 +1943,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 setInt(2, ticket.getTicketId());                
             }
         });
+
+        }
 
         SentenceExec ticketlineinsert = new PreparedSentence(s
             , "INSERT INTO ticketlines (TICKET, LINE, "
