@@ -1090,7 +1090,7 @@ public final class InventoryTransformationService {
                 throw new BasicException("Invalid measured waste input.");
             }
             if (!products.add(input.productId)) {
-                throw new BasicException("Duplicate measured waste product: " + input.productId);
+                throw new BasicException("La merma no puede repetir el mismo producto.");
             }
         }
     }
@@ -1135,7 +1135,7 @@ public final class InventoryTransformationService {
                 throw new BasicException("Invalid conversion input.");
             }
             if (!inputProducts.add(input.productId)) {
-                throw new BasicException("Duplicate conversion input product: " + input.productId);
+                throw new BasicException("La conversión no puede repetir el mismo producto de entrada.");
             }
         }
         if (isBlank(request.output.productId) || isBlank(request.output.uomId)

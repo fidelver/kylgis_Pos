@@ -247,7 +247,7 @@ public final class ProductUomConversionService {
             statement.setString(1, uomId);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
-                    throw new BasicException("Unknown UOM: " + uomId);
+                    throw new BasicException("La unidad de medida seleccionada no existe.");
                 }
             }
         }

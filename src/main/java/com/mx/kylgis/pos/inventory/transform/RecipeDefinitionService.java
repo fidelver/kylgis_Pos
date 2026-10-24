@@ -330,7 +330,7 @@ public final class RecipeDefinitionService {
             return cachedDepth;
         }
         if (Integer.valueOf(1).equals(state.get(node))) {
-            throw new BasicException("Recipe cycle detected at product " + node);
+            throw new BasicException("La receta contiene un ciclo entre productos y no puede activarse.");
         }
 
         state.put(node, 1);
