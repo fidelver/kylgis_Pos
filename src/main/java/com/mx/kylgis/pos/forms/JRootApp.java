@@ -480,6 +480,19 @@ public class JRootApp extends JPanel implements AppView {
             }
         }
 
+        if (DatabaseUpgradeService.VERSION_1_3.equals(targetDBVersion)
+                && DatabaseUpgradeService.VERSION_1_3.equals(sDBVersion)) {
+            try {
+                DatabaseUpgradeService.ensureRecipeUiAccess(session);
+            } catch (BasicException e) {
+                JMessageDialog.showMessage(this,
+                        new MessageInf(MessageInf.SGN_DANGER,
+                        AppLocal.getIntString("database.scripterror"), e));
+                session.close();
+                return false;
+            }
+        }
+
         if (!targetDBVersion.equals(sDBVersion)) {
             String sScript = sDBVersion == null 
             ? m_dlSystem.getInitScript() + "-create.sql"

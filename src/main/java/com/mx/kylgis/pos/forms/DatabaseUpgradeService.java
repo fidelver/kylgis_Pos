@@ -1129,6 +1129,22 @@ public final class DatabaseUpgradeService {
         }
     }
 
+    /**
+     * Repairs the additive recipe menu/role entries on every 1.3 startup.
+     * Existing databases may already report version 1.3 while their Menu.Root
+     * resource predates the conversion panel.
+     */
+    public static void ensureRecipeUiAccess(Session session) throws BasicException {
+        if (session == null) {
+            throw new BasicException("Database session is required to repair recipe access.");
+        }
+        try {
+            ensureRecipeUiAccess(session.getConnection());
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to repair recipe menu access.", ex);
+        }
+    }
+
     private static void ensureRecipeUiAccess(Connection connection) throws SQLException {
         patchMenuRootForRecipes(connection);
         patchStandardRoleForRecipes(connection, "0", "Administrator role");
