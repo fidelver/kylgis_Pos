@@ -252,8 +252,8 @@ public final class TransformationHistoryPanel extends JPanel implements JPanelVi
                 try {
                     RecipeTransformationQueryService.TransformationDetail detail = get();
                     lineModel.setRows(detail.lines);
-                    detailHeader.setText(detail.summary.id + " — " + detail.summary.type
-                            + " — " + detail.summary.status);
+                    detailHeader.setText(detail.summary.id + " — " + detail.summary.typeLabel()
+                            + " — " + detail.summary.statusLabel());
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                     showError(AppLocal.getIntString("transform.history.error.detail"), ex);
@@ -408,8 +408,8 @@ public final class TransformationHistoryPanel extends JPanel implements JPanelVi
             RecipeTransformationQueryService.TransformationSummary row = rows.get(rowIndex);
             switch (columnIndex) {
                 case 0: return row.createdAt;
-                case 1: return row.type;
-                case 2: return row.status;
+                case 1: return row.typeLabel();
+                case 2: return row.statusLabel();
                 case 3: return row.locationLabel();
                 case 4: return row.expectedOutput;
                 case 5: return row.actualOutput;
@@ -454,7 +454,7 @@ public final class TransformationHistoryPanel extends JPanel implements JPanelVi
             RecipeTransformationQueryService.TransformationLine row = rows.get(rowIndex);
             switch (columnIndex) {
                 case 0: return row.lineNo;
-                case 1: return row.direction;
+                case 1: return row.directionLabel();
                 case 2: return row.productLabel();
                 case 3: return row.quantity;
                 case 4: return row.uomLabel();

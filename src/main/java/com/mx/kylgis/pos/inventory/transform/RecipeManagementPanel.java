@@ -366,7 +366,7 @@ public final class RecipeManagementPanel extends JPanel implements JPanelView {
                     RecipeTransformationQueryService.RecipeVersionDetail detail = get();
                     previewModel.setRows(detail.components);
                     selectedVersion.setText(AppLocal.getIntString("recipe.selected.version")
-                            + " " + detail.summary.versionNo + " — " + detail.summary.status);
+                            + " " + detail.summary.versionNo + " — " + detail.summary.statusLabel());
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                     showError(AppLocal.getIntString("recipe.error.detail"), ex);
@@ -777,7 +777,7 @@ public final class RecipeManagementPanel extends JPanel implements JPanelView {
             RecipeTransformationQueryService.RecipeVersionSummary row = rows.get(rowIndex);
             switch (columnIndex) {
                 case 0: return row.versionNo;
-                case 1: return row.status;
+                case 1: return row.statusLabel();
                 case 2: return row.yieldQuantity;
                 case 3: return row.yieldUomLabel();
                 case 4: return row.createdBy;

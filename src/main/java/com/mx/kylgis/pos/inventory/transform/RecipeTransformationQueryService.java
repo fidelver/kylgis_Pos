@@ -6,6 +6,7 @@ package com.mx.kylgis.pos.inventory.transform;
 
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.Session;
+import com.mx.kylgis.pos.forms.AppLocal;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,6 +16,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /** Read-only traceability API for recipe versions and inventory transformations. */
 public final class RecipeTransformationQueryService {
@@ -202,6 +204,23 @@ public final class RecipeTransformationQueryService {
                 row.getTimestamp(8), row.getString(9), row.getString(10));
     }
 
+    private static String localizedEnum(String prefix, String value) {
+        if (isBlank(value)) {
+            return "";
+        }
+        String key = prefix + value.trim().toLowerCase(Locale.ROOT);
+        String translated = AppLocal.getIntString(key);
+        return translated.startsWith("** " + key + " **") ? value : translated;
+    }
+
+    private static String localizedFallback(String key, String fallback) {
+        String translated = AppLocal.getIntString(key);
+        if (!translated.startsWith("** " + key + " **")) {
+            return translated;
+        }
+        return isBlank(fallback) ? "" : fallback;
+    }
+
     private static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
@@ -240,7 +259,15 @@ public final class RecipeTransformationQueryService {
 
         public String locationLabel() {
             String name = locationName == null ? "" : locationName.trim();
-            return name.isEmpty() ? locationId : name;
+            return name.isEmpty() ? localizedFallback("recipe.catalog.unknown.location", locationId) : name;
+        }
+
+        public String typeLabel() {
+            return localizedEnum("transform.type.", type);
+        }
+
+        public String statusLabel() {
+            return localizedEnum("transform.status.", status);
         }
     }
 
@@ -282,14 +309,20 @@ public final class RecipeTransformationQueryService {
             String name = productName == null ? "" : productName.trim();
             String reference = productReference == null ? "" : productReference.trim();
             if (name.isEmpty()) {
-                return productId;
+                return reference.isEmpty()
+                        ? localizedFallback("recipe.catalog.unknown.product", productId)
+                        : reference;
             }
             return reference.isEmpty() ? name : reference + " - " + name;
         }
 
         public String uomLabel() {
             String name = uomName == null ? "" : uomName.trim();
-            return name.isEmpty() ? uomId : name;
+            return name.isEmpty() ? localizedFallback("recipe.catalog.unknown.uom", uomId) : name;
+        }
+
+        public String directionLabel() {
+            return localizedEnum("transform.direction.", direction);
         }
     }
 
@@ -332,7 +365,11 @@ public final class RecipeTransformationQueryService {
 
         public String yieldUomLabel() {
             String name = yieldUomName == null ? "" : yieldUomName.trim();
-            return name.isEmpty() ? yieldUomId : name;
+            return name.isEmpty() ? localizedFallback("recipe.catalog.unknown.uom", yieldUomId) : name;
+        }
+
+        public String statusLabel() {
+            return localizedEnum("transform.status.", status);
         }
     }
 
@@ -363,14 +400,16 @@ public final class RecipeTransformationQueryService {
             String name = productName == null ? "" : productName.trim();
             String reference = productReference == null ? "" : productReference.trim();
             if (name.isEmpty()) {
-                return productId;
+                return reference.isEmpty()
+                        ? localizedFallback("recipe.catalog.unknown.product", productId)
+                        : reference;
             }
             return reference.isEmpty() ? name : reference + " - " + name;
         }
 
         public String uomLabel() {
             String name = uomName == null ? "" : uomName.trim();
-            return name.isEmpty() ? uomId : name;
+            return name.isEmpty() ? localizedFallback("recipe.catalog.unknown.uom", uomId) : name;
         }
     }
 
