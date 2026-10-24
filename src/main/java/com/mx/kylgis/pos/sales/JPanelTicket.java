@@ -2997,7 +2997,7 @@ System.out.println("PanelContainer : Focus Lost");
 
         m_jLblTotalEuros2.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         m_jLblTotalEuros2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jLblTotalEuros2.setLabelFor(m_jSubtotalEuros);
+        m_jLblTotalEuros2.setLabelFor(m_jTaxesEuros);
         m_jLblTotalEuros2.setText(AppLocal.getIntString("label.taxcash")); // NOI18N
         m_jPanTotals.add(m_jLblTotalEuros2);
 
