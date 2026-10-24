@@ -212,10 +212,10 @@ public final class RecipeTransformationSelfTest {
                 new RecipeTransformationQueryService.RecipeComponent(
                         2, "product-fallback", null, null, BigDecimal.ONE,
                         "uom-fallback", null, BigDecimal.ZERO);
-        require("product-fallback".equals(fallback.productLabel()),
-                "missing product catalog label must fall back to product id");
-        require("uom-fallback".equals(fallback.uomLabel()),
-                "missing UOM catalog label must fall back to UOM id");
+        require("Producto sin nombre".equals(fallback.productLabel()),
+                "missing product catalog label must not expose product id");
+        require("Unidad sin nombre".equals(fallback.uomLabel()),
+                "missing UOM catalog label must not expose UOM id");
         pass();
     }
 

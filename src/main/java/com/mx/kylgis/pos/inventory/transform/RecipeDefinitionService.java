@@ -390,11 +390,12 @@ public final class RecipeDefinitionService {
             statement.setString(1, productId);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
-                    throw new BasicException("Unknown product in recipe: " + productId);
+                    throw new BasicException("No se encontró el producto indicado en la receta.");
                 }
                 String uom = row.getString(1);
                 if (isBlank(uom)) {
-                    throw new BasicException("Product has no inventory UOM: " + productId);
+                    throw new BasicException("El producto " + productLabel(connection, productId)
+                            + " no tiene una unidad de inventario configurada.");
                 }
                 return new ProductUnit(uom, row.getString(2));
             }
@@ -416,8 +417,48 @@ public final class RecipeDefinitionService {
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next() || row.getBigDecimal(1) == null
                         || row.getBigDecimal(1).signum() <= 0) {
-                    throw new BasicException("Missing direct UOM conversion for product " + productId);
+                    throw new BasicException("Falta configurar la conversión de unidad para "
+                            + productLabel(connection, productId) + ": 1 "
+                            + uomLabel(connection, fromUom) + " = ? "
+                            + uomLabel(connection, inventoryUom)
+                            + ". Configure el factor en Inventario > Conversiones UOM.");
                 }
+            }
+        }
+    }
+
+    private static String productLabel(Connection connection, String productId)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT reference, name FROM products WHERE id = ?")) {
+            statement.setString(1, productId);
+            try (ResultSet row = statement.executeQuery()) {
+                if (!row.next()) {
+                    return "producto no identificado";
+                }
+                String reference = row.getString(1);
+                String name = row.getString(2);
+                String ref = reference == null ? "" : reference.trim();
+                String displayName = name == null ? "" : name.trim();
+                if (ref.isEmpty()) {
+                    return displayName.isEmpty() ? "producto sin nombre" : displayName;
+                }
+                return displayName.isEmpty() ? ref : ref + " - " + displayName;
+            }
+        }
+    }
+
+    private static String uomLabel(Connection connection, String uomId)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT name FROM uom WHERE id = ?")) {
+            statement.setString(1, uomId);
+            try (ResultSet row = statement.executeQuery()) {
+                if (!row.next()) {
+                    return "unidad no identificada";
+                }
+                String name = row.getString(1);
+                return isBlank(name) ? "unidad sin nombre" : name.trim();
             }
         }
     }
@@ -443,7 +484,7 @@ public final class RecipeDefinitionService {
                 throw new BasicException("Recipe cannot directly contain its own result product.");
             }
             if (!components.add(component.productId)) {
-                throw new BasicException("Duplicate component product in recipe: " + component.productId);
+                throw new BasicException("La receta no puede repetir el mismo producto componente.");
             }
         }
     }

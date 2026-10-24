@@ -326,7 +326,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
                 return uom.toString();
             }
         }
-        return id == null ? "" : id;
+        return id == null ? "" : AppLocal.getIntString("recipe.catalog.unknown.uom");
     }
 
     private void selectUom(String id) {

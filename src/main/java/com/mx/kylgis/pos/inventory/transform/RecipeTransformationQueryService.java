@@ -218,7 +218,16 @@ public final class RecipeTransformationQueryService {
         if (!translated.startsWith("** " + key + " **")) {
             return translated;
         }
-        return isBlank(fallback) ? "" : fallback;
+        if ("recipe.catalog.unknown.product".equals(key)) {
+            return "Producto sin nombre";
+        }
+        if ("recipe.catalog.unknown.uom".equals(key)) {
+            return "Unidad sin nombre";
+        }
+        if ("recipe.catalog.unknown.location".equals(key)) {
+            return "Ubicación sin nombre";
+        }
+        return "Sin descripción";
     }
 
     private static boolean isBlank(String value) {

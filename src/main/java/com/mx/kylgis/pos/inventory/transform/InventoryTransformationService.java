@@ -528,7 +528,7 @@ public final class InventoryTransformationService {
             statement.setString(1, productId);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
-                    return productId;
+                    return "producto no identificado";
                 }
                 String reference = row.getString(1);
                 String name = row.getString(2);
@@ -540,6 +540,21 @@ public final class InventoryTransformationService {
                         : displayReference + " - " + displayName);
                 String displayUom = uom == null ? "" : uom.trim();
                 return displayUom.isEmpty() ? base : base + " (" + displayUom + ")";
+            }
+        }
+    }
+
+    private static String displayUomLabel(Connection connection, String uomId)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT name FROM uom WHERE id = ?")) {
+            statement.setString(1, uomId);
+            try (ResultSet row = statement.executeQuery()) {
+                if (!row.next()) {
+                    return "unidad no identificada";
+                }
+                String name = row.getString(1);
+                return isBlank(name) ? "unidad sin nombre" : name.trim();
             }
         }
     }
@@ -603,13 +618,18 @@ public final class InventoryTransformationService {
             statement.setBoolean(4, true);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
-                    throw new BasicException("Missing direct UOM conversion for product "
-                            + displayProductLabel(connection, productId));
+                    throw new BasicException("Falta configurar la conversión de unidad para "
+                            + displayProductLabel(connection, productId) + ": 1 "
+                            + displayUomLabel(connection, fromUom) + " = ? "
+                            + displayUomLabel(connection, inventoryUom)
+                            + ". Configure el factor en Inventario > Conversiones UOM.");
                 }
                 BigDecimal factor = row.getBigDecimal(1);
                 if (factor == null || factor.signum() <= 0) {
-                    throw new BasicException("Invalid UOM conversion factor for product "
-                            + displayProductLabel(connection, productId));
+                    throw new BasicException("El factor de conversión de unidad no es válido para "
+                            + displayProductLabel(connection, productId) + ": "
+                            + displayUomLabel(connection, fromUom) + " → "
+                            + displayUomLabel(connection, inventoryUom) + ".");
                 }
                 return quantity(quantity.multiply(factor));
             }

@@ -92,6 +92,10 @@ public final class RecipeManagementPanel extends JPanel implements JPanelView {
         this.currentUser = app.getAppUserView().getUser().getName();
         buildUi();
         bindActions();
+        String conversionHint = AppLocal.getIntString("recipe.conversion.help")
+                + " " + AppLocal.getIntString("recipe.conversion.example");
+        yieldUom.setToolTipText(conversionHint);
+        componentUom.setToolTipText(conversionHint);
         setBusy(false);
     }
 
