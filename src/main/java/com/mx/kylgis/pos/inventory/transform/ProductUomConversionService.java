@@ -192,6 +192,21 @@ public final class ProductUomConversionService {
         return normalized;
     }
 
+    /**
+     * Converts the value entered by the user into the canonical factor stored
+     * by the engine: alternate UOM units per one alternate UOM into inventory
+     * units. When inverse is selected, the user entered inventory units per
+     * alternate UOM and the reciprocal is stored.
+     */
+    static BigDecimal toInventoryFactor(BigDecimal enteredFactor, boolean inverse)
+            throws BasicException {
+        BigDecimal normalized = normalizeFactor(enteredFactor);
+        if (!inverse) {
+            return normalized;
+        }
+        return normalizeFactor(BigDecimal.ONE.divide(normalized, FACTOR_SCALE, RoundingMode.HALF_UP));
+    }
+
     private static void assertNoActiveRecipeReference(Connection connection,
             String productId, String fromUomId) throws SQLException, BasicException {
         try (PreparedStatement yield = connection.prepareStatement(

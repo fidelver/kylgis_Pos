@@ -45,6 +45,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
     private final JComboBox<RecipeUiCatalogService.UomChoice> fromUom = new JComboBox<>();
     private final JLabel inventoryUom = new JLabel(" ");
     private final JTextField factor = new JTextField("1", 12);
+    private final JCheckBox invert = new JCheckBox();
     private final JCheckBox active = new JCheckBox();
     private final JLabel explanation = new JLabel(" ");
     private final JButton save = new JButton();
@@ -102,14 +103,17 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         addRow(form, c, 1, AppLocal.getIntString("uomconv.inventory.uom"), inventoryUom);
         addRow(form, c, 2, AppLocal.getIntString("uomconv.from.uom"), fromUom);
         addRow(form, c, 3, AppLocal.getIntString("uomconv.factor"), factor);
-        active.setText(AppLocal.getIntString("uomconv.active"));
+        invert.setText(AppLocal.getIntString("uomconv.invert"));
         c.gridx = 1;
         c.gridy = 4;
         c.gridwidth = 2;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
-        form.add(active, c);
+        form.add(invert, c);
+        active.setText(AppLocal.getIntString("uomconv.active"));
         c.gridy = 5;
+        form.add(active, c);
+        c.gridy = 6;
         form.add(explanation, c);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -117,7 +121,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         save.setText(AppLocal.getIntString("uomconv.save"));
         actions.add(reload);
         actions.add(save);
-        c.gridy = 6;
+        c.gridy = 7;
         form.add(actions, c);
         add(form, BorderLayout.WEST);
 
@@ -140,6 +144,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
             loadConversionsForSelection();
         });
         fromUom.addActionListener(e -> updateExplanation());
+        invert.addActionListener(e -> updateExplanation());
         factor.getDocument().addDocumentListener(new SimpleDocumentListener(this::updateExplanation));
         reload.addActionListener(e -> loadCatalogsAsync());
         save.addActionListener(e -> saveAsync());
@@ -161,6 +166,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
                 try {
                     CatalogSnapshot snapshot = get();
                     uoms = snapshot.uoms;
+                    model.setUoms(uoms);
                     product.setModel(new DefaultComboBoxModel<>(snapshot.products.toArray(
                             new RecipeUiCatalogService.ProductChoice[0])));
                     fromUom.setModel(new DefaultComboBoxModel<>(snapshot.uoms.toArray(
@@ -219,11 +225,13 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
             showWarning(AppLocal.getIntString("uomconv.error.selection"));
             return;
         }
+        final BigDecimal enteredFactor;
         final BigDecimal conversionFactor;
         try {
-            conversionFactor = new BigDecimal(factor.getText().trim());
-            if (conversionFactor.signum() <= 0) throw new NumberFormatException();
-        } catch (RuntimeException ex) {
+            enteredFactor = new BigDecimal(factor.getText().trim());
+            conversionFactor = ProductUomConversionService.toInventoryFactor(
+                    enteredFactor, invert.isSelected());
+        } catch (RuntimeException | BasicException ex) {
             showWarning(AppLocal.getIntString("uomconv.error.factor"));
             return;
         }
@@ -297,6 +305,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         ProductUomConversionService.ConversionInfo selected =
                 model.get(table.convertRowIndexToModel(viewRow));
         selectUom(selected.fromUomId);
+        invert.setSelected(false);
         factor.setText(selected.factor.stripTrailingZeros().toPlainString());
         active.setSelected(selected.active);
         updateExplanation();
@@ -316,8 +325,12 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
             return;
         }
         String text = factor.getText() == null ? "" : factor.getText().trim();
-        explanation.setText("1 " + selectedUom + " = " + text + " "
-                + uomLabel(selectedProduct.uomId));
+        String inventoryLabel = uomLabel(selectedProduct.uomId);
+        if (invert.isSelected()) {
+            explanation.setText("1 " + inventoryLabel + " = " + text + " " + selectedUom);
+        } else {
+            explanation.setText("1 " + selectedUom + " = " + text + " " + inventoryLabel);
+        }
     }
 
     private String uomLabel(String id) {
@@ -357,6 +370,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         product.setEnabled(!value);
         fromUom.setEnabled(!value);
         factor.setEnabled(!value);
+        invert.setEnabled(!value);
         active.setEnabled(!value);
         save.setEnabled(!value);
         reload.setEnabled(!value);
@@ -418,10 +432,25 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
             AppLocal.getIntString("uomconv.active")
         };
         private List<ProductUomConversionService.ConversionInfo> rows = Collections.emptyList();
+        private List<RecipeUiCatalogService.UomChoice> uoms = Collections.emptyList();
+
+        void setUoms(List<RecipeUiCatalogService.UomChoice> values) {
+            uoms = values == null ? Collections.emptyList() : new ArrayList<>(values);
+            fireTableDataChanged();
+        }
 
         void setRows(List<ProductUomConversionService.ConversionInfo> values) {
             rows = values == null ? Collections.emptyList() : new ArrayList<>(values);
             fireTableDataChanged();
+        }
+
+        private String uomLabel(String id) {
+            for (RecipeUiCatalogService.UomChoice uom : uoms) {
+                if (uom != null && id != null && id.equals(uom.id)) {
+                    return uom.toString();
+                }
+            }
+            return AppLocal.getIntString("recipe.catalog.unknown.uom");
         }
 
         ProductUomConversionService.ConversionInfo get(int index) {
@@ -436,8 +465,8 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         public Object getValueAt(int rowIndex, int columnIndex) {
             ProductUomConversionService.ConversionInfo row = rows.get(rowIndex);
             switch (columnIndex) {
-                case 0: return row.fromUomId;
-                case 1: return row.toUomId;
+                case 0: return uomLabel(row.fromUomId);
+                case 1: return uomLabel(row.toUomId);
                 case 2: return row.factor;
                 case 3: return row.active;
                 default: return null;

@@ -30,6 +30,7 @@ public final class RecipeTransformationSelfTest {
         testWeightedCostRemovalToZero();
         testInvalidWeightedCostRemovalRejected();
         testUomFactorNormalization();
+        testInverseUomFactor();
         testZeroUomFactorRejected();
         testRoundedZeroUomFactorRejected();
         testWasteHashOrderIndependent();
@@ -140,6 +141,20 @@ public final class RecipeTransformationSelfTest {
         BigDecimal result = ProductUomConversionService.normalizeFactor(new BigDecimal("2"));
         require(result.compareTo(new BigDecimal("2.000000000")) == 0,
                 "UOM factor must normalize to 9 decimals");
+        pass();
+    }
+
+    private static void testInverseUomFactor() throws Exception {
+        BigDecimal stored = ProductUomConversionService.toInventoryFactor(
+                new BigDecimal("2"), true);
+        require(stored.compareTo(new BigDecimal("0.500000000")) == 0,
+                "inverse UOM factor must store the reciprocal");
+        BigDecimal direct = ProductUomConversionService.toInventoryFactor(
+                new BigDecimal("0.92"), false);
+        BigDecimal inverse = ProductUomConversionService.toInventoryFactor(
+                new BigDecimal("1.0869565217"), true);
+        require(direct.subtract(inverse).abs().compareTo(new BigDecimal("0.000000001")) <= 0,
+                "direct and inverse UOM factors must be equivalent");
         pass();
     }
 
