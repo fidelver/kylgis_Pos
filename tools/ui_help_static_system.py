@@ -1,0 +1,146 @@
+"""Native localized legacy Swing labels for system, transfer and fiscal screens."""
+SOURCE=(
+" This is a test","*Hostname","*Receipt Title","*X Report","*Z Report",
+"Across","CHOOSE DATABASE TO TRANSFER FROM","CREATE DEFAULT",
+"Current Location : ","Currently connected to :","DB Size","DB Version","Down",
+"Hide Calendar","Import version 4.5","Location","Main DB","Memory State",
+"Other DB","PROGRESS","Performing this action, will clear all ",
+"Port","Postal","Printer","Quantity","Redeemed","SET",
+"SET SERVER TO CONNECT TO","Select Vessel details","Show Calendar",
+"Text","Type","Window.Title"
+)
+LANG={
+"base":(
+" This is a test","*Hostname","*Receipt title","*X report","*Z report",
+"Across","CHOOSE DATABASE TO TRANSFER FROM","CREATE DEFAULT",
+"Current location: ","Currently connected to:","DB size","DB version","Down",
+"Hide calendar","Import version 4.5","Location","Main DB","Memory status",
+"Other DB","PROGRESS","Performing this action will clear all ",
+"Port","Postal","Printer","Quantity","Redeemed","SET",
+"SET SERVER TO CONNECT TO","Select vessel details","Show calendar",
+"Text","Type","Window title"),
+"al_SQ":(
+" Kjo është një provë","*Emri i kompjuterit","*Titulli i kuponit","*Raporti X","*Raporti Z",
+"Horizontalisht","ZGJIDHNI BAZËN E TË DHËNAVE BURIM","KRIJO PARAZGJEDHJET",
+"Vendndodhja aktuale: ","Lidhur aktualisht me:","Madhësia e BD-së","Versioni i BD-së","Poshtë",
+"Fshih kalendarin","Importo versionin 4.5","Vendndodhja","BD kryesore","Gjendja e memories",
+"BD tjetër","PROGRESI","Ky veprim do të pastrojë të gjitha ",
+"Porta","Kodi postar","Printeri","Sasia","I përdorur","VENDOS",
+"CAKTONI SERVERIN E LIDHJES","Zgjidhni të dhënat e anijes","Shfaq kalendarin",
+"Tekst","Lloji","Titulli i dritares"),
+"ar":(
+" هذا اختبار","*اسم المضيف","*عنوان الإيصال","*تقرير X","*تقرير Z",
+"أفقيًا","اختر قاعدة البيانات المصدر للنقل","إنشاء القيم الافتراضية",
+"الموقع الحالي: ","متصل حاليًا بـ:","حجم قاعدة البيانات","إصدار قاعدة البيانات","أسفل",
+"إخفاء التقويم","استيراد الإصدار 4.5","الموقع","قاعدة البيانات الرئيسية","حالة الذاكرة",
+"قاعدة بيانات أخرى","التقدم","سيؤدي تنفيذ هذا الإجراء إلى مسح جميع ",
+"المنفذ","البريد","الطابعة","الكمية","تم الاسترداد","تعيين",
+"تعيين الخادم للاتصال","اختر تفاصيل السفينة","إظهار التقويم",
+"النص","النوع","عنوان النافذة"),
+"da":(
+" Dette er en test","*Værtsnavn","*Kvitteringstitel","*X-rapport","*Z-rapport",
+"På tværs","VÆLG KILDEDATABASE TIL OVERFØRSEL","OPRET STANDARD",
+"Nuværende placering: ","I øjeblikket forbundet til:","Databasestørrelse","Databaseversion","Ned",
+"Skjul kalender","Importér version 4.5","Placering","Primær database","Hukommelsesstatus",
+"Anden database","FREMSKRIDT","Denne handling rydder alle ",
+"Port","Post","Printer","Antal","Indløst","INDSTIL",
+"ANGIV SERVER AT OPRETTE FORBINDELSE TIL","Vælg fartøjsdetaljer","Vis kalender",
+"Tekst","Type","Vinduestitel"),
+"de":(
+" Dies ist ein Test","*Hostname","*Belegtitel","*X-Bericht","*Z-Bericht",
+"Quer","QUELLDATENBANK FÜR ÜBERTRAGUNG WÄHLEN","STANDARD ERSTELLEN",
+"Aktueller Standort: ","Derzeit verbunden mit:","Datenbankgröße","Datenbankversion","Abwärts",
+"Kalender ausblenden","Version 4.5 importieren","Standort","Hauptdatenbank","Speicherstatus",
+"Andere Datenbank","FORTSCHRITT","Diese Aktion löscht alle ",
+"Anschluss","Post","Drucker","Menge","Eingelöst","FESTLEGEN",
+"VERBINDUNGSSERVER FESTLEGEN","Schiffsdaten auswählen","Kalender anzeigen",
+"Text","Typ","Fenstertitel"),
+"el":(
+" Αυτή είναι δοκιμή","*Όνομα υπολογιστή","*Τίτλος απόδειξης","*Αναφορά X","*Αναφορά Z",
+"Οριζόντια","ΕΠΙΛΕΞΤΕ ΒΑΣΗ ΠΡΟΕΛΕΥΣΗΣ ΓΙΑ ΜΕΤΑΦΟΡΑ","ΔΗΜΙΟΥΡΓΙΑ ΠΡΟΕΠΙΛΟΓΗΣ",
+"Τρέχουσα τοποθεσία: ","Συνδεδεμένο τώρα με:","Μέγεθος βάσης","Έκδοση βάσης","Κάτω",
+"Απόκρυψη ημερολογίου","Εισαγωγή έκδοσης 4.5","Τοποθεσία","Κύρια βάση δεδομένων","Κατάσταση μνήμης",
+"Άλλη βάση δεδομένων","ΠΡΟΟΔΟΣ","Αυτή η ενέργεια θα διαγράψει όλα τα ",
+"Θύρα","Ταχυδρομικά","Εκτυπωτής","Ποσότητα","Εξαργυρώθηκε","ΟΡΙΣΜΟΣ",
+"ΟΡΙΣΤΕ ΔΙΑΚΟΜΙΣΤΗ ΣΥΝΔΕΣΗΣ","Επιλέξτε στοιχεία σκάφους","Εμφάνιση ημερολογίου",
+"Κείμενο","Τύπος","Τίτλος παραθύρου"),
+"es":(
+" Esto es una prueba","*Nombre del equipo","*Título del recibo","*Reporte X","*Reporte Z",
+"Horizontal","ELEGIR BASE DE DATOS DE ORIGEN","CREAR PREDETERMINADOS",
+"Ubicación actual: ","Conectado actualmente a:","Tamaño de BD","Versión de BD","Abajo",
+"Ocultar calendario","Importar versión 4.5","Ubicación","BD principal","Estado de memoria",
+"Otra BD","PROGRESO","Esta acción eliminará todos los ",
+"Puerto","Postal","Impresora","Cantidad","Canjeado","ESTABLECER",
+"CONFIGURAR SERVIDOR DE CONEXIÓN","Seleccionar detalles del buque","Mostrar calendario",
+"Texto","Tipo","Título de ventana"),
+"et":(
+" See on test","*Hostinimi","*Kviitungi pealkiri","*X-aruanne","*Z-aruanne",
+"Üle","VALI ÜLEKANDMISE LÄHTEANDMEBAAS","LOO VAIKIMISI",
+"Praegune asukoht: ","Praegu ühendatud:","Andmebaasi suurus","Andmebaasi versioon","Alla",
+"Peida kalender","Impordi versioon 4.5","Asukoht","Põhiandmebaas","Mälu olek",
+"Teine andmebaas","EDENEMINE","See toiming kustutab kõik ",
+"Port","Post","Printer","Kogus","Lunastatud","MÄÄRA",
+"MÄÄRA ÜHENDUSE SERVER","Vali laeva üksikasjad","Näita kalendrit",
+"Tekst","Tüüp","Akna pealkiri"),
+"fr":(
+" Ceci est un test","*Nom d’hôte","*Titre du reçu","*Rapport X","*Rapport Z",
+"Horizontal","CHOISIR LA BASE SOURCE À TRANSFÉRER","CRÉER LES VALEURS PAR DÉFAUT",
+"Emplacement actuel : ","Connecté actuellement à :","Taille de la BD","Version de la BD","Bas",
+"Masquer le calendrier","Importer la version 4.5","Emplacement","BD principale","État de la mémoire",
+"Autre BD","PROGRESSION","Cette action effacera tous les ",
+"Port","Postal","Imprimante","Quantité","Utilisé","DÉFINIR",
+"DÉFINIR LE SERVEUR DE CONNEXION","Choisir les détails du navire","Afficher le calendrier",
+"Texte","Type","Titre de fenêtre"),
+"hr":(
+" Ovo je test","*Naziv računala","*Naslov računa","*X izvještaj","*Z izvještaj",
+"Vodoravno","ODABERI IZVORNU BAZU ZA PRIJENOS","IZRADI ZADANO",
+"Trenutačna lokacija: ","Trenutačno povezano s:","Veličina baze","Verzija baze","Dolje",
+"Sakrij kalendar","Uvezi verziju 4.5","Lokacija","Glavna baza","Stanje memorije",
+"Druga baza","NAPREDAK","Ova radnja obrisat će sve ",
+"Priključak","Poštanski","Pisač","Količina","Iskorišteno","POSTAVI",
+"POSTAVI POSLUŽITELJ ZA POVEZIVANJE","Odaberi podatke o plovilu","Prikaži kalendar",
+"Tekst","Vrsta","Naslov prozora"),
+"it":(
+" Questo è un test","*Nome host","*Titolo ricevuta","*Report X","*Report Z",
+"Orizzontale","SCEGLI DATABASE DI ORIGINE","CREA PREDEFINITO",
+"Posizione attuale: ","Attualmente connesso a:","Dimensione DB","Versione DB","Giù",
+"Nascondi calendario","Importa versione 4.5","Posizione","DB principale","Stato memoria",
+"Altro DB","AVANZAMENTO","Questa azione cancellerà tutti i ",
+"Porta","Postale","Stampante","Quantità","Riscattato","IMPOSTA",
+"IMPOSTA SERVER DI CONNESSIONE","Seleziona dettagli imbarcazione","Mostra calendario",
+"Testo","Tipo","Titolo finestra"),
+"nl":(
+" Dit is een test","*Hostnaam","*Bontitel","*X-rapport","*Z-rapport",
+"Horizontaal","KIES BRONDATABASE VOOR OVERDRACHT","STANDAARD AANMAKEN",
+"Huidige locatie: ","Momenteel verbonden met:","Databasegrootte","Databaseversie","Omlaag",
+"Kalender verbergen","Versie 4.5 importeren","Locatie","Hoofddatabase","Geheugenstatus",
+"Andere database","VOORTGANG","Deze actie wist alle ",
+"Poort","Post","Printer","Hoeveelheid","Ingewisseld","INSTELLEN",
+"VERBINDINGSSERVER INSTELLEN","Vaartuiggegevens selecteren","Kalender tonen",
+"Tekst","Type","Venstertitel"),
+"pt":(
+" Isto é um teste","*Nome do anfitrião","*Título do recibo","*Relatório X","*Relatório Z",
+"Horizontal","ESCOLHER BASE DE DADOS DE ORIGEM","CRIAR PREDEFINIÇÃO",
+"Localização atual: ","Atualmente ligado a:","Tamanho da BD","Versão da BD","Baixo",
+"Ocultar calendário","Importar versão 4.5","Localização","BD principal","Estado da memória",
+"Outra BD","PROGRESSO","Esta ação irá apagar todos os ",
+"Porta","Postal","Impressora","Quantidade","Resgatado","DEFINIR",
+"DEFINIR SERVIDOR PARA LIGAÇÃO","Selecionar dados da embarcação","Mostrar calendário",
+"Texto","Tipo","Título da janela"),
+"pt_BR":(
+" Isto é um teste","*Nome do host","*Título do comprovante","*Relatório X","*Relatório Z",
+"Horizontal","ESCOLHER BANCO DE DADOS DE ORIGEM","CRIAR PADRÃO",
+"Localização atual: ","Conectado atualmente a:","Tamanho do BD","Versão do BD","Abaixo",
+"Ocultar calendário","Importar versão 4.5","Localização","BD principal","Status da memória",
+"Outro BD","PROGRESSO","Esta ação apagará todos os ",
+"Porta","Postal","Impressora","Quantidade","Resgatado","DEFINIR",
+"DEFINIR SERVIDOR DE CONEXÃO","Selecionar detalhes da embarcação","Mostrar calendário",
+"Texto","Tipo","Título da janela")
+}
+LANG["en_US"]=LANG["base"]
+LANG["es_AR"]=LANG["es"]
+LANG["es_MX"]=LANG["es"]
+assert len(LANG)==17
+assert all(len(v)==len(SOURCE) for v in LANG.values())
+TRANSLATIONS={source:{locale:values[i] for locale,values in LANG.items()}
+              for i,source in enumerate(SOURCE)}
