@@ -3011,7 +3011,6 @@ System.out.println("PanelContainer : Focus Lost");
         m_jSubtotalEuros.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N
         m_jSubtotalEuros.setForeground(m_jEditLine.getForeground());
         m_jSubtotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jSubtotalEuros.setLabelFor(m_jSubtotalEuros);
         m_jSubtotalEuros.setToolTipText(bundle.getString("tooltip.salesubtotal")); // NOI18N
         m_jSubtotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
         m_jSubtotalEuros.setMaximumSize(new java.awt.Dimension(125, 25));
@@ -3024,7 +3023,6 @@ System.out.println("PanelContainer : Focus Lost");
         m_jTaxesEuros.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N
         m_jTaxesEuros.setForeground(m_jEditLine.getForeground());
         m_jTaxesEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jTaxesEuros.setLabelFor(m_jTaxesEuros);
         m_jTaxesEuros.setToolTipText(bundle.getString("tooltip.saletax")); // NOI18N
         m_jTaxesEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
         m_jTaxesEuros.setMaximumSize(new java.awt.Dimension(125, 25));
@@ -3037,7 +3035,6 @@ System.out.println("PanelContainer : Focus Lost");
         m_jTotalEuros.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
         m_jTotalEuros.setForeground(m_jEditLine.getForeground());
         m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jTotalEuros.setLabelFor(m_jTotalEuros);
         m_jTotalEuros.setToolTipText(bundle.getString("tooltip.saletotal")); // NOI18N
         m_jTotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
         m_jTotalEuros.setMaximumSize(new java.awt.Dimension(125, 25));
