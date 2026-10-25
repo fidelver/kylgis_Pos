@@ -24,6 +24,7 @@ import com.mx.kylgis.pos.printer.service.PrintServiceException;
 
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.LocalRes;
+import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import java.awt.image.BufferedImage;
@@ -37,6 +38,8 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -57,6 +60,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class TicketParser extends DefaultHandler {
     
     private static SAXParser m_sp = null;
+    private static final Pattern LOCALIZED_LABEL_PATTERN = Pattern.compile("\\$\\{labels\\.text\\(\\s*([\"'])(.*?)\\1\\s*\\)\\}");
     
     private DeviceTicket m_printer;
     private DataLogicSystem m_system;
@@ -441,20 +445,21 @@ public class TicketParser extends DefaultHandler {
                 m_oOutputPrinter.printBarCode(bctype, bcposition, text.toString());
                 text = null;
             } else if ("text".equals(qName)) {
+                String resolvedText = resolveLocalizedText(text.toString());
                 if (m_iTextLength > 0) {
                     switch(m_iTextAlign) {
                     case DevicePrinter.ALIGN_RIGHT:
-                        m_oOutputPrinter.printText(m_iTextStyle, DeviceTicket.alignRight(text.toString(), m_iTextLength));
+                        m_oOutputPrinter.printText(m_iTextStyle, DeviceTicket.alignRight(resolvedText, m_iTextLength));
                         break;
                     case DevicePrinter.ALIGN_CENTER:
-                        m_oOutputPrinter.printText(m_iTextStyle, DeviceTicket.alignCenter(text.toString(), m_iTextLength));
+                        m_oOutputPrinter.printText(m_iTextStyle, DeviceTicket.alignCenter(resolvedText, m_iTextLength));
                         break;
                     default: // DevicePrinter.ALIGN_LEFT
-                        m_oOutputPrinter.printText(m_iTextStyle, DeviceTicket.alignLeft(text.toString(), m_iTextLength));
+                        m_oOutputPrinter.printText(m_iTextStyle, DeviceTicket.alignLeft(resolvedText, m_iTextLength));
                         break;
                     }
                 } else {
-                    m_oOutputPrinter.printText(m_iTextStyle, text.toString());
+                    m_oOutputPrinter.printText(m_iTextStyle, resolvedText);
                 }
                 text = null;
             } else if ("line".equals(qName)) {
@@ -480,20 +485,21 @@ public class TicketParser extends DefaultHandler {
                 m_sVisorLine2 = m_sVisorLine.toString();
                 m_sVisorLine = null;
             } else if ("text".equals(qName)) {
+                String resolvedText = resolveLocalizedText(text.toString());
                 if (m_iTextLength > 0) {
                     switch(m_iTextAlign) {
                     case DevicePrinter.ALIGN_RIGHT:
-                        m_sVisorLine.append(DeviceTicket.alignRight(text.toString(), m_iTextLength));
+                        m_sVisorLine.append(DeviceTicket.alignRight(resolvedText, m_iTextLength));
                         break;
                     case DevicePrinter.ALIGN_CENTER:
-                        m_sVisorLine.append(DeviceTicket.alignCenter(text.toString(), m_iTextLength));
+                        m_sVisorLine.append(DeviceTicket.alignCenter(resolvedText, m_iTextLength));
                         break;
                     default: // DevicePrinter.ALIGN_LEFT
-                        m_sVisorLine.append(DeviceTicket.alignLeft(text.toString(), m_iTextLength));
+                        m_sVisorLine.append(DeviceTicket.alignLeft(resolvedText, m_iTextLength));
                         break;
                     }
                 } else {
-                    m_sVisorLine.append(text);
+                    m_sVisorLine.append(resolvedText);
                 }
                 text = null;
             } else if ("display".equals(qName)) {
@@ -510,13 +516,13 @@ public class TicketParser extends DefaultHandler {
                 m_printer.getFiscalPrinter().endReceipt();
                 m_iOutputType = OUTPUT_NONE;
             } else if ("line".equals(qName)) {
-                m_printer.getFiscalPrinter().printLine(text.toString(), m_dValue1, m_dValue2, attribute3);
+                m_printer.getFiscalPrinter().printLine(resolveLocalizedText(text.toString()), m_dValue1, m_dValue2, attribute3);
                 text = null;               
             } else if ("message".equals(qName)) {
-                m_printer.getFiscalPrinter().printMessage(text.toString());
+                m_printer.getFiscalPrinter().printMessage(resolveLocalizedText(text.toString()));
                 text = null;               
             } else if ("total".equals(qName)) {
-                m_printer.getFiscalPrinter().printTotal(text.toString(), m_dValue1);
+                m_printer.getFiscalPrinter().printTotal(resolveLocalizedText(text.toString()), m_dValue1);
                 text = null;               
             }
             break;
@@ -553,6 +559,32 @@ public class TicketParser extends DefaultHandler {
         } catch (Exception ex) {
             // Audio is optional: playback failure must never abort receipt printing.
         }
+    }
+
+    private String resolveLocalizedText(String value) {
+        if (value == null || !value.contains("${labels.text(")) {
+            return value;
+        }
+
+        Matcher matcher = LOCALIZED_LABEL_PATTERN.matcher(value);
+        StringBuffer resolved = new StringBuffer();
+        while (matcher.find()) {
+            String key = matcher.group(2).trim();
+            String localized = AppLocal.getIntString(key);
+            if (isMissingLocaleValue(localized, key) && !key.startsWith("label.")) {
+                localized = AppLocal.getIntString("label." + key);
+            }
+            if (isMissingLocaleValue(localized, key) || localized == null) {
+                localized = key;
+            }
+            matcher.appendReplacement(resolved, Matcher.quoteReplacement(localized));
+        }
+        matcher.appendTail(resolved);
+        return resolved.toString();
+    }
+
+    private boolean isMissingLocaleValue(String value, String key) {
+        return value == null || value.equals("** " + key + " **") || value.equals("** label." + key + " **");
     }
 
     private int parseInt(String sValue, int iDefault) {
