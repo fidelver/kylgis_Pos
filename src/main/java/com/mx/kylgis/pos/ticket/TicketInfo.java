@@ -32,6 +32,7 @@ import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.payment.PaymentInfo;
 import com.mx.kylgis.pos.payment.PaymentInfoMagcard;
 import com.mx.kylgis.pos.payment.PaymentInfoTicket;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 import com.mx.kylgis.pos.util.StringUtils;
 import java.io.*;
 import java.text.DateFormat;
@@ -46,6 +47,8 @@ import java.util.*;
 public final class TicketInfo implements SerializableRead, Externalizable {
 
     private static final long serialVersionUID = 2765650092387265178L;
+
+    public static final String PAYMENT_RECONCILIATION_PROPERTY = "kylgis.payment.context.requiresReconciliation";
 
     public static final int RECEIPT_NORMAL = 0;
     public static final int RECEIPT_REFUND = 1;
@@ -72,6 +75,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     private String m_sActiveCash;
     private List<TicketLineInfo> m_aLines;
     private List<PaymentInfo> payments;
+    private List<VoucherDiscountInfo> voucherDiscounts;
     private List<TicketTaxInfo> taxes;
     private final String m_sResponse;
     private String loyaltyCardNumber;
@@ -106,6 +110,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_sActiveCash = null;
         m_aLines = new ArrayList<>();
         payments = new ArrayList<>();
+        voucherDiscounts = new ArrayList<>();
         taxes = null;
         m_sResponse = null;
         oldTicket=false;
@@ -128,6 +133,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         out.writeObject(m_aLines);
 
         out.writeInt(ticketstatus);
+        TicketPaymentContext.write(out, this, m_isProcessed);
     }
 
     @Override
@@ -142,9 +148,21 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_User = null;
         m_sActiveCash = null;
         payments = new ArrayList<>(); // JG June 2102 diamond inference
+        voucherDiscounts = new ArrayList<>();
         taxes = null;
 
         ticketstatus = in.readInt();
+        TicketPaymentContext.read(in, this);
+        // A pre-AUTH operation may not have payment components yet. Keep its identity held.
+        if (getProperty("kylgis.qa.durableLedger.operationUuid") != null
+                || "true".equalsIgnoreCase(getProperty("kylgis.commit.outcome.unknown"))) {
+            setProperty(PAYMENT_RECONCILIATION_PROPERTY, "true");
+        }
+    }
+
+    public boolean requiresPaymentReconciliation() {
+        return "true".equalsIgnoreCase(getProperty(PAYMENT_RECONCILIATION_PROPERTY))
+                || "true".equalsIgnoreCase(getProperty("kylgis.commit.outcome.unknown"));
     }
 
     /**
@@ -170,6 +188,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_Customer = new CustomerInfoExt(dr.getString(9));
         m_aLines = new ArrayList<>();
         payments = new ArrayList<>();
+        voucherDiscounts = new ArrayList<>();
         taxes = null;
         
         ticketstatus = dr.getInt(10);
@@ -200,7 +219,17 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         payments.forEach((p) -> {
             t.payments.add(p.copyPayment());
         });
+        t.voucherDiscounts = new ArrayList<>();
+        voucherDiscounts.forEach((discount) -> {
+            t.voucherDiscounts.add((VoucherDiscountInfo) discount.copyPayment());
+        });
         t.oldTicket=oldTicket;
+        if (getProperty("kylgis.qa.durableLedger.operationUuid") != null
+                || requiresPaymentReconciliation()) {
+            // A new receipt must not silently reuse another receipt's operation.
+            t.setProperty(PAYMENT_RECONCILIATION_PROPERTY, "true");
+            t.setProperty("kylgis.payment.context.sourceReceiptId", m_sId);
+        }
         // taxes are not copied, must be calculated again.
 
         t.ticketstatus = ticketstatus;
@@ -230,11 +259,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         return ticketstatus;
     }
     public void setTicketStatus(int ticketstatus) {
-        if (m_iTicketId >0) {
-            this.ticketstatus = m_iTicketId;
-        }else{
-            this.ticketstatus = ticketstatus;
-        }
+        this.ticketstatus = ticketstatus;
     }
     
     public void setPickupId(int iTicketId) {
@@ -396,7 +421,9 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
         for (Iterator<TicketLineInfo> i = m_aLines.iterator(); i.hasNext();) {
             oLine = i.next();
-            dArticles += oLine.getMultiply();
+            if (!"true".equalsIgnoreCase(oLine.getProperty("voucher.discount"))) {
+                dArticles += oLine.getMultiply();
+            }
         }
 
         return dArticles;
@@ -467,6 +494,18 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public void resetPayments() {
         payments = new ArrayList<>(); // JG June 2102 diamond inference
+    }
+
+    public List<VoucherDiscountInfo> getVoucherDiscounts() {
+        return voucherDiscounts;
+    }
+
+    public void setVoucherDiscounts(List<VoucherDiscountInfo> discounts) {
+        voucherDiscounts = discounts == null ? new ArrayList<>() : new ArrayList<>(discounts);
+    }
+
+    public void resetVoucherDiscounts() {
+        voucherDiscounts = new ArrayList<>();
     }
 
     public List<TicketTaxInfo> getTaxes() {

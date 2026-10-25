@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
  *
  * @author JG uniCenta
  */
-public abstract class PrinterWritter {
+public abstract class PrinterWritter implements AutoCloseable {
     
     private boolean initialized = false;
 
@@ -103,6 +103,7 @@ public abstract class PrinterWritter {
     /**
      *
      */
+    @Override
     public void close() {
         exec.execute(new Runnable() {
             @Override
@@ -111,5 +112,13 @@ public abstract class PrinterWritter {
             }
         });
         exec.shutdown();
+        try {
+            if (!exec.awaitTermination(1500, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                exec.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            exec.shutdownNow();
+        }
     }
 }

@@ -20,20 +20,23 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scale;
 
-import gnu.io.*;
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import java.io.*;
-import java.util.TooManyListenersException;
 
 /**
  *
  * @author JG uniCenta
  */
-public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
+public class ScaleSamsungEsp implements Scale, SerialPortDataListener {
     
-    private CommPortIdentifier m_PortIdPrinter;
     private SerialPort m_CommPortPrinter;  
     
+    private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x24};
+
     private String m_sPortScale;
+    private final byte[] m_weightRequest;
     private OutputStream m_out;
     private InputStream m_in;
 
@@ -48,7 +51,12 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
     /** Creates a new instance of ScaleComm
      * @param sPortPrinter */
     public ScaleSamsungEsp(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleSamsungEsp(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         
@@ -80,7 +88,7 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
             // Ya estamos en SCALE_READY
             m_dWeightBuffer = 0.0;
             m_dWeightDecimals = 1.0;
-            write(new byte[] {0x24}); // $
+            write(m_weightRequest);
             flush();             
             
             // Esperamos un ratito
@@ -94,12 +102,12 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
                 double dWeight = m_dWeightBuffer / m_dWeightDecimals;
                 m_dWeightBuffer = 0.0;
                 m_dWeightDecimals = 1.0;
-                return new Double(dWeight);
+                return dWeight;
             } else {
                 m_iStatusScale = SCALE_READY;
                 m_dWeightBuffer = 0.0;
                 m_dWeightDecimals = 1.0;
-                return new Double(0.0);
+                return 0.0;
             }
         }
     }
@@ -114,22 +122,26 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
     private void write(byte[] data) {
         try {  
             if (m_out == null) {
-                m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale); // Tomamos el puerto                   
-                m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 2000); // Abrimos el puerto       
+                m_CommPortPrinter = SerialPort.getCommPort(m_sPortScale);
 
-                m_out = m_CommPortPrinter.getOutputStream(); // Tomamos el chorro de escritura   
+                m_CommPortPrinter.setComPortParameters(9600, 8,
+
+                        SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
+
+                if (!m_CommPortPrinter.openPort(2000)) {
+
+                    return;
+
+                }
+
+                m_out = m_CommPortPrinter.getOutputStream();
+
                 m_in = m_CommPortPrinter.getInputStream();
-                
-                m_CommPortPrinter.addEventListener(this);
-                m_CommPortPrinter.notifyOnDataAvailable(true);
-                
-                m_CommPortPrinter.setSerialPortParams(9600, 
-                        SerialPort.DATABITS_8, 
-                        SerialPort.STOPBITS_1, 
-                        SerialPort.PARITY_NONE); // Configuramos el puerto
+
+                m_CommPortPrinter.addDataListener(this); // Configuramos el puerto
             }
             m_out.write(data);
-        } catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException | TooManyListenersException | IOException e) {
+        } catch (IOException e) {
         }        
     }
     
@@ -138,21 +150,15 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
      * @param e
      */
     @Override
-    public void serialEvent(SerialPortEvent e) {
+    public int getListeningEvents() {
+        return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+    }
 
-	// Determine type of event.
-	switch (e.getEventType()) {
-            case SerialPortEvent.BI:
-            case SerialPortEvent.OE:
-            case SerialPortEvent.FE:
-            case SerialPortEvent.PE:
-            case SerialPortEvent.CD:
-            case SerialPortEvent.CTS:
-            case SerialPortEvent.DSR:
-            case SerialPortEvent.RI:
-            case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-                break;
-            case SerialPortEvent.DATA_AVAILABLE:
+    @Override
+    public void serialEvent(SerialPortEvent e) {
+        if (e.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+            return;
+        }
                 try {
                     while (m_in.available() > 0) {
                         int b = m_in.read();
@@ -189,7 +195,5 @@ public class ScaleSamsungEsp implements Scale, SerialPortEventListener {
                     }
 
                 } catch (IOException eIO) {}
-                break;
-        }
     }       
 }

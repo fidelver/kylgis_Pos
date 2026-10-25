@@ -50,6 +50,9 @@ alter table products drop index products_inx_0;
 alter table products drop index products_inx_1; 
 alter table products drop index products_name_inx; 
 
+alter table product_suppliers drop foreign key product_suppliers_product_fk;
+alter table product_suppliers drop foreign key product_suppliers_supplier_fk;
+
 alter table products_bundle drop foreign key products_bundle_fk_1;
 alter table products_bundle drop foreign key products_bundle_fk_2;
 

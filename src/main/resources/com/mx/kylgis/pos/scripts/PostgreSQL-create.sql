@@ -226,8 +226,10 @@ CREATE TABLE taxcategories (
 	PRIMARY KEY  ( id )
 );
 CREATE UNIQUE INDEX TAXCAT_NAME_INX ON taxcategories(name);
-INSERT INTO taxcategories(id, name) VALUES ('000', 'Tax Exempt');
-INSERT INTO taxcategories(id, name) VALUES ('001', 'Tax Standard');
+-- México: IVA general 16%; IVA 0% y Exento son tratamientos diferentes. IEPS y estímulos especiales requieren validación específica.
+INSERT INTO taxcategories(id, name) VALUES ('000', 'IVA Exento');
+INSERT INTO taxcategories(id, name) VALUES ('001', 'IVA 16%');
+INSERT INTO taxcategories(id, name) VALUES ('002', 'IVA 0%');
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE taxes (
@@ -245,8 +247,9 @@ CREATE TABLE taxes (
     CONSTRAINT TAXES_TAXES_FK FOREIGN KEY (parentid) REFERENCES taxes(id)
 );
 CREATE UNIQUE INDEX TAXES_NAME_INX ON taxes(name);
-INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'Tax Exempt', '000', NULL, NULL, 0, false, NULL);
-INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'Tax Standard', '001', NULL, NULL, 0.10, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'IVA Exento', '000', NULL, NULL, 0, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'IVA 16%', '001', NULL, NULL, 0.16, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('002', 'IVA 0%', '002', NULL, NULL, 0, false, NULL);
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE attribute (
@@ -334,6 +337,7 @@ CREATE TABLE products (
 	printto varchar default '1',
 	supplier varchar default NULL,
         uom varchar default '0',
+        isrecipeingredient BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (ID),
     CONSTRAINT PRODUCTS_FK_1 FOREIGN KEY (category) REFERENCES categories(id),
     CONSTRAINT PRODUCTS_TAXCAT_FK FOREIGN KEY (taxcat) REFERENCES taxcategories(id),
@@ -714,6 +718,25 @@ CREATE TABLE suppliers (
 CREATE UNIQUE INDEX SUPPLIERS_SKEY_INX ON suppliers(searchkey);
 CREATE INDEX SUPPLIERS_NAME_INX ON suppliers(name);
 
+/* KylGis 1.2: N:M product to supplier associations. */
+CREATE TABLE product_suppliers (
+    product_id VARCHAR NOT NULL,
+    supplier_id VARCHAR NOT NULL,
+    is_preferred BOOLEAN NOT NULL DEFAULT FALSE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    supplier_sku VARCHAR DEFAULT NULL,
+    purchase_uom VARCHAR DEFAULT NULL,
+    last_cost DOUBLE PRECISION DEFAULT NULL,
+    priority INTEGER DEFAULT NULL,
+    last_purchase TIMESTAMP DEFAULT NULL,
+    PRIMARY KEY (product_id, supplier_id),
+    CONSTRAINT product_suppliers_product_fk FOREIGN KEY (product_id)
+        REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT product_suppliers_supplier_fk FOREIGN KEY (supplier_id)
+        REFERENCES suppliers(id) ON DELETE CASCADE
+);
+CREATE INDEX product_suppliers_supplier_inx ON product_suppliers(supplier_id);
+
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE uom (
     id VARCHAR NOT NULL,
@@ -721,17 +744,160 @@ CREATE TABLE uom (
     PRIMARY KEY ( id )
 );
 
+/* KylGis voucher campaigns */
+CREATE TABLE voucher_campaigns (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    code_prefix VARCHAR NOT NULL,
+    assignment_mode VARCHAR(16) NOT NULL,
+    amount double precision NOT NULL,
+    quantity INTEGER NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    expires_at TIMESTAMP DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL
+);
+CREATE INDEX voucher_campaign_created_inx ON voucher_campaigns(created_at);
+
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE vouchers (
     id VARCHAR NOT NULL,
-    voucher_number VARCHAR DEFAULT NULL,
+    voucher_number VARCHAR NOT NULL,
     customer VARCHAR DEFAULT NULL,
     amount double precision default 0 NOT NULL,
     status CHAR(1) DEFAULT 'A',
+    expires_at TIMESTAMP DEFAULT NULL,
+    campaign_id VARCHAR DEFAULT NULL,
+    CONSTRAINT vouchers_number_uq UNIQUE (voucher_number),
+    CONSTRAINT vouchers_campaign_fk FOREIGN KEY (campaign_id) REFERENCES voucher_campaigns(id) ON DELETE SET NULL,
     PRIMARY KEY ( id )
 );
+CREATE INDEX vouchers_campaign_inx ON vouchers(campaign_id);
+
+CREATE TABLE voucher_redemptions (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    voucher_id VARCHAR NOT NULL,
+    voucher_number VARCHAR NOT NULL,
+    receipt_id VARCHAR NOT NULL,
+    customer_id VARCHAR DEFAULT NULL,
+    voucher_customer_before VARCHAR DEFAULT NULL,
+    discount_amount double precision NOT NULL,
+    redeemed_at TIMESTAMP NOT NULL,
+    operator_id VARCHAR NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    reversed_at TIMESTAMP DEFAULT NULL,
+    replacement_receipt_id VARCHAR DEFAULT NULL,
+    CONSTRAINT voucher_redemption_voucher_fk FOREIGN KEY (voucher_id) REFERENCES vouchers(id),
+    CONSTRAINT voucher_redemption_customer_fk FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+);
+CREATE INDEX voucher_redemption_voucher_inx ON voucher_redemptions(voucher_id, status);
+CREATE INDEX voucher_redemption_receipt_inx ON voucher_redemptions(receipt_id);
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
+CREATE TABLE voucher_reactivation_audit (
+    id VARCHAR NOT NULL,
+    voucher_number VARCHAR NOT NULL,
+    original_receipt VARCHAR NOT NULL,
+    new_receipt VARCHAR NOT NULL,
+    operator_id VARCHAR NOT NULL,
+    authorized_by VARCHAR NOT NULL,
+    authorized_at TIMESTAMP NOT NULL,
+    reason VARCHAR NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT voucher_reactivation_original_uq UNIQUE (original_receipt, voucher_number)
+);
+CREATE INDEX voucher_reactivation_new_inx ON voucher_reactivation_audit(new_receipt);
+CREATE INDEX voucher_reactivation_authorized_inx ON voucher_reactivation_audit(authorized_by, authorized_at);
+
+/* KylGis 1.3: versioned recipes and auditable inventory transformations. */
+CREATE TABLE recipe_versions (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    product_id VARCHAR NOT NULL,
+    version_no INTEGER NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    recipe_mode VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION',
+    yield_quantity NUMERIC(19,6) NOT NULL,
+    yield_uom_id VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL,
+    notes VARCHAR(1000) DEFAULT NULL,
+    CONSTRAINT recipe_versions_product_version_uq UNIQUE (product_id, version_no),
+    CONSTRAINT recipe_versions_product_fk FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT recipe_versions_uom_fk FOREIGN KEY (yield_uom_id) REFERENCES uom(id)
+);
+CREATE INDEX recipe_versions_product_status_inx ON recipe_versions(product_id, status);
+
+CREATE TABLE recipe_components (
+    recipe_version_id VARCHAR NOT NULL,
+    line_no INTEGER NOT NULL,
+    component_product_id VARCHAR NOT NULL,
+    quantity NUMERIC(19,6) NOT NULL,
+    uom_id VARCHAR NOT NULL,
+    waste_allowance NUMERIC(9,6) DEFAULT NULL,
+    PRIMARY KEY (recipe_version_id, line_no),
+    CONSTRAINT recipe_components_recipe_fk FOREIGN KEY (recipe_version_id)
+        REFERENCES recipe_versions(id) ON DELETE CASCADE,
+    CONSTRAINT recipe_components_product_fk FOREIGN KEY (component_product_id) REFERENCES products(id),
+    CONSTRAINT recipe_components_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id)
+);
+CREATE INDEX recipe_components_product_inx ON recipe_components(component_product_id);
+
+CREATE TABLE product_uom_conversions (
+    product_id VARCHAR NOT NULL,
+    from_uom_id VARCHAR NOT NULL,
+    to_uom_id VARCHAR NOT NULL,
+    factor NUMERIC(19,9) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (product_id, from_uom_id, to_uom_id),
+    CONSTRAINT product_uom_product_fk FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT product_uom_from_fk FOREIGN KEY (from_uom_id) REFERENCES uom(id),
+    CONSTRAINT product_uom_to_fk FOREIGN KEY (to_uom_id) REFERENCES uom(id)
+);
+
+CREATE TABLE inventory_transformations (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    idempotency_key VARCHAR NOT NULL,
+    request_hash VARCHAR(64) NOT NULL,
+    type VARCHAR(24) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    location_id VARCHAR NOT NULL,
+    recipe_version_id VARCHAR DEFAULT NULL,
+    reverses_id VARCHAR DEFAULT NULL,
+    expected_output NUMERIC(19,6) DEFAULT NULL,
+    actual_output NUMERIC(19,6) DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL,
+    notes VARCHAR(1000) DEFAULT NULL,
+    CONSTRAINT inventory_transform_idempotency_uq UNIQUE (idempotency_key),
+    CONSTRAINT inventory_transform_reverses_uq UNIQUE (reverses_id),
+    CONSTRAINT inventory_transform_location_fk FOREIGN KEY (location_id) REFERENCES locations(id),
+    CONSTRAINT inventory_transform_recipe_fk FOREIGN KEY (recipe_version_id) REFERENCES recipe_versions(id),
+    CONSTRAINT inventory_transform_reverse_fk FOREIGN KEY (reverses_id) REFERENCES inventory_transformations(id)
+);
+CREATE INDEX inventory_transform_location_date_inx ON inventory_transformations(location_id, created_at);
+CREATE INDEX inventory_transform_recipe_inx ON inventory_transformations(recipe_version_id);
+
+CREATE TABLE inventory_transformation_lines (
+    transformation_id VARCHAR NOT NULL,
+    line_no INTEGER NOT NULL,
+    direction VARCHAR(8) NOT NULL,
+    product_id VARCHAR NOT NULL,
+    attributesetinstance_id VARCHAR DEFAULT NULL,
+    quantity NUMERIC(19,6) NOT NULL,
+    uom_id VARCHAR NOT NULL,
+    base_quantity NUMERIC(19,6) NOT NULL,
+    unit_cost NUMERIC(19,6) DEFAULT NULL,
+    total_cost NUMERIC(19,6) DEFAULT NULL,
+    stockdiary_id VARCHAR NOT NULL,
+    PRIMARY KEY (transformation_id, line_no),
+    CONSTRAINT inventory_transform_line_diary_uq UNIQUE (stockdiary_id),
+    CONSTRAINT inventory_transform_line_header_fk FOREIGN KEY (transformation_id) REFERENCES inventory_transformations(id),
+    CONSTRAINT inventory_transform_line_product_fk FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT inventory_transform_line_uom_fk FOREIGN KEY (uom_id) REFERENCES uom(id),
+    CONSTRAINT inventory_transform_line_diary_fk FOREIGN KEY (stockdiary_id) REFERENCES stockdiary(id)
+);
+CREATE INDEX inventory_transform_line_product_inx ON inventory_transformation_lines(product_id);
+
 CREATE SEQUENCE ticketsnum START WITH 1;
 CREATE SEQUENCE ticketsnum_refund START WITH 1;
 CREATE SEQUENCE ticketsnum_payment START WITH 1;
@@ -744,3 +910,42 @@ CREATE TABLE draweropened (
 );
 
 INSERT INTO applications(id, name, version) VALUES($APP_ID{}, $APP_NAME{}, $APP_VERSION{});
+
+/* KylGis 1.3: recipe consumption linked to finalized sales. */
+CREATE TABLE sale_recipe_consumptions (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    receipt_id VARCHAR NOT NULL UNIQUE,
+    ticket_id INTEGER NOT NULL,
+    transformation_id VARCHAR NOT NULL UNIQUE,
+    location_id VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL,
+    CONSTRAINT sale_recipe_consumptions_transformation_fk
+        FOREIGN KEY (transformation_id) REFERENCES inventory_transformations(id),
+    CONSTRAINT sale_recipe_consumptions_location_fk
+        FOREIGN KEY (location_id) REFERENCES locations(id)
+);
+CREATE INDEX sale_recipe_consumptions_location_date_inx
+    ON sale_recipe_consumptions(location_id, created_at);
+
+CREATE TABLE sale_recipe_consumption_alerts (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    receipt_id VARCHAR NOT NULL,
+    ticket_id INTEGER NOT NULL,
+    location_id VARCHAR NOT NULL,
+    product_id VARCHAR NOT NULL,
+    required_quantity NUMERIC(19,6) NOT NULL,
+    available_quantity NUMERIC(19,6) NOT NULL,
+    uom_id VARCHAR NOT NULL,
+    kind VARCHAR(32) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    resolved_at TIMESTAMP NULL,
+    resolved_by VARCHAR NULL,
+    CONSTRAINT sale_recipe_alert_product_fk FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT sale_recipe_alert_location_fk FOREIGN KEY (location_id) REFERENCES locations(id)
+);
+CREATE INDEX sale_recipe_alert_status_inx
+    ON sale_recipe_consumption_alerts(status, created_at);
+CREATE INDEX sale_recipe_alert_product_inx
+    ON sale_recipe_consumption_alerts(product_id);

@@ -31,18 +31,18 @@ public class AppLocal {
 
     public static final String APP_NAME = "KylGis POS";
     public static final String APP_ID = "kylgispos";
-    public static final String APP_VERSION = "1.0";
+    public static final String APP_VERSION = "1.3";
     
     /*
     public static final String APP_NAME = "KylGis Plataformas";
     public static final String APP_ID = "kylgisplataformas";
-    public static final String APP_VERSION = "1.0";
+    public static final String APP_VERSION = "1.3";
     */
     
     /*
      public static final String APP_NAME = "KylGisPOS";
     public static final String APP_ID = "kylgispos";
-    public static final String APP_VERSION = "1.0";
+    public static final String APP_VERSION = "1.3";
 */
     private static final LocaleResources m_resources;
     

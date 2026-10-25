@@ -192,7 +192,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue($F{CURDATE})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-12" x="27" y="53" width="195" height="13" uuid="716c3b29-6d49-474e-b0d1-ea7d2d650f92"/>
+				<reportElement key="textField-12" x="27" y="53" width="195" height="16" uuid="716c3b29-6d49-474e-b0d1-ea7d2d650f92"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -250,7 +250,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textFieldExpression><![CDATA[$F{TAXID}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-12" x="27" y="67" width="195" height="13" uuid="223a918c-70c6-4897-b386-92229886a26d"/>
+				<reportElement key="textField-12" x="27" y="67" width="195" height="16" uuid="223a918c-70c6-4897-b386-92229886a26d"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -263,7 +263,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textFieldExpression><![CDATA[$F{ADDRESS2}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-12" x="27" y="81" width="126" height="13" uuid="9a201211-294f-4258-ae47-f1c2a792698e"/>
+				<reportElement key="textField-12" x="27" y="81" width="126" height="16" uuid="9a201211-294f-4258-ae47-f1c2a792698e"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -276,7 +276,7 @@ WHERE VISIBLE = TRUE AND CARD IS NOT NULL AND CARD <> '']]>
 				<textFieldExpression><![CDATA[$F{CITY}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-12" x="153" y="81" width="69" height="13" uuid="8010c34e-b328-488c-a82a-ed0563cab1fe"/>
+				<reportElement key="textField-12" x="153" y="81" width="69" height="16" uuid="8010c34e-b328-488c-a82a-ed0563cab1fe"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>

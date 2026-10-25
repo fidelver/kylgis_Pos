@@ -29,6 +29,8 @@ import com.mx.kylgis.pos.data.user.EditorCreator;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.DataLogicSales;
+import com.mx.kylgis.pos.panels.JProductFinder;
+import com.mx.kylgis.pos.ticket.ProductInfoExt;
 
 /**
  *
@@ -39,11 +41,18 @@ public class MaterialFilter extends javax.swing.JPanel implements EditorCreator 
     
     private SentenceList m_sentprods;
     private ComboBoxValModel m_ProdsModel;
+    private final DataLogicSales m_dlSales;
 
     /** Creates new form JQBFProduct
      * @param dlSales */
     public MaterialFilter(DataLogicSales dlSales) {
+        m_dlSales = dlSales;
         initComponents();
+        m_jBtnProductSearch = new javax.swing.JButton(AppLocal.getIntString("recipe.catalog.choose"));
+        m_jBtnProductSearch.setToolTipText(AppLocal.getIntString("recipe.catalog.choose.help"));
+        m_jBtnProductSearch.addActionListener(e -> searchProduct());
+        jPanel1.add(m_jBtnProductSearch);
+        m_jBtnProductSearch.setBounds(375, 80, 115, 25);
         
         //El modelo de productos
         m_sentprods = dlSales.getProductList();
@@ -53,6 +62,13 @@ public class MaterialFilter extends javax.swing.JPanel implements EditorCreator 
         m_jCboPriceBuy.setModel(new ListQBFModelNumber());
     }
     
+    private void searchProduct() {
+        ProductInfoExt selected = JProductFinder.showMessage(this, m_dlSales);
+        if (selected != null && m_ProdsModel != null) {
+            m_ProdsModel.setSelectedKey(selected.getID());
+        }
+    }
+
     /**
      *
      * @throws BasicException
@@ -157,6 +173,7 @@ public class MaterialFilter extends javax.swing.JPanel implements EditorCreator 
     private javax.swing.JComboBox m_jCboName;
     private javax.swing.JComboBox m_jCboPriceBuy;
     private javax.swing.JComboBox m_jCboProduct;
+    private javax.swing.JButton m_jBtnProductSearch;
     private javax.swing.JTextField m_jName;
     private javax.swing.JTextField m_jPriceBuy;
     // End of variables declaration//GEN-END:variables

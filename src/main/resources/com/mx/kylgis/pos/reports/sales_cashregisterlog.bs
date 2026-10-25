@@ -29,11 +29,11 @@ report.setSentence("SELECT " +
 			"payments.PAYMENT, " +
 			"payments.TENDERED, " +
                         "payments.VOUCHER, " +
-			"SUM( payments.TOTAL ) AS PAYMENT_TOTAL " +
+			"payments.TOTAL AS PAYMENT_TOTAL " +
                     "FROM receipts " +
 			"LEFT JOIN payments ON receipts.ID = payments.RECEIPT " +
                     "WHERE ?(QBF_FILTER) " +
-                    "GROUP BY receipts.DATENEW, payments.PAYMENT, payments.TENDERED");
+                    "ORDER BY receipts.DATENEW, payments.PAYMENT");
 
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");

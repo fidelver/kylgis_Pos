@@ -30,6 +30,11 @@ import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
+import com.mx.kylgis.pos.ticket.TaxInfo;
+import com.mx.kylgis.pos.fiscal.SatTaxProfileDialog;
+import com.mx.kylgis.pos.fiscal.SatProductMetadataDialog;
+import java.awt.BorderLayout;
+import javax.swing.JButton;
 import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -47,6 +52,10 @@ import javax.swing.JPanel;
 public class TaxEditor extends JPanel implements EditorRecord {
     
     private Object m_oId;
+    private final AppView satApp;
+    private JPanel satWrapper;
+    private JButton satButton;
+    private boolean satRecordSaved;
     
     private SentenceList taxcatsent;
     private ComboBoxValModel taxcatmodel;    
@@ -55,12 +64,14 @@ public class TaxEditor extends JPanel implements EditorRecord {
     private ComboBoxValModel taxcustcatmodel;   
     
     private SentenceList taxparentsent;
-    private ComboBoxValModel taxparentmodel;    
+    private ComboBoxValModel taxparentmodel;
+    private final List<TaxInfo> taxparentlist = new ArrayList<>();
     
     /** Creates new form taxEditor
      * @param app
      * @param dirty */
     public TaxEditor(AppView app, DirtyManager dirty) {
+        this.satApp = app;
         
         DataLogicSales dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
         
@@ -73,7 +84,9 @@ public class TaxEditor extends JPanel implements EditorRecord {
         taxcustcatmodel = new ComboBoxValModel();    
         
         taxparentsent = dlSales.getTaxList();
-        taxparentmodel = new ComboBoxValModel();    
+        taxparentmodel = new ComboBoxValModel();
+
+        configureFiscalHelp();
 
         m_jName.getDocument().addDocumentListener(dirty);
         m_jTaxCategory.addActionListener(dirty);
@@ -114,10 +127,17 @@ public class TaxEditor extends JPanel implements EditorRecord {
         
         try {
             a = taxparentsent.list();
+            taxparentlist.clear();
+            for (Object item : a) {
+                if (item instanceof TaxInfo) {
+                    taxparentlist.add((TaxInfo) item);
+                }
+            }
         } catch (BasicException eD) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.cannotloadlists"), eD);
             msg.show(this);
             a = new ArrayList();
+            taxparentlist.clear();
         }
         
         a.add(0, null); // The null item
@@ -131,6 +151,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
     @Override
     public void writeValueEOF() {
         m_oId = null;
+        satRecordSaved = false;
+        updateSatButton();
         m_jName.setText(null);
         taxcatmodel.setSelectedKey(null);
         taxcustcatmodel.setSelectedKey(null);
@@ -154,6 +176,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
     @Override
     public void writeValueInsert() {
         m_oId = UUID.randomUUID().toString();
+        satRecordSaved = false;
+        updateSatButton();
         m_jName.setText(null);
         taxcatmodel.setSelectedKey(null);
         taxcustcatmodel.setSelectedKey(null);
@@ -177,7 +201,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
      */
     @Override
     public void writeValueDelete(Object value) {
-
+        satRecordSaved = false;
+        updateSatButton();
         Object[] tax = (Object[]) value;
         m_oId = tax[0];
         m_jName.setText(Formats.STRING.formatValue(tax[1]));
@@ -203,7 +228,8 @@ public class TaxEditor extends JPanel implements EditorRecord {
      */
     @Override
     public void writeValueEdit(Object value) {
-
+        satRecordSaved = true;
+        updateSatButton();
         Object[] tax = (Object[]) value;
         m_oId = tax[0];
         m_jName.setText(Formats.STRING.formatValue(tax[1]));
@@ -230,28 +256,126 @@ public class TaxEditor extends JPanel implements EditorRecord {
      */
     @Override
     public Object createValue() throws BasicException {
+
+        String name = m_jName.getText() == null ? "" : m_jName.getText().trim();
+        Object category = taxcatmodel.getSelectedKey();
+        Object parent = taxparentmodel.getSelectedKey();
+        Object parsedRate = Formats.PERCENT.parseValue(m_jRate.getText());
+
+        if (name.isEmpty()) {
+            throw new BasicException(AppLocal.getIntString("message.tax.name.required"));
+        }
+        if (category == null) {
+            throw new BasicException(AppLocal.getIntString("message.tax.category.required"));
+        }
+        if (!(parsedRate instanceof Number)) {
+            throw new BasicException(AppLocal.getIntString("message.tax.rate.required"));
+        }
+
+        double rate = ((Number) parsedRate).doubleValue();
+        if (Double.isNaN(rate) || Double.isInfinite(rate)) {
+            throw new BasicException(AppLocal.getIntString("message.tax.rate.invalid"));
+        }
+
+        String parentId = parent == null ? null : parent.toString();
+        if (createsParentCycle(parentId)) {
+            throw new BasicException(AppLocal.getIntString("message.tax.parent.cycle"));
+        }
         
         Object[] tax = new Object[8];
 
         tax[0] = m_oId;
-        tax[1] = m_jName.getText();
-        tax[2] = taxcatmodel.getSelectedKey();
+        tax[1] = name;
+        tax[2] = category;
         tax[3] = taxcustcatmodel.getSelectedKey(); 
-        tax[4] = taxparentmodel.getSelectedKey(); 
-        tax[5] = Formats.PERCENT.parseValue(m_jRate.getText());
+        tax[4] = parent; 
+        tax[5] = Double.valueOf(rate);
         tax[6] = Boolean.valueOf(jCascade.isSelected());
         tax[7] = Formats.INT.parseValue(jOrder.getText());
         
         return tax;
     }
 
-    /**
-     *
-     * @return
-     */
+    /** Configures localized fiscal guidance for the generic tax fields. */
+    private void configureFiscalHelp() {
+        m_jRate.setToolTipText(AppLocal.getIntString("tooltip.tax.rate.mx"));
+        m_jRate.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.rate.mx"));
+        m_jTaxCategory.setToolTipText(AppLocal.getIntString("tooltip.tax.category.mx"));
+        m_jTaxCategory.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.category.mx"));
+        m_jCustTaxCategory.setToolTipText(AppLocal.getIntString("tooltip.tax.customer.category"));
+        m_jCustTaxCategory.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.customer.category"));
+        m_jTaxParent.setToolTipText(AppLocal.getIntString("tooltip.tax.parent"));
+        m_jTaxParent.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.parent"));
+        jCascade.setToolTipText(AppLocal.getIntString("tooltip.tax.cascade.mx"));
+        jCascade.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.tax.cascade.mx"));
+    }
+
+    private boolean createsParentCycle(String parentId) {
+        if (parentId == null || m_oId == null) {
+            return false;
+        }
+
+        String ownId = m_oId.toString();
+        String current = parentId;
+        int remaining = taxparentlist.size() + 1;
+
+        while (current != null && remaining-- > 0) {
+            if (ownId.equals(current)) {
+                return true;
+            }
+
+            TaxInfo parentTax = null;
+            for (TaxInfo candidate : taxparentlist) {
+                if (current.equals(candidate.getId())) {
+                    parentTax = candidate;
+                    break;
+                }
+            }
+
+            if (parentTax == null) {
+                return false;
+            }
+            current = parentTax.getParentID();
+        }
+
+        // An already-corrupt parent graph must not accept another edit that keeps a cycle.
+        return current != null;
+    }
+
+    private void updateSatButton() {
+        if (satButton != null) {
+            satButton.setEnabled(satRecordSaved && m_oId != null);
+        }
+    }
+
     @Override
     public Component getComponent() {
-        return this;
+        if (satWrapper == null) {
+            satWrapper = new JPanel(new BorderLayout());
+            satWrapper.add(this, BorderLayout.CENTER);
+            satButton = new JButton(AppLocal.getIntString("sat.editor.open"));
+            satButton.setToolTipText(AppLocal.getIntString("sat.editor.open.help"));
+            satButton.addActionListener(e -> {
+                if (satRecordSaved && m_oId != null) {
+                    SatTaxProfileDialog.showEditor(satWrapper, satApp.getSession(), m_oId.toString());
+                }
+            });
+            JPanel footer = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+            footer.add(satButton);
+            JButton satProductButton = new JButton(AppLocal.getIntString("sat.product.open"));
+            satProductButton.setToolTipText(AppLocal.getIntString("sat.product.open.help"));
+            satProductButton.addActionListener(e ->
+                    SatProductMetadataDialog.showEditor(satWrapper, satApp.getSession()));
+            footer.add(satProductButton);
+            satWrapper.add(footer, BorderLayout.SOUTH);
+            updateSatButton();
+        }
+        return satWrapper;
     }
     
     /** This method is called from within the constructor to

@@ -20,6 +20,7 @@
 package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.user.DirtyManager;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import com.mx.kylgis.pos.forms.AppConfig;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -36,12 +37,12 @@ import javax.swing.JPanel;
 public class JPanelConfigSalesButtons extends JPanel implements PanelConfig {
 
     private final DirtyManager dirty = new DirtyManager();
-    private final JCheckBox platformOrder = new JCheckBox("Código de orden / plataformas");
-    private final JCheckBox scale = new JCheckBox("Báscula");
-    private final JCheckBox remotePrint = new JCheckBox("Impresión remota / Kitchen Screen");
-    private final JCheckBox split = new JCheckBox("Dividir cuenta");
-    private final JCheckBox reprint = new JCheckBox("Imprimir último ticket");
-    private final JCheckBox ticketPreview = new JCheckBox("Imprimir / previsualizar ticket actual");
+    private final JCheckBox platformOrder = new JCheckBox(UiHelp.text("salesbuttons.platform"));
+    private final JCheckBox scale = new JCheckBox(UiHelp.text("salesbuttons.scale"));
+    private final JCheckBox remotePrint = new JCheckBox(UiHelp.text("salesbuttons.remoteprint"));
+    private final JCheckBox split = new JCheckBox(UiHelp.text("salesbuttons.split"));
+    private final JCheckBox reprint = new JCheckBox(UiHelp.text("salesbuttons.reprint"));
+    private final JCheckBox ticketPreview = new JCheckBox(UiHelp.text("salesbuttons.preview"));
 
     public JPanelConfigSalesButtons() {
         setOpaque(true);
@@ -49,13 +50,12 @@ public class JPanelConfigSalesButtons extends JPanel implements PanelConfig {
         setLayout(new BorderLayout(10, 10));
 
         JLabel note = new JLabel(
-                "<html>Seleccione los botones opcionales que deben mostrarse en la pantalla de venta.<br>"
-                + "Los permisos de usuario continúan controlándose mediante roles.</html>");
+                UiHelp.text("salesbuttons.note"));
         add(note, BorderLayout.NORTH);
 
         JPanel options = new JPanel(new GridLayout(0, 1, 2, 2));
         options.setOpaque(false);
-        options.setBorder(BorderFactory.createTitledBorder("Botones opcionales"));
+        options.setBorder(BorderFactory.createTitledBorder(UiHelp.text("salesbuttons.title")));
         options.add(platformOrder);
         options.add(scale);
         options.add(remotePrint);
@@ -68,6 +68,12 @@ public class JPanelConfigSalesButtons extends JPanel implements PanelConfig {
         optionsWrapper.add(options, BorderLayout.NORTH);
         add(optionsWrapper, BorderLayout.CENTER);
 
+        UiHelp.set(platformOrder, "salesbuttons.platform");
+        UiHelp.set(scale, "salesbuttons.scale");
+        UiHelp.set(remotePrint, "salesbuttons.remoteprint");
+        UiHelp.set(split, "salesbuttons.split");
+        UiHelp.set(reprint, "salesbuttons.reprint");
+        UiHelp.set(ticketPreview, "salesbuttons.preview");
         platformOrder.addActionListener(dirty);
         scale.addActionListener(dirty);
         remotePrint.addActionListener(dirty);

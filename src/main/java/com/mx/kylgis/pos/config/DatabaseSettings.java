@@ -6,6 +6,8 @@ package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.forms.AppProperties;
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -126,8 +128,136 @@ public final class DatabaseSettings {
         if (properties == null) {
             return;
         }
+        validateCompatibilityConsistency(properties);
         applyLegacyCompatibility(properties, "database", "db");
         applyLegacyCompatibility(properties, "database.secondary", "db1");
+    }
+
+    /**
+     * Fails fast when modern database.* settings and their historical db.*
+     * aliases point to different endpoints. Silent alias normalization is too
+     * dangerous because it can redirect a test profile to a production server.
+     */
+    public static void validateCompatibilityConsistency(Properties properties) {
+        if (properties == null) {
+            return;
+        }
+        validateCompatibilityConsistency(properties, "database", "db");
+        validateCompatibilityConsistency(properties, "database.secondary", "db1");
+    }
+
+    private static void validateCompatibilityConsistency(Properties p,
+            String modernPrefix, String legacyPrefix) {
+        String server = trimToNull(p.getProperty(modernPrefix + ".server"));
+        String databaseName = trimToNull(p.getProperty(modernPrefix + ".name"));
+        if (server == null && databaseName == null) {
+            return;
+        }
+
+        String legacyUrl = trimToNull(p.getProperty(legacyPrefix + ".URL"));
+        String legacySchema = trimToNull(p.getProperty(legacyPrefix + ".schema"));
+        if (legacyUrl == null && legacySchema == null) {
+            return;
+        }
+
+        String explicitModernEngine = trimToNull(p.getProperty(modernPrefix + ".engine"));
+        String expectedEngine = normalizeEngine(firstNonBlank(
+                explicitModernEngine,
+                p.getProperty("db.engine"),
+                ENGINE_MARIADB));
+        String expectedHost = firstNonBlank(server, "localhost");
+        int expectedPort = parsePort(firstNonBlank(p.getProperty(modernPrefix + ".port"),
+                defaultPort(expectedEngine)), modernPrefix + ".port");
+
+        JdbcEndpoint legacyEndpoint = legacyUrl == null ? null : parseJdbcEndpoint(legacyUrl, legacyPrefix + ".URL");
+        if (legacyEndpoint != null) {
+            if (explicitModernEngine != null && !expectedEngine.equals(legacyEndpoint.engine)) {
+                throw new IllegalStateException("Conflicting database engine settings: "
+                        + modernPrefix + ".engine=" + expectedEngine + " but "
+                        + legacyPrefix + ".URL uses " + legacyEndpoint.engine
+                        + ". Refusing to normalize aliases silently.");
+            }
+            if (!sameHost(expectedHost, legacyEndpoint.host) || expectedPort != legacyEndpoint.port) {
+                throw new IllegalStateException("Conflicting database endpoint settings: "
+                        + modernPrefix + ".server/port=" + expectedHost + ":" + expectedPort
+                        + " but " + legacyPrefix + ".URL points to "
+                        + legacyEndpoint.host + ":" + legacyEndpoint.port
+                        + ". Refusing to normalize aliases silently.");
+            }
+        }
+
+        if (databaseName != null) {
+            String legacyName = firstNonBlank(legacySchema,
+                    legacyEndpoint == null ? null : legacyEndpoint.schema);
+            if (legacyName != null && !databaseName.equals(legacyName)) {
+                throw new IllegalStateException("Conflicting database schema settings: "
+                        + modernPrefix + ".name=" + databaseName + " but "
+                        + legacyPrefix + " resolves to schema " + legacyName
+                        + ". Refusing to normalize aliases silently.");
+            }
+        }
+    }
+
+    private static JdbcEndpoint parseJdbcEndpoint(String jdbcUrl, String propertyName) {
+        String normalized = jdbcUrl == null ? null : jdbcUrl.trim();
+        if (normalized == null || normalized.isEmpty()) {
+            return null;
+        }
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        final String engine;
+        if (lower.startsWith("jdbc:postgresql://")) {
+            engine = ENGINE_POSTGRESQL;
+        } else if (lower.startsWith("jdbc:mysql://")) {
+            engine = ENGINE_MYSQL;
+        } else if (lower.startsWith("jdbc:mariadb://")) {
+            engine = ENGINE_MARIADB;
+        } else {
+            throw new IllegalStateException("Cannot compare " + propertyName
+                    + " with modern database settings because its JDBC scheme is unsupported.");
+        }
+        try {
+            URI uri = new URI(normalized.substring("jdbc:".length()));
+            String host = trimToNull(uri.getHost());
+            if (host == null) {
+                throw new IllegalStateException("Invalid host in " + propertyName + ".");
+            }
+            int port = uri.getPort() < 0 ? Integer.parseInt(defaultPort(engine)) : uri.getPort();
+            String path = trimToNull(uri.getPath());
+            String schema = path == null ? null : trimToNull(path.replaceFirst("^/+", ""));
+            return new JdbcEndpoint(engine, host, port, schema);
+        } catch (URISyntaxException ex) {
+            throw new IllegalStateException("Invalid JDBC endpoint syntax in " + propertyName + ".", ex);
+        }
+    }
+
+    private static int parsePort(String value, String propertyName) {
+        try {
+            int port = Integer.parseInt(value);
+            if (port < 1 || port > 65535) {
+                throw new NumberFormatException("out of range");
+            }
+            return port;
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException("Invalid TCP port in " + propertyName + ": " + value, ex);
+        }
+    }
+
+    private static boolean sameHost(String left, String right) {
+        return left != null && right != null && left.trim().equalsIgnoreCase(right.trim());
+    }
+
+    private static final class JdbcEndpoint {
+        private final String engine;
+        private final String host;
+        private final int port;
+        private final String schema;
+
+        private JdbcEndpoint(String engine, String host, int port, String schema) {
+            this.engine = engine;
+            this.host = host;
+            this.port = port;
+            this.schema = schema;
+        }
     }
 
     private static void applyLegacyCompatibility(Properties p,

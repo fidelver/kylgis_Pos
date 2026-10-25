@@ -21,7 +21,6 @@
 package com.mx.kylgis.pos.inventory;
 
 import com.mx.kylgis.pos.forms.AppLocal;
-import com.alee.laf.*;
 
 
 /**
@@ -64,7 +63,7 @@ public class InvEditLine extends javax.swing.JDialog {
         webLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         webLabel1.setPreferredSize(new java.awt.Dimension(130, 30));
 
-        webTxtPriceBuy.setText("webTextField1");
+        webTxtPriceBuy.setText("");
         webTxtPriceBuy.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         webTxtPriceBuy.setPreferredSize(new java.awt.Dimension(200, 30));
 

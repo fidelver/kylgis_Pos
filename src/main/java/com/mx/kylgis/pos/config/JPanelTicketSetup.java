@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import javax.swing.JOptionPane;
 
@@ -105,8 +106,7 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
                 javax.swing.BorderFactory.createEmptyBorder(4, 8, 6, 8)));
 
         javax.swing.JLabel note = new javax.swing.JLabel(
-                "<html><b>Nota:</b> Pantalla y Ticket digital son copias de la impresora principal. "
-                + "Se recomienda usar Printer 1 para los recibos.</html>");
+                UiHelp.text("peripheral.ticket.note"));
         outputs.add(note, java.awt.BorderLayout.NORTH);
 
         javax.swing.JPanel checks = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
@@ -286,7 +286,6 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jTextField2 = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
         jReceiptSize = new javax.swing.JSpinner();
         jLabel3 = new javax.swing.JLabel();
@@ -301,7 +300,6 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         jLabel5 = new javax.swing.JLabel();
         jTicketWidth = new javax.swing.JSpinner();
 
-        jTextField2.setText("jTextField2");
 
         setBackground(new java.awt.Color(255, 255, 255));
         setOpaque(false);
@@ -574,7 +572,6 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private javax.swing.JSpinner jTicketWidth;
     private javax.swing.JSpinner jPickupSize;
     private javax.swing.JSpinner jReceiptSize;
-    private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextReceiptPrefix;
     private javax.swing.JTextField jTicketExample;
     private javax.swing.JButton jbtnReset;

@@ -245,7 +245,28 @@
           </Events>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="180" y="140" width="270" height="-1"/>
+              <AbsoluteConstraints x="180" y="140" width="225" height="-1"/>
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JButton" name="m_jSupplierNew">
+          <Properties>
+            <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
+              <Font name="Arial" size="16" style="1"/>
+            </Property>
+            <Property name="text" type="java.lang.String" value="+"/>
+            <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
+              <ResourceString bundle="pos_messages.properties" key="menu.productsuppliers.new" replaceFormat="AppLocal.getIntString(&quot;{key}&quot;)"/>
+            </Property>
+            <Property name="focusable" type="boolean" value="false"/>
+            <Property name="requestFocusEnabled" type="boolean" value="false"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="m_jSupplierNewActionPerformed"/>
+          </Events>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+              <AbsoluteConstraints x="410" y="140" width="40" height="30"/>
             </Constraint>
           </Constraints>
         </Component>

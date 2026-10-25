@@ -38,8 +38,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
@@ -49,8 +51,12 @@ import net.sf.jasperreports.engine.xml.JRXmlLoader;
  * @author JG uniCenta
  */
 public abstract class JPanelReport extends JPanel implements JPanelView, BeanFactoryApp   {
+
+    private static final Logger REPORT_LOG = Logger.getLogger(JPanelReport.class.getName());
     
-    private JRViewer400 reportviewer = null;          
+    private JRViewer400 reportviewer = null;
+    // Invalidate deferred repaints when a report is closed or executed again.
+    private long viewerGeneration = 0;          
     private JasperReport jr = null;
     private EditorCreator editor = null;
             
@@ -74,7 +80,9 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
     /** Creates new form JPanelReport */
     public JPanelReport() {
         
-        initComponents();      
+        initComponents();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jToggleFilter,"report.toggleFilters");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jButton1,"report.execute");
     }
     
     /**
@@ -113,7 +121,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 }
             }
 // JG 16 May 12 use multicatch
-        } catch (JRException | IOException | ClassNotFoundException e) {
+        } catch (JRException | IOException | ClassNotFoundException | RuntimeException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadreport"), e);
             msg.show(this);
             jr = null;
@@ -186,7 +194,8 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
      * @return
      */
     @Override
-    public boolean deactivate() {    
+    public boolean deactivate() {
+        ++viewerGeneration;    
         
         reportviewer.loadJasperPrint(null);
         return true;
@@ -209,9 +218,11 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         jToggleFilterActionPerformed(null);
     }
     
-    private void launchreport() {     
+    private void launchreport() {
+        final long generation = ++viewerGeneration;     
         
         m_App.waitCursorBegin();
+        try {
         
         if (jr != null) {
             try {     
@@ -221,35 +232,86 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                 
                 // Parametros y los datos
                 Object params = (editor == null) ? null : editor.createValue();                
-                JRDataSource data = new JRDataSourceBasic(getSentence(), getReportFields(), params);
+                JRDataSourceBasic data = new JRDataSourceBasic(getSentence(), getReportFields(), params);
                 
                 // Construyo el mapa de los parametros.
                 Map reportparams = new HashMap();
                 reportparams.put("ARG", params);
+                reportparams.put("KYLGIS_REPORT_PERIOD", ReportPeriodContext.describe(params));
+                // El título debe pertenecer al reporte abierto, no a una clave
+                // genérica duplicada entre distintos recursos heredados.
+                if (this instanceof PanelReportBean) {
+                    reportparams.put("KYLGIS_REPORT_TITLE", ((PanelReportBean) this).getTitle());
+                }
                 if (res != null) {
                       reportparams.put("REPORT_RESOURCE_BUNDLE", ResourceBundle.getBundle(res));
                 }                
                 reportparams.put("TAXESLOGIC", taxeslogic); 
                 
-                JasperPrint jp = JasperFillManager.fillReport(jr, reportparams, data);    
+                long fillStarted = System.nanoTime();
+                REPORT_LOG.info(() -> "KYL-JASPER fill_started report=" + getReport());
+                JasperPrint jp = JasperFillManager.fillReport(jr, reportparams, data);
+                final int rowsRead = data.getRowsRead();
+                final int pages = jp.getPages().size();
+                final long fillMs = (System.nanoTime() - fillStarted) / 1_000_000L;
+                REPORT_LOG.info(() -> "KYL-JASPER fill_completed report=" + getReport()
+                        + " rows=" + rowsRead + " pages=" + pages + " elapsed_ms=" + fillMs);    
             
-               reportviewer.loadJasperPrint(jp);
-
-                setVisibleFilter(false);
+                // Jasper may return zero pages, or an empty title page, when the
+                // BeanShell query yielded no records. Do not present it as a report.
+                // Retain filters so operators can extend dates or adjust criteria.
+                if (rowsRead == 0 || pages == 0) {
+                    reportviewer.loadJasperPrint(null);
+                    setVisibleFilter(true);
+                    new MessageInf(MessageInf.SGN_NOTICE,
+                            AppLocal.getIntString("message.reportnodata")).show(this);
+                } else {
+                    // Relayout first, then load/refresh the JasperPrint at its final size.
+                    // Loading before hiding the filter left stale viewer geometry.
+                    setVisibleFilter(false);
+                    revalidate();
+                    doLayout();
+                    reportviewer.loadJasperPrint(jp);
+                    REPORT_LOG.info(() -> "KYL-JASPER viewer_loaded report=" + getReport()
+                            + " pages=" + pages + " showing=" + reportviewer.isShowing()
+                            + " size=" + reportviewer.getWidth() + "x" + reportviewer.getHeight());
+                    SwingUtilities.invokeLater(() -> {
+                        if (generation != viewerGeneration || !reportviewer.isShowing()) {
+                            return;
+                        }
+                        revalidate();
+                        reportviewer.revalidate();
+                        reportviewer.repaint();
+                    });
+                }
                 
-            } catch (MissingResourceException e) {    
+            } catch (MissingResourceException e) {
+                REPORT_LOG.warning("KYL-JASPER resource_bundle_missing report=" + getReport() + " cause=" + e.getClass().getSimpleName());
+                setVisibleFilter(true);
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadresourcedata"), e);
                 msg.show(this);
-            } catch (JRException e) {
+            } catch (JRException | RuntimeException e) {
+                REPORT_LOG.warning("KYL-JASPER fill_failed report=" + getReport() + " cause=" + e.getClass().getSimpleName());
+                setVisibleFilter(true);
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotfillreport"), e);
                 msg.show(this);
             } catch (BasicException e) {
+                REPORT_LOG.warning("KYL-JASPER data_failed report=" + getReport() + " cause=" + e.getClass().getSimpleName());
+                setVisibleFilter(true);
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadreportdata"), e);
                 msg.show(this);
             }
+        } else {
+            setVisibleFilter(true);
+            REPORT_LOG.warning("KYL-JASPER template_unavailable report=" + getReport());
+            new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.cannotloadreport"),
+                    new IllegalStateException("Jasper template unavailable: " + getReport())).show(this);
         }
-        
-        m_App.waitCursorEnd();
+
+        } finally {
+            m_App.waitCursorEnd();
+        }
     }
     
     /** This method is called from within the constructor to
@@ -267,7 +329,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         jButton1 = new javax.swing.JButton();
 
         setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
         setLayout(new java.awt.BorderLayout());
 
         jPanelHeader.setLayout(new java.awt.BorderLayout());
@@ -289,7 +351,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         });
         jPanel1.add(jToggleFilter);
 
-        jButton1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jButton1.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
         jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jButton1.setText(AppLocal.getIntString("button.executereport")); // NOI18N
         jButton1.setToolTipText("Execute Report");

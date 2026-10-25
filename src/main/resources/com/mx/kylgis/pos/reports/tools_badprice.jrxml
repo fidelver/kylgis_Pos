@@ -103,37 +103,37 @@ WHERE CSVERROR ='New product']]>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="16" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="0" width="53" height="13" uuid="2f6ac3a9-438a-4d07-bbb6-bce1dd90f9e0"/>
+				<reportElement x="0" y="0" width="53" height="16" uuid="2f6ac3a9-438a-4d07-bbb6-bce1dd90f9e0"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="53" y="0" width="94" height="13" uuid="a8a42c0c-4c32-412c-8eb4-9ca554dbe649"/>
+				<reportElement x="53" y="0" width="94" height="16" uuid="a8a42c0c-4c32-412c-8eb4-9ca554dbe649"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{code}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="157" y="0" width="251" height="13" uuid="c7efac8a-057b-4516-86c7-a9ea96b0df90"/>
+				<reportElement x="157" y="0" width="251" height="16" uuid="c7efac8a-057b-4516-86c7-a9ea96b0df90"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="420" y="0" width="52" height="13" uuid="8b8f6ed3-114a-426c-868c-8ef1b91bd144"/>
+				<reportElement x="420" y="0" width="52" height="16" uuid="8b8f6ed3-114a-426c-868c-8ef1b91bd144"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{pricebuy})]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="483" y="0" width="52" height="13" uuid="f03eaf85-0022-436c-b095-e290486b7eb3"/>
+				<reportElement x="483" y="0" width="52" height="16" uuid="f03eaf85-0022-436c-b095-e290486b7eb3"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>

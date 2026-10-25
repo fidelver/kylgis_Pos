@@ -31,9 +31,9 @@ ORDER BY NAME]]>
 		<band/>
 	</title>
 	<columnHeader>
-		<band height="15">
+		<band height="20">
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-21" mode="Opaque" x="50" y="2" width="80" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="18fcf1a8-d7dd-43ad-8f20-a8881fc800a1"/>
+				<reportElement key="textField-21" mode="Opaque" x="50" y="2" width="80" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="18fcf1a8-d7dd-43ad-8f20-a8881fc800a1"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -47,7 +47,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.name}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-23" mode="Opaque" x="129" y="2" width="60" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="ce7a470a-b6ed-492e-b138-448de0fa8924"/>
+				<reportElement key="textField-23" mode="Opaque" x="129" y="2" width="60" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="ce7a470a-b6ed-492e-b138-448de0fa8924"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -61,7 +61,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.firstname}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-23" mode="Opaque" x="189" y="2" width="80" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="cfa9b6e7-df23-45f5-9bb6-0341143d4a59"/>
+				<reportElement key="textField-23" mode="Opaque" x="189" y="2" width="80" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="cfa9b6e7-df23-45f5-9bb6-0341143d4a59"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -75,7 +75,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.lastname}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-24" mode="Opaque" x="269" y="2" width="100" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="dd897435-e86a-41e6-a819-427111578e17"/>
+				<reportElement key="textField-24" mode="Opaque" x="269" y="2" width="100" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="dd897435-e86a-41e6-a819-427111578e17"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -89,7 +89,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.address}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-25" mode="Opaque" x="369" y="2" width="80" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="34c56822-f1e1-480b-929a-3afca6a2b84e"/>
+				<reportElement key="textField-25" mode="Opaque" x="369" y="2" width="80" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="34c56822-f1e1-480b-929a-3afca6a2b84e"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -103,7 +103,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.address2}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-26" mode="Opaque" x="449" y="2" width="80" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="67393b9c-d93b-4afc-8461-b1b82d9a1b8e"/>
+				<reportElement key="textField-26" mode="Opaque" x="449" y="2" width="80" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="67393b9c-d93b-4afc-8461-b1b82d9a1b8e"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -117,7 +117,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.city}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-2" mode="Opaque" x="529" y="2" width="51" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="46045f12-a74c-418f-8b90-02507e35502e"/>
+				<reportElement key="textField-2" mode="Opaque" x="529" y="2" width="51" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="46045f12-a74c-418f-8b90-02507e35502e"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -131,7 +131,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.postal}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-28" x="580" y="2" width="100" height="13" uuid="6aac07dd-40ca-465e-9ec4-434fbe789bb7"/>
+				<reportElement key="textField-28" x="580" y="2" width="100" height="16" uuid="6aac07dd-40ca-465e-9ec4-434fbe789bb7"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -144,7 +144,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.telephone}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-29" x="680" y="2" width="100" height="13" uuid="3e753110-5037-462e-9e1b-0b2483dc2388"/>
+				<reportElement key="textField-29" x="680" y="2" width="100" height="16" uuid="3e753110-5037-462e-9e1b-0b2483dc2388"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -157,7 +157,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$R{label.email}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-21" mode="Opaque" x="0" y="1" width="50" height="13" forecolor="#000000" backcolor="#FFFFFF" uuid="e6e590e4-c869-41ef-9189-ba71af707e13"/>
+				<reportElement key="textField-21" mode="Opaque" x="0" y="1" width="50" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="e6e590e4-c869-41ef-9189-ba71af707e13"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -173,9 +173,9 @@ ORDER BY NAME]]>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13">
+		<band height="16">
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField" x="50" y="0" width="80" height="13" uuid="a9a9c52c-bccb-4502-8ce1-b76243304fef"/>
+				<reportElement key="textField" x="50" y="0" width="80" height="16" uuid="a9a9c52c-bccb-4502-8ce1-b76243304fef"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -188,7 +188,7 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$F{NAME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField-12" x="269" y="0" width="100" height="13" uuid="c5cbb421-a5de-47c1-ac64-caf8a9a06b25"/>
+				<reportElement key="textField-12" x="269" y="0" width="100" height="16" uuid="c5cbb421-a5de-47c1-ac64-caf8a9a06b25"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -201,56 +201,56 @@ ORDER BY NAME]]>
 				<textFieldExpression><![CDATA[$F{ADDRESS}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="369" y="0" width="80" height="13" uuid="356042cf-4e4c-4b11-bf98-475062f7f89e"/>
+				<reportElement x="369" y="0" width="80" height="16" uuid="356042cf-4e4c-4b11-bf98-475062f7f89e"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{ADDRESS2}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="449" y="0" width="80" height="13" uuid="f613d56d-4bab-4672-8535-47d25bdfb1d7"/>
+				<reportElement x="449" y="0" width="80" height="16" uuid="f613d56d-4bab-4672-8535-47d25bdfb1d7"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{CITY}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="529" y="0" width="51" height="13" uuid="5c962840-6bec-4282-81eb-5cfd68941a69"/>
+				<reportElement x="529" y="0" width="51" height="16" uuid="5c962840-6bec-4282-81eb-5cfd68941a69"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{POSTAL}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="189" y="0" width="80" height="13" uuid="fa6daa2f-08eb-4b60-b535-f7807517ac60"/>
+				<reportElement x="189" y="0" width="80" height="16" uuid="fa6daa2f-08eb-4b60-b535-f7807517ac60"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{LASTNAME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="580" y="0" width="100" height="13" uuid="09d8f0dd-3909-4a11-9bd6-0ff81a6a4446"/>
+				<reportElement x="580" y="0" width="100" height="16" uuid="09d8f0dd-3909-4a11-9bd6-0ff81a6a4446"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{PHONE}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="680" y="0" width="100" height="13" uuid="857b7688-14fe-46d7-b925-8baaf0e20ea4"/>
+				<reportElement x="680" y="0" width="100" height="16" uuid="857b7688-14fe-46d7-b925-8baaf0e20ea4"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{EMAIL}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="129" y="0" width="60" height="13" uuid="8fd25ffb-94d2-43de-aa5b-07273a49c42d"/>
+				<reportElement x="129" y="0" width="60" height="16" uuid="8fd25ffb-94d2-43de-aa5b-07273a49c42d"/>
 				<textElement>
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{FIRSTNAME}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement key="textField" x="0" y="0" width="50" height="13" uuid="8473d511-87a3-477c-b074-3354f453316e"/>
+				<reportElement key="textField" x="0" y="0" width="50" height="16" uuid="8473d511-87a3-477c-b074-3354f453316e"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>

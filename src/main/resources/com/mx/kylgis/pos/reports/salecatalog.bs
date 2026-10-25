@@ -36,17 +36,18 @@ report.setSentence("SELECT products.id, "
         +   "LEFT OUTER JOIN taxes T "
         +     "ON (products.taxcat = T.id)) "
         +   "LEFT OUTER JOIN categories categories "
-        +     "ON (products.category = categories.id)) "
+        +     "ON (products.category = categories.id) "
+        +   "LEFT OUTER JOIN uom uom "
+        +     "ON (products.UOM = uom.ID)) "
         +   "RIGHT OUTER JOIN suppliers suppliers "
         +     "ON (suppliers.id = products.supplier) "
         + "WHERE ?(QBF_FILTER) "
         + "GROUP BY products.REFERENCE "
         + "ORDER BY CATEGORYNAME ASC, products.name ASC");
 
-report.addParameter("products.NAME");
+report.addParameter("products.NAME|products.CODE|products.REFERENCE|uom.ID|uom.NAME");
 report.addParameter("products.CATEGORY");
-report.addParameter("products.CODE");
-report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter4());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.WarehouseProductFilter());
 
 report.addParameter("suppliers.ID");
 report.addParameter("suppliers.NAME");

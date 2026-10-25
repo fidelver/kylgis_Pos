@@ -133,14 +133,14 @@ public class JParamsUser extends javax.swing.JPanel implements ReportEditorCreat
         jTextField1 = new javax.swing.JTextField();
         btnUser = new javax.swing.JButton();
 
-        setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
         setPreferredSize(new java.awt.Dimension(425, 50));
 
-        jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jLabel1.setText(AppLocal.getIntString("label.user")); // NOI18N
         jLabel1.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jTextField1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jTextField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jTextField1.setPreferredSize(new java.awt.Dimension(200, 30));
 
         btnUser.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/customer_sml.png"))); // NOI18N

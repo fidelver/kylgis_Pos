@@ -21,18 +21,24 @@
 package com.mx.kylgis.pos.payment;
 
 import com.mx.kylgis.pos.format.Formats;
+import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
 import com.mx.kylgis.pos.customers.DataLogicCustomers;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
+import com.mx.kylgis.pos.util.RoundUtils;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
+import com.mx.kylgis.pos.ticket.TicketInfo;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -45,9 +51,11 @@ import javax.swing.SwingWorker;
  * @author adrianromero
  */
 public abstract class JPaymentSelect extends javax.swing.JDialog 
-                            implements JPaymentNotifier {
+                            implements JPaymentNotifier, PaymentAuthorizationCoordinator {
     
     private PaymentInfoList m_aPaymentInfo;
+    private List<VoucherDiscountInfo> m_voucherDiscounts;
+    private LinkedList<PaymentInfo> m_selectionOrder;
     private boolean printselected;
     
     private boolean accepted;
@@ -63,6 +71,10 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     private Map<String, JPaymentInterface> payments = new HashMap<>();
     private String m_sTransactionID;
     private boolean paymentInProgress;
+    private String voucherEditSourceReceiptId;
+    private TicketInfo durableTicketContext;
+    private int durableComponentIndex;
+    private BasicException durablePreparationFailure;
      
 
     /**
@@ -122,6 +134,67 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         return printselected;
     }
 
+    public void setVoucherEditSourceReceiptId(String sourceReceiptId) {
+        voucherEditSourceReceiptId = sourceReceiptId;
+    }
+
+    public String getVoucherEditSourceReceiptId() {
+        return voucherEditSourceReceiptId;
+    }
+
+    /**
+     * Installs the ticket context before the modal payment dialog opens. In QA
+     * mode this is the durable operation reservation point.
+     */
+    public void setDurableOperationContext(TicketInfo ticket) {
+        durableTicketContext = ticket;
+        durablePreparationFailure = null;
+        durableComponentIndex = 0;
+        if (ticket != null && dlSales != null) {
+            try {
+                dlSales.prepareDurableOperation(ticket);
+            } catch (BasicException failure) {
+                durablePreparationFailure = failure;
+            }
+        }
+    }
+
+    public void clearDurableOperationContext() {
+        durableTicketContext = null;
+        durablePreparationFailure = null;
+        durableComponentIndex = 0;
+    }
+
+    @Override
+    public void beforeCardAuthorization(PaymentInfoMagcard payment) throws BasicException {
+        if (durablePreparationFailure != null) {
+            throw durablePreparationFailure;
+        }
+        if (durableTicketContext == null || dlSales == null) {
+            return;
+        }
+        durableComponentIndex = m_aPaymentInfo == null
+                ? 0 : m_aPaymentInfo.getPayments().size();
+        dlSales.prepareDurableCardIntent(durableTicketContext, durableComponentIndex, payment);
+    }
+
+    @Override
+    public void afterCardAuthorization(PaymentInfoMagcard payment) throws BasicException {
+        if (durableTicketContext != null && dlSales != null) {
+            dlSales.finishDurableCardIntent(durableTicketContext, durableComponentIndex, payment);
+        }
+    }
+
+    @Override
+    public void markDurableCoordinationFailure(String message) {
+        if (durableTicketContext != null) {
+            durableTicketContext.setProperty(TicketInfo.PAYMENT_RECONCILIATION_PROPERTY, "true");
+        }
+        durablePreparationFailure = new BasicException(
+                message == null || message.isBlank()
+                        ? "Durable payment coordination failed" : message);
+    }
+
     private void applyReceiptPrintPolicy() {
         boolean printingDisabled = Boolean.parseBoolean(
                 app.getProperties().getProperty("till.receiptprintoff"));
@@ -136,9 +209,20 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     public List<PaymentInfo> getSelectedPayments() {
         return m_aPaymentInfo.getPayments();
     }
+
+    public List<VoucherDiscountInfo> getSelectedVoucherDiscounts() {
+        return new ArrayList<>(m_voucherDiscounts);
+    }
             
       public boolean showDialog(double total, CustomerInfoExt customerext,double deposit) {
+        if (durablePreparationFailure != null) {
+            JOptionPane.showMessageDialog(this, durablePreparationFailure.getMessage(),
+                    AppLocal.getIntString("message.payment.processingerror.title"), JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
         m_aPaymentInfo = new PaymentInfoList();
+        m_voucherDiscounts = new ArrayList<>();
+        m_selectionOrder = new LinkedList<>();
         accepted = false;
         paymentInProgress = false;
         m_jButtonOK.setEnabled(true);
@@ -163,8 +247,15 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
       }
   
     public boolean showDialog(double total, CustomerInfoExt customerext) {
+        if (durablePreparationFailure != null) {
+            JOptionPane.showMessageDialog(this, durablePreparationFailure.getMessage(),
+                    AppLocal.getIntString("message.payment.processingerror.title"), JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
         
         m_aPaymentInfo = new PaymentInfoList();
+        m_voucherDiscounts = new ArrayList<>();
+        m_selectionOrder = new LinkedList<>();
         accepted = false;
         paymentInProgress = false;
         m_jButtonOK.setEnabled(true);
@@ -281,7 +372,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     public class JPaymentVoucherCreator implements JPaymentCreator {
         @Override
         public JPaymentInterface createJPayment() {
-            return new JPaymentVoucher(app, JPaymentSelect.this, "voucherin");            
+            return new JPaymentVoucher(app, JPaymentSelect.this);            
         }
         @Override
         public String getKey() { 
@@ -464,15 +555,35 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         }
     }
     
+    private double getVoucherDiscountTotal() {
+        double total = 0.0;
+        for (VoucherDiscountInfo discount : m_voucherDiscounts) {
+            total += discount.getTotal();
+        }
+        return total;
+    }
+
+    public double getVoucherDiscountCapacity() {
+        return Math.max(0.0, m_dTotal - getVoucherDiscountTotal());
+    }
+
+    private double getSettlementTotal() {
+        return m_aPaymentInfo.getTotal() + getVoucherDiscountTotal();
+    }
+
+    private double getRemainingTotal() {
+        return Math.max(0.0, m_dTotal - getSettlementTotal());
+    }
+
     private void printState() {
         
         m_jRemaininglEuros.setText(Formats.CURRENCY.formatValue(
-                m_dTotal - m_aPaymentInfo.getTotal()));
-        m_jButtonRemove.setEnabled(!m_aPaymentInfo.isEmpty());
+                getRemainingTotal()));
+        m_jButtonRemove.setEnabled(!m_selectionOrder.isEmpty());
         m_jTabPayment.setSelectedIndex(0); 
         ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
                 .activate(customerext, 
-                m_dTotal - m_aPaymentInfo.getTotal()
+                getRemainingTotal()
                 , m_sTransactionID);
     }
     
@@ -484,6 +595,50 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
                 requestCancel();
             }
         });
+    }
+
+    private boolean isDuplicateVoucherDiscount(PaymentInfo candidate) {
+        if (!(candidate instanceof VoucherDiscountInfo)
+                || candidate.getVoucher() == null) {
+            return false;
+        }
+
+        for (VoucherDiscountInfo existing : m_voucherDiscounts) {
+            if (existing.getVoucher() != null
+                    && candidate.getVoucher().equalsIgnoreCase(existing.getVoucher())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean addPaymentIfAllowed(PaymentInfo payment) {
+        if (payment == null) {
+            return false;
+        }
+        if (isDuplicateVoucherDiscount(payment)) {
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.voucher.duplicate"),
+                    AppLocal.getIntString("message.voucher.validation.title"),
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        if (payment instanceof VoucherDiscountInfo discount) {
+            double netAfterDiscount = Math.max(0.0,
+                    m_dTotal - getVoucherDiscountTotal() - discount.getTotal());
+            if (RoundUtils.compare(m_aPaymentInfo.getTotal(), netAfterDiscount) > 0) {
+                JOptionPane.showMessageDialog(this,
+                        AppLocal.getIntString("message.voucher.paymentscaptured"),
+                        AppLocal.getIntString("message.voucher.validation.title"),
+                        JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            m_voucherDiscounts.add(discount);
+        } else {
+            m_aPaymentInfo.add(payment);
+        }
+        m_selectionOrder.add(payment);
+        return true;
     }
 
     private boolean isApprovedCardPayment(PaymentInfo payment) {
@@ -504,9 +659,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     }
 
     private boolean isLastPaymentApprovedCard() {
-        return m_aPaymentInfo != null
-                && !m_aPaymentInfo.isEmpty()
-                && isApprovedCardPayment(m_aPaymentInfo.getPayments().getLast());
+        return m_selectionOrder != null
+                && !m_selectionOrder.isEmpty()
+                && isApprovedCardPayment(m_selectionOrder.getLast());
     }
 
     private void showApprovedPaymentGuard(String messageKey) {
@@ -754,14 +909,19 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
 
     private void m_jButtonRemoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonRemoveActionPerformed
 
-        if (m_aPaymentInfo.isEmpty()) {
+        if (m_selectionOrder.isEmpty()) {
             return;
         }
         if (isLastPaymentApprovedCard()) {
             showApprovedPaymentGuard("message.payment.approvedpending.remove");
             return;
         }
-        m_aPaymentInfo.removeLast();
+        PaymentInfo lastSelection = m_selectionOrder.removeLast();
+        if (lastSelection instanceof VoucherDiscountInfo discount) {
+            m_voucherDiscounts.remove(discount);
+        } else {
+            m_aPaymentInfo.remove(lastSelection);
+        }
         printState();
 
     }//GEN-LAST:event_m_jButtonRemoveActionPerformed
@@ -771,8 +931,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         PaymentInfo returnPayment = (
                 (JPaymentInterface) m_jTabPayment.getSelectedComponent())
                 .executePayment();
-        if (returnPayment != null) {
-            m_aPaymentInfo.add(returnPayment);
+        if (addPaymentIfAllowed(returnPayment)) {
             printState();
         }        
         
@@ -783,11 +942,11 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         if (m_jTabPayment.getSelectedComponent() != null) {
             ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
                     .activate(customerext
-                    , m_dTotal - m_aPaymentInfo.getTotal()
+                    , getRemainingTotal()
                     , m_sTransactionID);
             m_jRemaininglEuros.setText(
                 Formats.CURRENCY.formatValue(
-                m_dTotal - m_aPaymentInfo.getTotal()));
+                getRemainingTotal()));
         }
         
     }//GEN-LAST:event_m_jTabPaymentStateChanged
@@ -812,8 +971,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
             protected void done() {
                 try {
                     PaymentInfo payment = get();
-                    if (payment != null) {
-                        m_aPaymentInfo.add(payment);
+                    if (addPaymentIfAllowed(payment)) {
                         accepted = true;
                         dispose();
                     } else {

@@ -40,7 +40,7 @@ import javax.swing.ListCellRenderer;
 public class TaxCategoriesPanel extends JPanelTable {
 
     private TableDefinition ttaxcategories;
-    private TaxCustCategoriesEditor jeditor;
+    private TaxCategoriesEditor jeditor;
     
     /** Creates a new instance of JPanelDuty */
     public TaxCategoriesPanel() {
@@ -53,7 +53,7 @@ public class TaxCategoriesPanel extends JPanelTable {
     protected void init() {
         DataLogicSales dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");        
         ttaxcategories = dlSales.getTableTaxCategories();
-        jeditor = new TaxCustCategoriesEditor(dirty);
+        jeditor = new TaxCategoriesEditor(dirty);
     }
     
     /**

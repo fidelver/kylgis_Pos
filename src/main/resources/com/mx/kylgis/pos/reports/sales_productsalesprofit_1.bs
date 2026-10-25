@@ -24,29 +24,34 @@ report.setTitleKey("Menu.SalesProfit");
 report.setReport("/com/mx/kylgis/pos/reports/sales_productsalesprofit");
 report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 
-// Amend: Janar Nagel Jan 2014
 // Amend: JG uniCenta May 2014
 // Amend: JG uniCenta July 2014
+// Amend: JG uniCenta April 2017
+// Amend: JG uniCenta September 2017
 
-report.setSentence("SELECT " +
-    "products.NAME, " +
-    "IFNULL((SELECT CODE FROM products WHERE id = ticketlines.PRODUCT),'-') AS CODE, " +
-        " tickets.TICKETID,  " +
-        "receipts.datenew AS DATE, " +
-    "IFNULL(CAST((SELECT NAME FROM products WHERE id = ticketlines.PRODUCT) AS CHAR(10000) CHARACTER SET utf8), " +
-        "CAST(CONCAT(SUBSTR(ticketlines.attributes, " +
-        "LOCATE('product.name', ticketlines.attributes) + 14, " +
-        "(LOCATE('%</entry>', ticketlines.attributes)-LOCATE('product.name', ticketlines.attributes)-14)),'%') AS CHAR(10000) CHARACTER SET utf8)) AS NAME, " +
-    "IFNULL((SELECT PRICEBUY FROM products WHERE id = ticketlines.PRODUCT),0) AS PRICEBUY, " +
-        "ticketlines.PRICE AS PRICESELL, " +
-        "(ticketlines.units) AS UNITSSOLD, " +
-        "(ticketlines.UNITS*ticketlines.PRICE) AS TOTAL, " +
-        "(ticketlines.UNITS*(ticketlines.PRICE-IFNULL((SELECT PRICEBUY FROM products WHERE id = ticketlines.PRODUCT),0))) AS PROFITLOSS " +
-    "FROM products, ticketlines " +
-        "LEFT JOIN tickets ON tickets.id = ticketlines.TICKET " +
-        "LEFT JOIN receipts ON receipts.ID = tickets.id " +
+// This legacy alternative now reuses the guarded, grouped per-product query.
+// It estimates margin with CURRENT purchase cost, not historical COGS.
+report.setSentence("SELECT COALESCE(products.REFERENCE, 'AJUSTES') AS REFERENCE, " +
+       "COALESCE(products.NAME, 'Ajustes sin producto') AS NAME, " +
+       "COALESCE(products.PRICEBUY, 0) AS PRICEBUY, " +
+       "COALESCE(products.PRICESELL, 0) AS PRICESELL, " +
+       "SUM(CASE WHEN products.ID IS NULL THEN 0 ELSE ticketlines.UNITS END) AS SOLD_UNITS, " +
+       "COALESCE(SUM(ticketlines.UNITS * products.PRICEBUY), 0) AS COST_VALUE, " +
+       "COALESCE(SUM(ticketlines.UNITS * products.PRICESELL), 0) AS EXPECTED_SALES_VALUE, " +
+       "SUM(ticketlines.UNITS * ticketlines.PRICE) AS ACTUAL_SALES_VALUE, " +
+         "COALESCE(SUM(ticketlines.UNITS * products.PRICESELL), 0) " +
+       "- COALESCE(SUM(ticketlines.UNITS * products.PRICEBUY), 0) " +
+          "AS EXPECTED_PROFIT, " +
+       "SUM(ticketlines.UNITS * ticketlines.PRICE) - COALESCE(SUM(ticketlines.UNITS * products.PRICEBUY), 0) " +
+          "AS ACTUAL_PROFIT " +
+  "FROM (ticketlines ticketlines " +
+       "INNER JOIN receipts receipts " +
+           "ON (ticketlines.TICKET = receipts.ID)) " +
+       "LEFT OUTER JOIN products products " +
+          "ON (ticketlines.PRODUCT = products.ID) " +
     "WHERE ?(QBF_FILTER) " +
-    "ORDER BY products.NAME, receipts.DATENEW DESC");
+    "GROUP BY ticketlines.PRODUCT, products.REFERENCE, products.NAME, products.PRICEBUY, products.PRICESELL " +
+    "ORDER BY products.REFERENCE ASC");
 
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
@@ -57,19 +62,22 @@ paramdates.setEndDate(com.mx.kylgis.pos.beans.DateUtils.getTodayMinutes());
 report.addQBFFilter(paramdates);
 
 report.addParameter("products.NAME");
+report.addParameter("products.PRICEBUY");
+report.addParameter("products.PRICESELL");
 report.addParameter("products.CATEGORY");
 report.addParameter("products.CODE");
-report.addParameter("stockcurrent.UNITS");
-report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter1());
 
-report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("TICKETID", com.mx.kylgis.pos.data.loader.Datas.INT);
-report.addField("DATE", com.mx.kylgis.pos.data.loader.Datas.TIMESTAMP);
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter());
+
+report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("NAME", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("PRICEBUY", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 report.addField("PRICESELL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("UNITSSOLD", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("PROFITLOSS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("SOLD_UNITS", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("COST_VALUE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("EXPECTED_SALES_VALUE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("ACTUAL_SALES_VALUE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("EXPECTED_PROFIT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("ACTUAL_PROFIT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

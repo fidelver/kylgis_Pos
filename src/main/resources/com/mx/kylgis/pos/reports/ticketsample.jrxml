@@ -21,7 +21,7 @@
 		<band height="96" splitType="Stretch">
 			<image scaleImage="RealSize">
 				<reportElement key="image-1" x="0" y="1" width="56" height="17" uuid="4ed01b77-4987-44bf-94ec-c58881ba13a1"/>
-				<imageExpression><![CDATA["reports/com/mx/kylgis/pos/reports/logo.png"]]></imageExpression>
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/mx/kylgis/pos/reports/logo.png")]]></imageExpression>
 			</image>
 		</band>
 	</title>

@@ -22,12 +22,10 @@ package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
+import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
 import java.awt.*;
-import com.alee.extended.colorchooser.*;
-import com.alee.managers.language.*;
-import com.alee.laf.*;
-import com.alee.extended.colorchooser.ColorDisplayType;
 import javax.swing.*;
+import java.util.logging.Logger;
 
 
 /**
@@ -41,7 +39,8 @@ public class JPanelConfigSystem extends javax.swing.JPanel implements PanelConfi
     /** Creates new form JPanelConfigDatabase */
     public JPanelConfigSystem() {
 
-        WebLookAndFeel.initializeManagers ();
+        KylGisLookAndFeel.initializeLegacyWebManagers(
+                Logger.getLogger(JPanelConfigSystem.class.getName()));
         
         initComponents();
         

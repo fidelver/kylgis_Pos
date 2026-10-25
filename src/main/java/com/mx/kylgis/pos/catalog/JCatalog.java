@@ -47,6 +47,11 @@ import javax.swing.event.ListSelectionListener;
  * @author adrianromero
  */
 public class JCatalog extends JPanel implements ListSelectionListener, CatalogSelector {
+
+    public enum Mode {
+        SALES,
+        INVENTORY
+    }
     
     /**
      *
@@ -57,6 +62,7 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
     
     private boolean pricevisible;
     private boolean taxesincluded;
+    private final Mode mode;
     
     // Set of Products panels
     private final Map<String, ProductInfoExt> m_productsset = new HashMap<>();
@@ -74,7 +80,11 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
     /** Creates new form JCatalog
      * @param dlSales */
     public JCatalog(DataLogicSales dlSales) {
-        this(dlSales, false, false, 180, 110);
+        this(dlSales, false, false, 180, 110, Mode.SALES);
+    }
+
+    public JCatalog(DataLogicSales dlSales, Mode mode) {
+        this(dlSales, false, false, 180, 110, mode);
     }
 
     /**
@@ -87,10 +97,16 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
      */
     public JCatalog(DataLogicSales dlSales, boolean pricevisible, 
             boolean taxesincluded, int width, int height) {
+        this(dlSales, pricevisible, taxesincluded, width, height, Mode.SALES);
+    }
+
+    public JCatalog(DataLogicSales dlSales, boolean pricevisible,
+            boolean taxesincluded, int width, int height, Mode mode) {
         
         m_dlSales = dlSales;
         this.pricevisible = pricevisible;
         this.taxesincluded = taxesincluded;
+        this.mode = mode == null ? Mode.SALES : mode;
         
         initComponents();
 
@@ -177,7 +193,9 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
         taxeslogic = new TaxesLogic(m_dlSales.getTaxList().list());
 
         // Load all categories.
-        java.util.List<CategoryInfo> categories = m_dlSales.getRootCategories(); 
+        java.util.List<CategoryInfo> categories = mode == Mode.INVENTORY
+                ? m_dlSales.getRootCategoriesInventory()
+                : m_dlSales.getRootCategories();
         
         // Select the first category
         m_jListCategories.setCellRenderer(new SmallCategoryRenderer());
@@ -276,7 +294,7 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
                 java.util.List<CategoryInfo> categories = m_dlSales.getSubcategories(catid);
                 for (CategoryInfo cat : categories) {
                    
-                    if (cat.getCatShowName()) {
+                    if (mode == Mode.INVENTORY || cat.getCatShowName()) {
                         jcurrTab.addButton(new ImageIcon(tnbsubcat.getThumbNailText
                         (cat.getImage(), cat.getName())), 
                             new SelectedCategory(cat),cat.getTextTip());
@@ -287,7 +305,8 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
                     }
                 }
 
-                java.util.List<ProductInfoExt> prods = m_dlSales.getProductConstant();
+                if (mode == Mode.SALES) {
+                    java.util.List<ProductInfoExt> prods = m_dlSales.getProductConstant();
                 for (ProductInfoExt prod : prods) {
                     jcurrTab.addButton(
                     new ImageIcon(tnbbutton.getThumbNailText(prod.getImage(), 
@@ -296,7 +315,11 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
                     prod.getTextTip());
                 }                
                 
-                java.util.List<ProductInfoExt> products = m_dlSales.getProductCatalog(catid);
+                }
+
+                java.util.List<ProductInfoExt> products = mode == Mode.INVENTORY
+                        ? m_dlSales.getProductCatalogInventory(catid)
+                        : m_dlSales.getProductCatalog(catid);
 
                 for (ProductInfoExt prod : products) {
                     jcurrTab.addButton(

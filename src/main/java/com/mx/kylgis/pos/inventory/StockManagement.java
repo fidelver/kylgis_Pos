@@ -41,22 +41,34 @@ import com.mx.kylgis.pos.scripting.ScriptEngine;
 import com.mx.kylgis.pos.scripting.ScriptException;
 import com.mx.kylgis.pos.scripting.ScriptFactory;
 import com.mx.kylgis.pos.suppliers.DataLogicSuppliers;
+import com.mx.kylgis.pos.suppliers.JDialogNewSupplier;
+import com.mx.kylgis.pos.suppliers.ProductSupplierInfo;
 import com.mx.kylgis.pos.suppliers.SupplierInfo;
 import com.mx.kylgis.pos.ticket.ProductInfoExt;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
 
@@ -83,9 +95,15 @@ public class StockManagement extends JPanel implements JPanelView {
     private ComboBoxValModel m_LocationsModelDes;     
 
     private final SentenceList m_sentsuppliers;
-    private ComboBoxValModel m_SuppliersModel;       
+    private ComboBoxValModel m_SuppliersModel;
+    private final List<SupplierInfo> m_AllSuppliers = new ArrayList<>();
+    private final Set<String> m_AssociatedSupplierIds = new HashSet<>();
+    private String m_PreferredSupplierId;
+    private boolean m_scaleReadInProgress;
+       
     
     private final JInventoryLines m_invlines;
+    private javax.swing.JButton m_jSupplierDocSearch;
     
     private int NUMBER_STATE = 0;
     private int MULTIPLY = 0;
@@ -126,6 +144,12 @@ public class StockManagement extends JPanel implements JPanelView {
         m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
 
         initComponents();
+        installSupplierDocumentSearch();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jBtnDelete,"stock.clear");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jLabel9,"stock.supplierDocument");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jSupplierDoc,"stock.supplierDocument");
+        installSupplierRenderer();
+        installResponsiveInventoryLayout();
         
         user = m_App.getAppUserView().getUser().getName();
 
@@ -160,7 +184,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_sentsuppliers = m_dlSuppliers.getSupplierList();
         m_SuppliersModel =  new ComboBoxValModel();         
         
-        m_cat = new JCatalog(m_dlSales);
+        m_cat = new JCatalog(m_dlSales, JCatalog.Mode.INVENTORY);
         m_cat.addActionListener(new CatalogListener());
         catcontainer.add(m_cat.getComponent(), BorderLayout.CENTER);
  
@@ -203,9 +227,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_LocationsModelDes = new ComboBoxValModel(l);
         m_jLocationDes.setModel(m_LocationsModelDes);
         
-        java.util.List sl = m_sentsuppliers.list();
-        m_SuppliersModel = new ComboBoxValModel(sl);
-        m_jSupplier.setModel(m_SuppliersModel);
+        loadSupplierCatalog(null);
 
         stateToInsert();
         
@@ -217,6 +239,98 @@ public class StockManagement extends JPanel implements JPanelView {
     /**
      *
      */
+    /**
+     * Keeps the inventory keypad and action controls visible on narrower POS
+     * displays. The NetBeans form uses AbsoluteLayout coordinates sized for a
+     * ~1540 px content area; on 1280 px terminals the keypad was placed fully
+     * off-screen. Re-assigning the AbsoluteConstraints preserves the generated
+     * form while making only the right-hand working area responsive.
+     */
+    /**
+     * Adds a direct product finder below the supplier document field so
+     * products can be selected without reaching the secondary toolbar.
+     */
+    private void installSupplierDocumentSearch() {
+        m_jSupplierDocSearch = new javax.swing.JButton();
+        m_jSupplierDocSearch.setIcon(new javax.swing.ImageIcon(
+                getClass().getResource("/com/mx/kylgis/pos/images/search32.png")));
+        m_jSupplierDocSearch.setToolTipText(AppLocal.getIntString("tooltip.saleproductfind"));
+        m_jSupplierDocSearch.setFocusable(false);
+        m_jSupplierDocSearch.setRequestFocusEnabled(false);
+        m_jSupplierDocSearch.addActionListener(this::m_jListActionPerformed);
+        jPanel8.add(m_jSupplierDocSearch,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 215, 60, 30));
+    }
+
+    private void installResponsiveInventoryLayout() {
+        jPanel8.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                updateResponsiveInventoryLayout();
+            }
+        });
+        java.awt.EventQueue.invokeLater(this::updateResponsiveInventoryLayout);
+    }
+
+    private void updateResponsiveInventoryLayout() {
+        if (!(jPanel8.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout)) {
+            return;
+        }
+        int width = jPanel8.getWidth();
+        if (width <= 0) {
+            return;
+        }
+
+        org.netbeans.lib.awtextra.AbsoluteLayout layout =
+                (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel8.getLayout();
+
+        if (width >= 1540) {
+            layout.addLayoutComponent(jPanel5,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 0, 790, 280));
+            layout.addLayoutComponent(jPanel2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1260, 0, -1, 330));
+            layout.addLayoutComponent(jPanel1,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1330, 0, 210, 290));
+            layout.addLayoutComponent(m_jBtnShowStock,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 354, 60, 32));
+            layout.addLayoutComponent(m_jcodebar,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1340, 310, -1, 30));
+            layout.addLayoutComponent(m_jEnter,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1480, 300, -1, 50));
+            layout.addLayoutComponent(jScrollPane2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 282, 1170, 70));
+        } else {
+            final int keypadWidth = 210;
+            final int toolsWidth = 60;
+            final int rightMargin = 10;
+            final int keypadX = Math.max(760, width - rightMargin - keypadWidth);
+            final int toolsX = Math.max(680, keypadX - 70);
+            final int catalogWidth = Math.max(210, toolsX - 480);
+            final int stockWidth = Math.max(620, toolsX - 10);
+
+            layout.addLayoutComponent(jPanel5,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 0, catalogWidth, 280));
+            layout.addLayoutComponent(jPanel2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(toolsX, 0, toolsWidth, 290));
+            layout.addLayoutComponent(jPanel1,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX, 0, keypadWidth, 290));
+            layout.addLayoutComponent(m_jBtnShowStock,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(Math.max(470, toolsX - 70), 354, 60, 32));
+            layout.addLayoutComponent(m_jcodebar,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX + 10, 310, 130, 30));
+            layout.addLayoutComponent(m_jEnter,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX + 150, 300, 54, 50));
+            layout.addLayoutComponent(jScrollPane2,
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 282, stockWidth, 70));
+        }
+
+        // Keep the stock refresh action in front of the stock area when the
+        // AbsoluteLayout is recalculated on different screen widths.
+        jPanel8.setComponentZOrder(m_jBtnShowStock, 0);
+        jPanel8.revalidate();
+        jPanel8.repaint();
+    }
+
     public void stateToInsert() {
 
         m_jdate.setText(Formats.TIMESTAMP.formatValue(DateUtils.getTodayMinutes()));
@@ -225,7 +339,8 @@ public class StockManagement extends JPanel implements JPanelView {
 //        m_LocationsModel.setSelectedFirst();
         m_LocationsModelDes.setSelectedKey(m_App.getInventoryLocation());         
         m_jcodebar.setText(null);
-        m_SuppliersModel.setSelectedFirst();            
+        resetSupplierContext();
+        applyBaseSupplierModel(null);            
         m_jSupplierDoc.setText(null);         
         m_invlines.clear();
         resetTranxTable();
@@ -271,9 +386,139 @@ public class StockManagement extends JPanel implements JPanelView {
         }        
     }
     
+    private static boolean requiresSupplier(MovementReason reason) {
+        return reason == MovementReason.IN_PURCHASE || reason == MovementReason.OUT_REFUND;
+    }
+
+    private void installSupplierRenderer() {
+        m_jSupplier.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                if (value instanceof SupplierInfo) {
+                    SupplierInfo supplier = (SupplierInfo) value;
+                    String supplierId = supplier.getID();
+                    if (supplierId != null && supplierId.equals(m_PreferredSupplierId)) {
+                        label.setText(supplier.toString() + " — "
+                                + AppLocal.getIntString("label.productsupplier.preferred"));
+                    } else if (supplierId != null && m_AssociatedSupplierIds.contains(supplierId)) {
+                        label.setText(supplier.toString() + " — "
+                                + AppLocal.getIntString("label.productsupplier.associated"));
+                    }
+                }
+                return label;
+            }
+        });
+    }
+
+    private void loadSupplierCatalog(Object selectedKey) throws BasicException {
+        m_AllSuppliers.clear();
+        for (Object item : m_sentsuppliers.list()) {
+            if (item instanceof SupplierInfo) {
+                m_AllSuppliers.add((SupplierInfo) item);
+            }
+        }
+        resetSupplierContext();
+        applyBaseSupplierModel(selectedKey);
+    }
+
+    private void applyBaseSupplierModel(Object selectedKey) {
+        m_SuppliersModel = new ComboBoxValModel(new ArrayList<>(m_AllSuppliers));
+        m_jSupplier.setModel(m_SuppliersModel);
+        m_SuppliersModel.setSelectedKey(selectedKey);
+    }
+
+    private void resetSupplierContext() {
+        m_AssociatedSupplierIds.clear();
+        m_PreferredSupplierId = null;
+
+        if (m_jSupplier != null) {
+            m_jSupplier.repaint();
+        }
+    }
+
+    private void prioritizeSuppliersForProduct(ProductInfoExt product, MovementReason reason) {
+        if (product == null || !requiresSupplier(reason)
+                || m_SuppliersModel.getSelectedItem() != null) {
+            return;
+        }
+
+        try {
+
+            m_AssociatedSupplierIds.clear();
+            m_PreferredSupplierId = null;
+
+            Map<String, SupplierInfo> remaining = new LinkedHashMap<>();
+            for (SupplierInfo supplier : m_AllSuppliers) {
+                if (supplier.getID() != null) {
+                    remaining.put(supplier.getID(), supplier);
+                }
+            }
+
+            List<SupplierInfo> ordered = new ArrayList<>();
+            String suggestedSupplierId = null;
+            for (ProductSupplierInfo association
+                    : m_dlSuppliers.getProductSuppliers(product.getID())) {
+                if (!association.isActive()) {
+                    continue;
+                }
+                String supplierId = association.getSupplierId();
+                SupplierInfo supplier = remaining.remove(supplierId);
+                if (supplier == null) {
+                    continue;
+                }
+                ordered.add(supplier);
+                m_AssociatedSupplierIds.add(supplierId);
+                if (association.isPreferred()) {
+                    m_PreferredSupplierId = supplierId;
+                    suggestedSupplierId = supplierId;
+                } else if (suggestedSupplierId == null) {
+                    suggestedSupplierId = supplierId;
+                }
+            }
+            ordered.addAll(remaining.values());
+
+            m_SuppliersModel = new ComboBoxValModel(ordered);
+            m_jSupplier.setModel(m_SuppliersModel);
+            if (suggestedSupplierId == null && product.getSupplierID() != null
+                    && !product.getSupplierID().trim().isEmpty()) {
+                suggestedSupplierId = product.getSupplierID().trim();
+            }
+            m_SuppliersModel.setSelectedKey(suggestedSupplierId);
+            m_jSupplier.repaint();
+        } catch (BasicException ex) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING,
+                    "Unable to prioritize associated suppliers for inventory receipt.", ex);
+            if (product.getSupplierID() != null && !product.getSupplierID().trim().isEmpty()) {
+                m_SuppliersModel.setSelectedKey(product.getSupplierID().trim());
+            }
+        }
+    }
+
+    private void createInventorySupplier() {
+        JDialogNewSupplier dialog = JDialogNewSupplier.getDialog(this, m_App);
+        dialog.setVisible(true);
+        SupplierInfo created = dialog.getSelectedSupplier();
+        if (created == null) {
+            return;
+        }
+
+        try {
+            loadSupplierCatalog(created.getID());
+        } catch (BasicException ex) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    AppLocal.getIntString("menu.productsuppliers.new"),
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void incProduct(ProductInfoExt product, double units) {
 
         MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
+        prioritizeSuppliersForProduct(product, reason);
         addLine(product, units, reason.isInput() 
                 ? product.getPriceBuy()
                 : product.getPriceSell());
@@ -538,32 +783,42 @@ public class StockManagement extends JPanel implements JPanelView {
 
             Date d = (Date) Formats.TIMESTAMP.parseValue(m_jdate.getText());
             MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
+            boolean supplierRequired = requiresSupplier(reason);
+            SupplierInfo selectedSupplier = supplierRequired
+                    ? (SupplierInfo) m_SuppliersModel.getSelectedItem() : null;
+            String supplierDocument = supplierRequired ? m_jSupplierDoc.getText() : null;
+            if (supplierRequired && selectedSupplier == null) {
+                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
+                        AppLocal.getIntString("message.inventory.supplierrequired"));
+                msg.show(this);
+                return;
+            }
 
             if (reason == MovementReason.OUT_CROSSING) {
                 saveData(new InventoryRecord(
                         d, MovementReason.OUT_MOVEMENT,
                         (LocationInfo) m_LocationsModel.getSelectedItem(),
                         m_App.getAppUserView().getUser().getName(),
-                        (SupplierInfo) m_SuppliersModel.getSelectedItem(),
+                        selectedSupplier,
                         m_invlines.getLines(),
-                        m_jSupplierDoc.getText()                        
+                        supplierDocument                        
                     ));
                 saveData(new InventoryRecord(
                         d, MovementReason.IN_MOVEMENT,
                         (LocationInfo) m_LocationsModelDes.getSelectedItem(),
                         m_App.getAppUserView().getUser().getName(),
-                        (SupplierInfo) m_SuppliersModel.getSelectedItem(),
+                        selectedSupplier,
                         m_invlines.getLines(),
-                        m_jSupplierDoc.getText()                        
+                        supplierDocument                        
                     ));                
             } else {  
                 saveData(new InventoryRecord(
                         d, reason,
                         (LocationInfo) m_LocationsModel.getSelectedItem(),
                         m_App.getAppUserView().getUser().getName(),
-                        (SupplierInfo) m_SuppliersModel.getSelectedItem(),
+                        selectedSupplier,
                         m_invlines.getLines(),
-                        m_jSupplierDoc.getText()
+                        supplierDocument
                     ));
             }
             
@@ -592,7 +847,7 @@ public class StockManagement extends JPanel implements JPanelView {
                 rec.getReason().samesignum(inv.getMultiply()),
                 inv.getPrice(),
                 rec.getUser(),
-                rec.getSupplier().getID(),
+                rec.getSupplier() == null ? null : rec.getSupplier().getID(),
                 rec.getSupplierDoc()
             });
         }
@@ -602,6 +857,13 @@ public class StockManagement extends JPanel implements JPanelView {
     }
     
     private void printTicket(InventoryRecord invrec) {
+
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(OperationalHealth.CAP_PRINT_INVENTORY)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(OperationalHealth.CAP_PRINT_INVENTORY);
+            new MessageInf(MessageInf.SGN_WARNING,
+                    reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
+            return;
+        }
 
         String sresource = m_dlSystem.getResourceAsXML("Printer.Inventory");
         if (sresource == null) {
@@ -613,8 +875,23 @@ public class StockManagement extends JPanel implements JPanelView {
                 ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                 script.put("inventoryrecord", invrec);
                 m_TTP.printTicket(script.eval(sresource).toString());
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.PERIPHERALS,
+                        "runtime.printer.Printer.Inventory");
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.RESOURCES,
+                        "runtime.resource.Printer.Inventory");
+                m_App.refreshOperationalHealthIndicators();
 
             } catch (    ScriptException | TicketPrinterException e) {
+                OperationalHealth.Category category = e instanceof ScriptException
+                        ? OperationalHealth.Category.RESOURCES : OperationalHealth.Category.PERIPHERALS;
+                String code = e instanceof ScriptException
+                        ? "runtime.resource.Printer.Inventory" : "runtime.printer.Printer.Inventory";
+                String detail = e instanceof ScriptException
+                        ? "Error procesando plantilla Printer.Inventory"
+                        : "No se pudo imprimir el comprobante de inventario";
+                m_App.getOperationalHealth().report(category, code, OperationalHealth.Severity.AMBER,
+                        detail, OperationalHealth.CAP_PRINT_INVENTORY);
+                m_App.refreshOperationalHealthIndicators();
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
                         AppLocal.getIntString("message.cannotprintticket"), e);
                 msg.show(this);
@@ -751,24 +1028,49 @@ public class StockManagement extends JPanel implements JPanelView {
     private void incProduct(ProductInfoExt prod) {
 
         if (prod.isScale() && m_App.getDeviceScale().existsScale()) {
-            try {
-                Double value = m_App.getDeviceScale().readWeight();
-                if (value != null) {
-                    incProduct(value, prod);
-                }
-            } catch (ScaleException e) {
+            if (m_scaleReadInProgress) {
                 Toolkit.getDefaultToolkit().beep();
-                new MessageInf(MessageInf.SGN_WARNING,
-                        AppLocal.getIntString("message.noweight"), e).show(this);
+                return;
             }
+            m_scaleReadInProgress = true;
+            m_App.waitCursorBegin();
+            new SwingWorker<Double, Void>() {
+                @Override
+                protected Double doInBackground() throws ScaleException {
+                    return m_App.getDeviceScale().readWeight();
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        Double value = get();
+                        if (value != null) {
+                            incProduct(value, prod);
+                        }
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        Toolkit.getDefaultToolkit().beep();
+                    } catch (ExecutionException ex) {
+                        Toolkit.getDefaultToolkit().beep();
+                        Throwable cause = ex.getCause();
+                        ScaleException scaleException = cause instanceof ScaleException
+                                ? (ScaleException) cause
+                                : new ScaleException(cause == null ? ex.getMessage() : cause.getMessage());
+                        new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.noweight"), scaleException).show(StockManagement.this);
+                    } finally {
+                        m_scaleReadInProgress = false;
+                        m_App.waitCursorEnd();
+                    }
+                }
+            }.execute();
         } else {
             incProduct(1.0, prod);
         }
     }
 
     private void incProduct(double dPor, ProductInfoExt prod) {
-        
-        addLine(prod, dPor, prod.getPriceBuy());      
+        incProduct(prod, dPor);
     }
     
     private void stateToZero(){
@@ -800,6 +1102,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_jLocationDes = new javax.swing.JComboBox();
         jLabel10 = new javax.swing.JLabel();
         m_jSupplier = new javax.swing.JComboBox();
+        m_jSupplierNew = new javax.swing.JButton();
         jLabel9 = new javax.swing.JLabel();
         m_jSupplierDoc = new javax.swing.JTextField();
         jPanel5 = new javax.swing.JPanel();
@@ -829,8 +1132,8 @@ public class StockManagement extends JPanel implements JPanelView {
         setLayout(new java.awt.BorderLayout());
 
         jPanel8.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jPanel8.setMinimumSize(new java.awt.Dimension(0, 370));
-        jPanel8.setPreferredSize(new java.awt.Dimension(0, 380));
+        jPanel8.setMinimumSize(new java.awt.Dimension(0, 390));
+        jPanel8.setPreferredSize(new java.awt.Dimension(0, 390));
         jPanel8.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -906,18 +1209,30 @@ public class StockManagement extends JPanel implements JPanelView {
                 m_jSupplierActionPerformed(evt);
             }
         });
-        jPanel8.add(m_jSupplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 140, 270, -1));
+        jPanel8.add(m_jSupplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 140, 225, -1));
+
+        m_jSupplierNew.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
+        m_jSupplierNew.setText("+");
+        m_jSupplierNew.setToolTipText(AppLocal.getIntString("menu.productsuppliers.new")); // NOI18N
+        m_jSupplierNew.setFocusable(false);
+        m_jSupplierNew.setRequestFocusEnabled(false);
+        m_jSupplierNew.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jSupplierNewActionPerformed(evt);
+            }
+        });
+        jPanel8.add(m_jSupplierNew, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 140, 40, 30));
 
         jLabel9.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel9.setText(AppLocal.getIntString("label.supplierdocment")); // NOI18N
-        jLabel9.setToolTipText("null");
+        // Localized tooltip is installed after initComponents().
         jLabel9.setMaximumSize(new java.awt.Dimension(40, 25));
         jLabel9.setMinimumSize(new java.awt.Dimension(40, 25));
         jLabel9.setPreferredSize(new java.awt.Dimension(70, 30));
         jPanel8.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(5, 180, 160, -1));
 
         m_jSupplierDoc.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jSupplierDoc.setToolTipText(AppLocal.getIntString("button.exit")); // NOI18N
+        // This field describes the supplier document, not the Exit button.
         m_jSupplierDoc.setPreferredSize(new java.awt.Dimension(160, 30));
         jPanel8.add(m_jSupplierDoc, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 180, 270, -1));
 
@@ -1097,7 +1412,7 @@ public class StockManagement extends JPanel implements JPanelView {
                 m_jBtnShowStockActionPerformed(evt);
             }
         });
-        jPanel8.add(m_jBtnShowStock, new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 310, 60, 50));
+        jPanel8.add(m_jBtnShowStock, new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 354, 60, 32));
 
         lblTotalQtyValue.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         lblTotalQtyValue.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -1194,9 +1509,8 @@ public class StockManagement extends JPanel implements JPanelView {
 
         incProductByCode(m_jcodebar.getText());
         m_jcodebar.setText(null);
-        if (m_jSupplier.getSelectedItem() != null) {
-//            saveData();
-        } else {
+        MovementReason reason = (MovementReason) m_ReasonModel.getSelectedItem();
+        if (requiresSupplier(reason) && m_jSupplier.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(null,
                     AppLocal.getIntString("message.supplierinvalid"),
                     AppLocal.getIntString("message.title.supplierinvalid"),
@@ -1229,6 +1543,10 @@ public class StockManagement extends JPanel implements JPanelView {
        }
 */        
     }//GEN-LAST:event_m_jSupplierActionPerformed
+
+    private void m_jSupplierNewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jSupplierNewActionPerformed
+        createInventorySupplier();
+    }//GEN-LAST:event_m_jSupplierNewActionPerformed
 
     private void m_jBtnShowStockActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jBtnShowStockActionPerformed
 
@@ -1367,6 +1685,7 @@ public class StockManagement extends JPanel implements JPanelView {
     private javax.swing.JComboBox m_jLocation;
     private javax.swing.JComboBox m_jLocationDes;
     private javax.swing.JComboBox m_jSupplier;
+    private javax.swing.JButton m_jSupplierNew;
     private javax.swing.JTextField m_jSupplierDoc;
     private javax.swing.JButton m_jbtndate;
     private javax.swing.JLabel m_jcodebar;

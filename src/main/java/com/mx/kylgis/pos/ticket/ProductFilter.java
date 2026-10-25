@@ -28,12 +28,15 @@ import com.mx.kylgis.pos.data.loader.QBFCompareEnum;
 import com.mx.kylgis.pos.data.loader.SentenceList;
 import com.mx.kylgis.pos.data.loader.SerializerWrite;
 import com.mx.kylgis.pos.data.loader.SerializerWriteBasic;
-import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
+import com.mx.kylgis.pos.panels.JProductFinder;
 import com.mx.kylgis.pos.reports.ReportEditorCreator;
 import java.awt.Component;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.List;
 
 /**
@@ -44,6 +47,10 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     
     private SentenceList m_sentcat;
     private ComboBoxValModel m_CategoryModel;
+    private DataLogicSales m_dlSales;
+    private ProductInfoExt selectedProduct;
+    private Runnable listAction;
+    private Runnable clearAction;
     
 //    private SentenceList m_sentsup;
 //    private ComboBoxValModel m_SupplierModel;
@@ -52,6 +59,23 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     public ProductFilter() {
 
         initComponents();
+        jLabel5.setText(AppLocal.getIntString("label.prodcodeorref"));
+        jBtnReset.setToolTipText(AppLocal.getIntString("tooltip.search.execute"));
+        jBtnReset.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.execute"));
+        jBtnReset.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.execute"));
+        configureModernLayout();
+        getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
+                javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L,
+                        java.awt.event.InputEvent.ALT_DOWN_MASK),
+                "productFilterReset");
+        getActionMap().put("productFilterReset", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                jBtnReset.doClick();
+            }
+        });
     }
     
     /**
@@ -61,9 +85,9 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     @Override
     public void init(AppView app) {
          
-        DataLogicSales dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
+        m_dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
 
-        m_sentcat = dlSales.getCategoriesList();
+        m_sentcat = m_dlSales.getCategoriesList();
         m_CategoryModel = new ComboBoxValModel();
          
         m_jCboName.setModel(ListQBFModelNumber.getMandatoryString());
@@ -117,28 +141,175 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     @Override
     public Object createValue() throws BasicException {
         
-        if (m_jBarcode.getText() == null || m_jBarcode.getText().equals("")) {
+        Object categoryKey = m_CategoryModel == null ? null : m_CategoryModel.getSelectedKey();
+        Object categoryOperator = categoryKey == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS;
+
+        if (selectedProduct == null) {
 
             return new Object[] {
-                m_jCboName.getSelectedItem(), m_jName.getText(),
-                m_jCboPriceBuy.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceBuy.getText()),           
-                m_jCboPriceSell.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceSell.getText()),
-                m_CategoryModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_CategoryModel.getSelectedKey(),
-//                m_SupplierModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_SupplierModel.getSelectedKey(),                                
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,           
+                QBFCompareEnum.COMP_NONE, null,
+                categoryOperator, categoryKey,
+                                
                 QBFCompareEnum.COMP_NONE, null         
             };
-        } else {            
+        }
+
+        String productKey = firstValue(selectedProduct.getCode(), selectedProduct.getReference());
+        if (!productKey.isEmpty()) {            
             return new Object[] {
                 QBFCompareEnum.COMP_NONE, null,
                 QBFCompareEnum.COMP_NONE, null,
                 QBFCompareEnum.COMP_NONE, null,
-                QBFCompareEnum.COMP_NONE, null,
-                QBFCompareEnum.COMP_EQUALS, m_jBarcode.getText()
+                categoryOperator, categoryKey,
+                QBFCompareEnum.COMP_RE, productKey + "%"
             };
         }
-    } 
- 
-    
+        return new Object[] {
+            QBFCompareEnum.COMP_EQUALS, selectedProduct.getName(),
+            QBFCompareEnum.COMP_NONE, null,
+            QBFCompareEnum.COMP_NONE, null,
+            categoryOperator, categoryKey,
+            QBFCompareEnum.COMP_NONE, null
+        };
+    }
+
+    private void configureModernLayout() {
+        removeAll();
+        setLayout(new GridBagLayout());
+        setPreferredSize(new java.awt.Dimension(976, 82));
+
+        jLabel2.setText(AppLocal.getIntString("recipe.production.product"));
+        jBtnProduct.setText(AppLocal.getIntString("recipe.catalog.choose"));
+        jBtnProduct.setToolTipText(AppLocal.getIntString("recipe.catalog.choose.help"));
+        jBtnProduct.setPreferredSize(new java.awt.Dimension(330, 30));
+        jBtnProduct.setFont(new java.awt.Font("Arial", 0, 14));
+        jBtnReset.setToolTipText(AppLocal.getIntString("tooltip.search.execute"));
+        jBtnReset.setPreferredSize(new java.awt.Dimension(60, 30));
+        jBtnReset.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.execute"));
+        jBtnReset.setIcon(new ListResultsIcon());
+
+        jBtnClear.setToolTipText(AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.setPreferredSize(new java.awt.Dimension(60, 30));
+        jBtnClear.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/com/mx/kylgis/pos/images/reload.png")));
+        jBtnProduct.addActionListener(event -> chooseProduct());
+        jBtnClear.addActionListener(event -> {
+            clearFilters();
+            if (clearAction != null) {
+                clearAction.run();
+            }
+        });
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(4, 8, 4, 8);
+        c.anchor = GridBagConstraints.WEST;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridy = 0;
+        c.gridx = 0;
+        c.weightx = 0;
+        add(jLabel1, c);
+        c.gridx = 1;
+        c.weightx = 1;
+        add(m_jCategory, c);
+
+        c.gridy = 1;
+        c.gridx = 0;
+        c.weightx = 0;
+        add(jLabel2, c);
+        c.gridx = 1;
+        c.weightx = 1;
+        add(jBtnProduct, c);
+        c.gridx = 2;
+        c.weightx = 0;
+        add(jBtnReset, c);
+        c.gridx = 3;
+        c.weightx = 0;
+        add(jBtnClear, c);
+    }
+
+    public void setListAction(Runnable action) {
+        listAction = action;
+    }
+
+    public void setClearAction(Runnable action) {
+        clearAction = action;
+    }
+
+    /** Clears the selected product and category so the next load shows all products. */
+    public void clearFilters() {
+        selectedProduct = null;
+        if (m_jCategory != null && m_jCategory.getItemCount() > 0) {
+            m_jCategory.setSelectedIndex(0);
+        }
+        if (m_jCboName != null && m_jCboName.getItemCount() > 0) {
+            m_jCboName.setSelectedIndex(0);
+        }
+        if (m_jName != null) {
+            m_jName.setText(null);
+        }
+        if (m_jBarcode != null) {
+            m_jBarcode.setText(null);
+        }
+        jBtnProduct.setText(AppLocal.getIntString("recipe.catalog.choose"));
+    }
+
+    private void chooseProduct() {
+        if (m_dlSales == null) {
+            return;
+        }
+        ProductInfoExt selected = JProductFinder.showMessage(this, m_dlSales,
+                JProductFinder.PRODUCT_ALL);
+        if (selected != null) {
+            selectedProduct = selected;
+            jBtnProduct.setText(productLabel(selected));
+        }
+    }
+
+    private static String productLabel(ProductInfoExt product) {
+        String name = product == null || product.getName() == null
+                ? "" : product.getName().trim();
+        String code = firstValue(product == null ? null : product.getReference(),
+                product == null ? null : product.getCode());
+        return code.isEmpty() ? name : name + " [" + code + "]";
+    }
+
+    private static String firstValue(String... values) {
+        if (values != null) {
+            for (String value : values) {
+                if (value != null && !value.trim().isEmpty()) {
+                    return value.trim();
+                }
+            }
+        }
+        return "";
+    }
+
+    private static final class ListResultsIcon implements javax.swing.Icon {
+        @Override public int getIconWidth() { return 24; }
+        @Override public int getIconHeight() { return 24; }
+
+        @Override
+        public void paintIcon(java.awt.Component component, java.awt.Graphics graphics,
+                int x, int y) {
+            java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+            try {
+                g.setColor(new java.awt.Color(0, 150, 210));
+                for (int row = 0; row < 3; row++) {
+                    int yy = y + 5 + row * 6;
+                    g.fillRect(x + 2, yy, 3, 3);
+                    g.fillRect(x + 8, yy, 14, 3);
+                }
+            } finally {
+                g.dispose();
+            }
+        }
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -161,6 +332,8 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
         m_jCboPriceSell = new javax.swing.JComboBox();
         m_jPriceSell = new javax.swing.JTextField();
         jBtnReset = new javax.swing.JButton();
+        jBtnProduct = new javax.swing.JButton();
+        jBtnClear = new javax.swing.JButton();
 
         setPreferredSize(new java.awt.Dimension(976, 125));
 
@@ -287,20 +460,17 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     }// </editor-fold>//GEN-END:initComponents
 
     private void jBtnResetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jBtnResetActionPerformed
-        m_jBarcode.setText(null);
-        m_jCategory.setSelectedIndex(0);
-        m_jCboName.setSelectedIndex(0);
-        m_jCboPriceBuy.setSelectedIndex(0);
-        m_jCboPriceSell.setSelectedIndex(0);
-        m_jName.setText(null);
-        m_jPriceBuy.setText(null);
-        m_jPriceSell.setText(null);
+        if (listAction != null) {
+            listAction.run();
+        }
     }//GEN-LAST:event_jBtnResetActionPerformed
    
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jBtnReset;
+    private javax.swing.JButton jBtnProduct;
+    private javax.swing.JButton jBtnClear;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

@@ -25,6 +25,7 @@ import com.mx.kylgis.pos.data.loader.*;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.BeanFactoryDataSingle;
+import com.mx.kylgis.pos.voucher.VoucherCodeGenerator;
 import com.mx.kylgis.pos.voucher.VoucherInfo;
 
 /**
@@ -337,32 +338,50 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         return tcustomers;
     }  
     
-    public final PreparedSentence getVoucherNumber() {
-        return new PreparedSentence(s,  
-            "SELECT SUBSTRING(MAX(VOUCHER_NUMBER),10,3) AS LAST_NUMBER FROM vouchers " +
-            "WHERE SUBSTRING(VOUCHER_NUMBER,1,8) = ?" 
-            , SerializerWriteString.INSTANCE
-            , (DataRead dr) -> dr.getString(1));
+    /**
+     * Counts vouchers using the same number except for the record being edited.
+     * This is a user-friendly preflight only; database UNIQUE enforcement is
+     * still required to close concurrent creation races.
+     */
+    public final int countOtherVouchersWithNumber(String voucherNumber, String voucherId)
+            throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM vouchers WHERE UPPER(TRIM(VOUCHER_NUMBER))=? AND ID<>?",
+                new SerializerWriteBasic(new Datas[] {Datas.STRING, Datas.STRING}),
+                SerializerReadInteger.INSTANCE)
+                .find(new Object[] {voucherNumber, voucherId});
+        return count == null ? 0 : count;
     }
-      
-      
+
         public final VoucherInfo getVoucherInfo(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
                 , "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +
-                        "customers.NAME, AMOUNT, STATUS " +
+                        "customers.NAME, AMOUNT, STATUS, EXPIRES_AT " +
                   "FROM vouchers " +
                     "JOIN customers ON customers.id = vouchers.CUSTOMER " +
-                  "WHERE STATUS='A' AND vouchers.ID=?" 
+                  "WHERE STATUS='A' AND vouchers.ID=? " +
+                  "AND (EXPIRES_AT IS NULL OR EXPIRES_AT > CURRENT_TIMESTAMP)"
 //                  "WHERE STATUS='A' "                         
 		, SerializerWriteString.INSTANCE
 		, VoucherInfo.getSerializerRead()).find(id);
     }
           
           
+        public final VoucherInfo getVoucherInfoByNumber(String voucherNumber) throws BasicException {
+            return (VoucherInfo) new PreparedSentence(s,
+                    "SELECT V.ID, V.VOUCHER_NUMBER, V.CUSTOMER, COALESCE(C.NAME, ''), "
+                    + "V.AMOUNT, V.STATUS, V.EXPIRES_AT FROM vouchers V "
+                    + "LEFT JOIN customers C ON C.ID = V.CUSTOMER "
+                    + "WHERE UPPER(TRIM(V.VOUCHER_NUMBER)) = ?",
+                    SerializerWriteString.INSTANCE,
+                    VoucherInfo.getSerializerRead()).find(
+                            VoucherCodeGenerator.normalize(voucherNumber));
+        }
+
         public final VoucherInfo getVoucherInfoAll(String id) throws BasicException {
             return (VoucherInfo) new PreparedSentence(s
 		, "SELECT vouchers.ID, VOUCHER_NUMBER, CUSTOMER, " +
-                        "customers.NAME, AMOUNT, STATUS " +
+                        "customers.NAME, AMOUNT, STATUS, EXPIRES_AT " +
                     "FROM vouchers " +
                         "JOIN customers ON customers.id = vouchers.CUSTOMER  " +
                     "WHERE vouchers.ID=?" 

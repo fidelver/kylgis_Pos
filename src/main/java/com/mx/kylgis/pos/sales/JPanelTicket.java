@@ -20,17 +20,13 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.sales;
 
-import com.alee.extended.time.ClockType;
-import com.alee.extended.time.WebClock;
-import com.alee.managers.notification.NotificationIcon;
-import com.alee.managers.notification.NotificationManager;
-import com.alee.managers.notification.WebNotification;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.beans.JNumberPop;
 import com.mx.kylgis.pos.data.gui.ComboBoxValModel;
 import com.mx.kylgis.pos.data.gui.ListKeyed;
 import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.data.loader.SentenceList;
+import com.mx.kylgis.pos.data.loader.TransactionOutcomeUnknownException;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
 import com.mx.kylgis.pos.customers.CustomerInfoGlobal;
 import com.mx.kylgis.pos.customers.DataLogicCustomers;
@@ -55,8 +51,12 @@ import com.mx.kylgis.pos.scripting.ScriptFactory;
 import com.mx.kylgis.pos.ticket.ProductInfoExt;
 import com.mx.kylgis.pos.ticket.TaxInfo;
 import com.mx.kylgis.pos.ticket.TicketInfo;
+import com.mx.kylgis.pos.ui.KylGisNotifications;
 import com.mx.kylgis.pos.ticket.TicketLineInfo;
 import com.mx.kylgis.pos.ticket.TicketTaxInfo;
+import com.mx.kylgis.pos.voucher.VoucherDiscountAllocator;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
+import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import com.mx.kylgis.pos.util.AltEncrypter;
 import com.mx.kylgis.pos.util.InactivityListener;
 import com.mx.kylgis.pos.util.JRPrinterAWT300;
@@ -99,6 +99,8 @@ import net.sf.jasperreports.engine.xml.JRXmlLoader;
  */
 public abstract class JPanelTicket extends JPanel implements JPanelView, BeanFactoryApp, TicketsEditor {
    
+    private static final String UNKNOWN_COMMIT_PROPERTY = "kylgis.commit.outcome.unknown";
+
     private final static int NUMBERZERO = 0;
     private final static int NUMBERVALID = 1;
     
@@ -447,8 +449,11 @@ System.out.println("PanelContainer : Focus Lost");
        
         if (m_oTicket != null) {            
             m_oTicket.setUser(m_App.getAppUserView().getUser().getUserInfo());
-            m_oTicket.setActiveCash(m_App.getActiveCashIndex());
-            m_oTicket.setDate(new Date());
+            // Retain the originating cash session and timestamp until reconciliation.
+            if (!m_oTicket.requiresPaymentReconciliation()) {
+                m_oTicket.setActiveCash(m_App.getActiveCashIndex());
+                m_oTicket.setDate(new Date());
+            }
             
             if ("restaurant".equals(m_App.getProperties().getProperty("machine.ticketsbag"))
                     && !oTicket.getOldTicket()){            
@@ -1726,7 +1731,7 @@ System.out.println("PanelContainer : Focus Lost");
             } else if (cTrans == ' ' || cTrans == '=') {
                 if (m_oTicket.getLinesCount() > 0) {
                     if (closeTicket(m_oTicket, m_oTicketExt)) {
-                        m_ticketsbag.deleteTicket();  
+                        m_ticketsbag.deleteTicketAfterSale();  
                         String autoLogoff = (m_App.getProperties().getProperty("till.autoLogoff"));
                         if (autoLogoff != null){               
                             if (autoLogoff.equals("true")){                    
@@ -1751,7 +1756,22 @@ System.out.println("PanelContainer : Focus Lost");
     }
 
    
+    private boolean blockPendingPaymentRecovery(TicketInfo ticket) {
+        if (ticket != null && ticket.requiresPaymentReconciliation()) {
+            JOptionPane.showMessageDialog(this,
+                    "La venta contiene pagos recuperados o una confirmación pendiente. No vuelva a cobrar, "
+                    + "canjear el cupón ni reintentar la venta hasta conciliar con el servidor.\n"
+                    + "Identificador de recibo: " + ticket.getId(),
+                    "Venta pendiente de conciliación", JOptionPane.ERROR_MESSAGE);
+            return true;
+        }
+        return false;
+    }
+
     private boolean closeTicket(TicketInfo ticket, Object ticketext) {
+        if (blockPendingPaymentRecovery(ticket)) {
+            return false;
+        }
         if (PlatformOrderDialog.isPlatformOrder(ticket)
                 && !PlatformOrderDialog.hasValidCode(ticket)) {
             JOptionPane.showMessageDialog(this,
@@ -1770,6 +1790,9 @@ System.out.println("PanelContainer : Focus Lost");
             
             try {
 
+                if (ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL) {
+                    VoucherDiscountAllocator.removeExistingAdjustments(ticket);
+                }
                 taxeslogic.calculateTaxes(ticket);
                 if (ticket.getTotal()>=0.0){
                     ticket.resetPayments();
@@ -1789,7 +1812,41 @@ System.out.println("PanelContainer : Focus Lost");
                     
                     paymentdialog.setTransactionID(ticket.getTransactionID());
 
-                    if (paymentdialog.showDialog(ticket.getTotal(), ticket.getCustomer())) {
+                    String voucherEditSourceReceiptId = ticket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID);
+                    String voucherEditAuthorizerId = ticket.getProperty(VoucherEditContext.AUTH_USER_ID);
+                    paymentdialog.setVoucherEditSourceReceiptId(
+                            voucherEditAuthorizerId == null || voucherEditAuthorizerId.isBlank()
+                                    ? null : voucherEditSourceReceiptId);
+                    // Reserve the durable operation before the payment dialog can
+                    // invoke the first external card authorization.
+                    ticket.setUser(m_App.getAppUserView().getUser().getUserInfo());
+                    ticket.setActiveCash(m_App.getActiveCashIndex());
+                    ticket.setDate(new Date());
+                    paymentdialog.setDurableOperationContext(ticket);
+
+                    boolean paymentAccepted;
+                    try {
+                        paymentAccepted = paymentdialog.showDialog(ticket.getTotal(), ticket.getCustomer());
+                    } finally {
+                        paymentdialog.setVoucherEditSourceReceiptId(null);
+                        paymentdialog.clearDurableOperationContext();
+                    }
+
+                    if (paymentAccepted) {
+
+                        List<VoucherDiscountInfo> voucherDiscounts = paymentdialog.getSelectedVoucherDiscounts();
+                        try {
+                            VoucherDiscountAllocator.apply(ticket, voucherDiscounts, taxeslogic);
+                            ticket.setVoucherDiscounts(voucherDiscounts);
+                            ticket.resetTaxes();
+                            taxeslogic.calculateTaxes(ticket);
+                        } catch (BasicException ex) {
+                            VoucherDiscountAllocator.removeExistingAdjustments(ticket);
+                            JOptionPane.showMessageDialog(this,
+                                    "No se pudo aplicar el descuento del cupón.\n" + ex.getMessage(),
+                                    "Cupón inválido", JOptionPane.ERROR_MESSAGE);
+                            return false;
+                        }
 
                         ticket.setPayments(paymentdialog.getSelectedPayments());
 
@@ -1804,6 +1861,7 @@ System.out.println("PanelContainer : Focus Lost");
                                     + "Total pagos: " + RoundUtils.round(paymentTotal),
                                     "Inconsistencia de pagos", JOptionPane.ERROR_MESSAGE);
                             ticket.resetPayments();
+                            VoucherDiscountAllocator.removeExistingAdjustments(ticket);
                             return false;
                         }
 
@@ -1816,6 +1874,20 @@ System.out.println("PanelContainer : Focus Lost");
                             try {
                                 dlSales.saveTicket(ticket, m_App.getInventoryLocation());
                             } catch (BasicException eData) {
+                                if (eData instanceof TransactionOutcomeUnknownException) {
+                                    // A lost COMMIT response is not proof of rollback.
+                                    // Preserve the receipt and folio for authoritative reconciliation.
+                                    ticket.setProperty(UNKNOWN_COMMIT_PROPERTY, "true");
+                                    JOptionPane.showMessageDialog(this,
+                                            "La comunicación falló al confirmar la venta y el resultado "
+                                            + "puede estar registrado en MariaDB.\n"
+                                            + "No vuelva a cobrar, canjear cupones, imprimir cierre ni "
+                                            + "reintentar sin conciliación.\n"
+                                            + "Recibo: " + ticket.getId() + " / folio provisional: "
+                                            + ticket.getTicketId(),
+                                            "COMMIT de resultado desconocido", JOptionPane.ERROR_MESSAGE);
+                                    return false;
+                                }
                                 // saveTicket is transactional. A failed transaction may have
                                 // assigned a sequence value to this Java object before rollback;
                                 // it must not be treated as a committed folio on retry.
@@ -1920,6 +1992,14 @@ System.out.println("PanelContainer : Focus Lost");
     
     private void printTicket(String sresourcename, TicketInfo ticket, Object ticketext) {
 
+        String printCapability = OperationalHealth.capabilityForPrinterResource(sresourcename);
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(printCapability)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(printCapability);
+            new MessageInf(MessageInf.SGN_WARNING,
+                    reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
+            return;
+        }
+
         String sresource = dlSystem.getResourceAsXML(sresourcename);
         if (sresource == null) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"));
@@ -1950,10 +2030,26 @@ System.out.println("PanelContainer : Focus Lost");
                 refreshTicket();                
                 
                 m_TTP.printTicket(script.eval(sresource).toString(), ticket);
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.PERIPHERALS,
+                        "runtime.printer." + sresourcename);
+                m_App.getOperationalHealth().clearIssue(OperationalHealth.Category.RESOURCES,
+                        "runtime.resource." + sresourcename);
+                m_App.refreshOperationalHealthIndicators();
 
-            } catch (    ScriptException | TicketPrinterException e) {
-                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e);
-                msg.show(JPanelTicket.this);
+            } catch (ScriptException e) {
+                m_App.getOperationalHealth().report(OperationalHealth.Category.RESOURCES,
+                        "runtime.resource." + sresourcename, OperationalHealth.Severity.AMBER,
+                        "Error procesando plantilla " + sresourcename, printCapability);
+                m_App.refreshOperationalHealthIndicators();
+                new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e)
+                        .show(JPanelTicket.this);
+            } catch (TicketPrinterException e) {
+                m_App.getOperationalHealth().report(OperationalHealth.Category.PERIPHERALS,
+                        "runtime.printer." + sresourcename, OperationalHealth.Severity.AMBER,
+                        "No se pudo completar la impresión de " + sresourcename, printCapability);
+                m_App.refreshOperationalHealthIndicators();
+                new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e)
+                        .show(JPanelTicket.this);
             }
         }
     }
@@ -1964,6 +2060,12 @@ System.out.println("PanelContainer : Focus Lost");
      * authoritative; if that printer has configured mirrors, they are used.
      */
     private void previewTicket(String resource) {
+        if (!m_App.getOperationalHealth().isCapabilityAvailable(OperationalHealth.CAP_PRINT_PREVIEW)) {
+            String reason = m_App.getOperationalHealth().getCapabilityBlockReason(OperationalHealth.CAP_PRINT_PREVIEW);
+            new MessageInf(MessageInf.SGN_WARNING,
+                    reason == null ? AppLocal.getIntString("message.cannotprintticket") : reason).show(this);
+            return;
+        }
         if (resource == null || m_oTicket == null) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotexecute"));
             msg.show(this);
@@ -2000,10 +2102,18 @@ System.out.println("PanelContainer : Focus Lost");
 
             m_TTP.printCurrentTicket(script.eval(sresource).toString(), m_oTicket);
             Notify(AppLocal.getIntString("notify.printed"));
-        } catch (ScriptException | TicketPrinterException e) {
-            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
-                    AppLocal.getIntString("message.cannotprintticket"), e);
-            msg.show(this);
+        } catch (ScriptException e) {
+            m_App.getOperationalHealth().report(OperationalHealth.Category.RESOURCES,
+                    "runtime.resource." + resource, OperationalHealth.Severity.AMBER,
+                    "Error procesando plantilla " + resource, OperationalHealth.CAP_PRINT_PREVIEW);
+            m_App.refreshOperationalHealthIndicators();
+            new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e).show(this);
+        } catch (TicketPrinterException e) {
+            m_App.getOperationalHealth().report(OperationalHealth.Category.PERIPHERALS,
+                    "runtime.printer." + resource, OperationalHealth.Severity.AMBER,
+                    "No se pudo completar la previsualización", OperationalHealth.CAP_PRINT_PREVIEW);
+            m_App.refreshOperationalHealthIndicators();
+            new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e).show(this);
         }
     }
 
@@ -2036,18 +2146,8 @@ System.out.println("PanelContainer : Focus Lost");
     }     
      
     public void Notify(String msg){
-        final WebNotification notification = new WebNotification ();
-        notification.setIcon ( NotificationIcon.information );
-        notification.setDisplayTime ( 4000 );
-
-        final WebClock clock = new WebClock ();
-        clock.setClockType ( ClockType.timer );
-        clock.setTimeLeft ( 5000 );
-        notification.setContent ( msg );
-
-        NotificationManager.showNotification ( notification );
-        clock.start ();    
-    }    
+        KylGisNotifications.showInformation(this, msg);
+    }   
     
     private void printReport(String resourcefile, TicketInfo ticket, Object ticketext) {
 
@@ -2253,6 +2353,10 @@ System.out.println("PanelContainer : Focus Lost");
                     TicketLineInfo line = m_oTicket.getLine(i);
                     String pId = line.getProductID();
                     
+                if (pId == null) {
+                    jCheckStock.setText(null);
+                    return;
+                }
                 String lName = (m_App.getProperties().getProperty("machine.department"));
                 lName = "'" + lName + "'";
                     ProductStock checkProduct;
@@ -2893,7 +2997,7 @@ System.out.println("PanelContainer : Focus Lost");
 
         m_jLblTotalEuros2.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         m_jLblTotalEuros2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jLblTotalEuros2.setLabelFor(m_jSubtotalEuros);
+        m_jLblTotalEuros2.setLabelFor(m_jTaxesEuros);
         m_jLblTotalEuros2.setText(AppLocal.getIntString("label.taxcash")); // NOI18N
         m_jPanTotals.add(m_jLblTotalEuros2);
 
@@ -2907,7 +3011,6 @@ System.out.println("PanelContainer : Focus Lost");
         m_jSubtotalEuros.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N
         m_jSubtotalEuros.setForeground(m_jEditLine.getForeground());
         m_jSubtotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jSubtotalEuros.setLabelFor(m_jSubtotalEuros);
         m_jSubtotalEuros.setToolTipText(bundle.getString("tooltip.salesubtotal")); // NOI18N
         m_jSubtotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
         m_jSubtotalEuros.setMaximumSize(new java.awt.Dimension(125, 25));
@@ -2920,7 +3023,6 @@ System.out.println("PanelContainer : Focus Lost");
         m_jTaxesEuros.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N
         m_jTaxesEuros.setForeground(m_jEditLine.getForeground());
         m_jTaxesEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jTaxesEuros.setLabelFor(m_jTaxesEuros);
         m_jTaxesEuros.setToolTipText(bundle.getString("tooltip.saletax")); // NOI18N
         m_jTaxesEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
         m_jTaxesEuros.setMaximumSize(new java.awt.Dimension(125, 25));
@@ -2933,7 +3035,6 @@ System.out.println("PanelContainer : Focus Lost");
         m_jTotalEuros.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
         m_jTotalEuros.setForeground(m_jEditLine.getForeground());
         m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jTotalEuros.setLabelFor(m_jTotalEuros);
         m_jTotalEuros.setToolTipText(bundle.getString("tooltip.saletotal")); // NOI18N
         m_jTotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
         m_jTotalEuros.setMaximumSize(new java.awt.Dimension(125, 25));
@@ -3273,6 +3374,10 @@ System.out.println("PanelContainer : Focus Lost");
     }//GEN-LAST:event_btnReprint1ActionPerformed
 
     private void btnSplitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSplitActionPerformed
+        // Splitting creates a new receipt; check the source before any dialog or copy.
+        if (blockPendingPaymentRecovery(m_oTicket)) {
+            return;
+        }
 
         if (m_oTicket.getLinesCount() > 0) {
             ReceiptSplit splitdialog = ReceiptSplit.getDialog(this,
@@ -3304,6 +3409,13 @@ System.out.println("PanelContainer : Focus Lost");
             try {
                 TicketLineInfo line = m_oTicket.getLine(i);
                 String pId = line.getProductID();
+                if (pId == null) {
+                    jCheckStock.setText(null);
+                    if (listener != null) {
+                        listener.restart();
+                    }
+                    return;
+                }
                 String location = m_App.getInventoryLocation();
                 ProductStock checkProduct;
                 checkProduct = dlSales.getProductStockState(pId, location);
@@ -3363,6 +3475,14 @@ System.out.println("PanelContainer : Focus Lost");
                     ProductStock checkProduct;
                     checkProduct = dlSales.getProductStockState(pId, location);
                    
+                    if (pId == null || checkProduct == null) {
+                        jCheckStock.setText(null);
+                        if (listener != null) {
+                            listener.restart();
+                        }
+                        return;
+                    }
+
                     Double pMin;
                     Double pMax;
                     Double pUnits;

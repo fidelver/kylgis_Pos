@@ -209,7 +209,7 @@ ReprintTicketInfo m_Ticket = null;
                             TicketTaxInfo[] taxlist = m_ticket.getTaxLines();
                         } catch (TaxesException ex) {
                         }
-                        printTicket("Printer.ReprintLastTicket", m_ticket, null);
+                        printTicket("Printer.PrintLastTicket", m_ticket, null);
                     }
 //            } catch (BasicException e) {
 //                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadticket"), e);

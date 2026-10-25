@@ -52,6 +52,9 @@ import java.awt.Color;
 import java.sql.BatchUpdateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JPanel;
@@ -454,6 +457,7 @@ public final class Transfer extends JPanel implements JPanelView {
             stmt.addBatch("DELETE FROM payments;");
             stmt.addBatch("DELETE FROM products_cat;");
             stmt.addBatch("DELETE FROM products_com;");
+            stmt.addBatch("DELETE FROM product_suppliers;");
             stmt.addBatch("DELETE FROM products;");
             stmt.addBatch("DELETE FROM receipts;");
             stmt.addBatch("DELETE FROM roles WHERE NOT ID = '0';");
@@ -462,6 +466,7 @@ public final class Transfer extends JPanel implements JPanelView {
             stmt.addBatch("DELETE FROM stocklevel;");
             stmt.addBatch("DELETE FROM suppliers;");
             stmt.addBatch("DELETE FROM uom;");
+            stmt.addBatch("DELETE FROM voucher_reactivation_audit;");
             stmt.addBatch("DELETE FROM vouchers;");  
             
             stmt.addBatch("SET autocommit=0;");
@@ -483,6 +488,67 @@ public final class Transfer extends JPanel implements JPanelView {
         }
     }
     
+    private String validateVoucherSourceForTransfer() throws SQLException {
+        boolean voucherTableExists = false;
+        try (ResultSet tables = con_source.getMetaData().getTables(null, null, "vouchers", null)) {
+            voucherTableExists = tables.next();
+        }
+        if (!voucherTableExists) {
+            return null;
+        }
+
+        Set<String> normalizedNumbers = new HashSet<>();
+        try (Statement checkStatement = con_source.createStatement();
+                ResultSet voucherRows = checkStatement.executeQuery(
+                        "SELECT VOUCHER_NUMBER FROM vouchers")) {
+            while (voucherRows.next()) {
+                String value = voucherRows.getString(1);
+                String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+                if (normalized.isEmpty()) {
+                    return AppLocal.getIntString("message.transfer.voucherblank");
+                }
+                if (!normalizedNumbers.add(normalized)) {
+                    return AppLocal.getIntString("message.transfer.voucherduplicate") + " " + normalized;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void transferVoucherAuditIfPresent() throws SQLException {
+        boolean auditTableExists;
+        try (ResultSet tables = con_source.getMetaData()
+                .getTables(null, null, "voucher_reactivation_audit", null)) {
+            auditTableExists = tables.next();
+        }
+        if (!auditTableExists) {
+            txtOut.append("Voucher authorization audit... not present in source\n");
+            return;
+        }
+
+        SQL = "SELECT id, voucher_number, original_receipt, new_receipt, operator_id, "
+                + "authorized_by, authorized_at, reason FROM voucher_reactivation_audit";
+        try (Statement auditStatement = con_source.createStatement();
+                ResultSet auditRows = auditStatement.executeQuery(SQL);
+                PreparedStatement auditInsert = con_target.prepareStatement(
+                        "INSERT INTO voucher_reactivation_audit "
+                        + "(id, voucher_number, original_receipt, new_receipt, operator_id, "
+                        + "authorized_by, authorized_at, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+            while (auditRows.next()) {
+                auditInsert.setString(1, auditRows.getString("id"));
+                auditInsert.setString(2, auditRows.getString("voucher_number"));
+                auditInsert.setString(3, auditRows.getString("original_receipt"));
+                auditInsert.setString(4, auditRows.getString("new_receipt"));
+                auditInsert.setString(5, auditRows.getString("operator_id"));
+                auditInsert.setString(6, auditRows.getString("authorized_by"));
+                auditInsert.setTimestamp(7, auditRows.getTimestamp("authorized_at"));
+                auditInsert.setString(8, auditRows.getString("reason"));
+                auditInsert.executeUpdate();
+            }
+        }
+        txtOut.append("Voucher authorization audit\n");
+    }
+
     public void doTransfer() throws SQLException {
 
         webPBar.setString ( "Starting..." );
@@ -495,6 +561,16 @@ public final class Transfer extends JPanel implements JPanelView {
         if (getSource()) {          
             txtOut.setVisible(true);
             txtOut.append("Transfer Started..." + "\n");
+
+            String voucherPreflightError = validateVoucherSourceForTransfer();
+            if (voucherPreflightError != null) {
+                txtOut.append(voucherPreflightError + "\n");
+                JOptionPane.showMessageDialog(this, voucherPreflightError,
+                        AppLocal.getIntString("message.transfermessage"),
+                        JOptionPane.WARNING_MESSAGE);
+                webPBar.setVisible(false);
+                return;
+            }
                     
             if (createTargetDB()) {
                 jbtnTransfer.setEnabled(false);
@@ -1696,6 +1772,33 @@ public final class Transfer extends JPanel implements JPanelView {
                     }
                     rs.close();                                
 
+                    Dbtname="product_suppliers";
+                    rs = con_source.getMetaData().getTables(null, null, Dbtname, null);
+                    if (rs.next()) {
+                        rs.close();
+                        txtOut.append("Product_Suppliers" + "\n");
+                        SQL = "SELECT * FROM product_suppliers";
+                        rs = stmt_source.executeQuery(SQL);
+                        while (rs.next()) {
+                            SQL = "INSERT INTO product_suppliers("
+                                    + "PRODUCT_ID, SUPPLIER_ID, IS_PREFERRED, ACTIVE, "
+                                    + "SUPPLIER_SKU, PURCHASE_UOM, LAST_COST, PRIORITY, LAST_PURCHASE) "
+                                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            pstmt = con_target.prepareStatement(SQL);
+                            pstmt.setString(1, rs.getString("PRODUCT_ID"));
+                            pstmt.setString(2, rs.getString("SUPPLIER_ID"));
+                            pstmt.setBoolean(3, rs.getBoolean("IS_PREFERRED"));
+                            pstmt.setBoolean(4, rs.getBoolean("ACTIVE"));
+                            pstmt.setString(5, rs.getString("SUPPLIER_SKU"));
+                            pstmt.setString(6, rs.getString("PURCHASE_UOM"));
+                            pstmt.setObject(7, rs.getObject("LAST_COST"));
+                            pstmt.setObject(8, rs.getObject("PRIORITY"));
+                            pstmt.setTimestamp(9, rs.getTimestamp("LAST_PURCHASE"));
+                            pstmt.executeUpdate();
+                        }
+                    }
+                    rs.close();
+
                     Dbtname="taxcategories";
                     rs = con_source.getMetaData().getTables(null,null,Dbtname,null);
                          txtOut.append("TaxCategories" + "\n");
@@ -2025,23 +2128,33 @@ public final class Transfer extends JPanel implements JPanelView {
                         Dbtname="vouchers";
                         rs = con_source.getMetaData().getTables(null,null,Dbtname,null);                    
 
-                        txtOut.append("Vouchers" + "\n");                    
+                        txtOut.append("Vouchers" + "\n");
+                        boolean sourceHasVoucherExpiry = false;
+                        try (ResultSet voucherColumns = con_source.getMetaData()
+                                .getColumns(null, null, Dbtname, null)) {
+                            while (voucherColumns.next()) {
+                                if ("expires_at".equalsIgnoreCase(voucherColumns.getString("COLUMN_NAME"))) {
+                                    sourceHasVoucherExpiry = true;
+                                    break;
+                                }
+                            }
+                        }                    
                         SQL = "SELECT * FROM vouchers";
                         rs = stmt_source.executeQuery(SQL);
 
                         while (rs.next()) {
-                            SQL = "INSERT INTO vouchers("
-                                + "id, voucher_number, customer, "
-                                + "amount, status) "
-                                + "VALUES (?, ?, ?, "
-                                + "?, ?)";
+                            SQL = sourceHasVoucherExpiry
+                                    ? "INSERT INTO vouchers(id, voucher_number, customer, amount, status, expires_at) VALUES (?, ?, ?, ?, ?, ?)"
+                                    : "INSERT INTO vouchers(id, voucher_number, customer, amount, status) VALUES (?, ?, ?, ?, ?)";
                             pstmt = con_target.prepareStatement(SQL);
                             pstmt.setString(1, rs.getString("id"));
                             pstmt.setString(2, rs.getString("voucher_number"));
                             pstmt.setString(3, rs.getString("customer"));
                             pstmt.setDouble(4, rs.getDouble("amount"));
                             pstmt.setString(5, rs.getString("status"));
-
+                            if (sourceHasVoucherExpiry) {
+                                pstmt.setTimestamp(6, rs.getTimestamp("expires_at"));
+                            }
                             pstmt.executeUpdate();
                         } 
                     } else {
@@ -2049,11 +2162,8 @@ public final class Transfer extends JPanel implements JPanelView {
                     }
                     rs.close();                                
 
-                    try {                  
-                        this.con_target.setAutoCommit(true);
-                    } catch (SQLException ex) {
-                        Logger.getLogger(Transfer.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    transferVoucherAuditIfPresent();
+                    this.con_target.setAutoCommit(true);
             
 // Add ForeignKeys                   
                 JOptionPane.showMessageDialog(this
@@ -2074,9 +2184,25 @@ public final class Transfer extends JPanel implements JPanelView {
                         , JOptionPane.WARNING_MESSAGE);                    
                                         
                 } catch (SQLException | HeadlessException e) {
-                    session_source.close();                    
-                    
+                    try {
+                        if (con_target != null && !con_target.getAutoCommit()) {
+                            con_target.rollback();
+                        }
+                    } catch (SQLException rollbackError) {
+                        e.addSuppressed(rollbackError);
+                    }
+                    try {
+                        if (con_target != null) {
+                            con_target.setAutoCommit(true);
+                        }
+                    } catch (SQLException resetError) {
+                        e.addSuppressed(resetError);
+                    }
+                    session_source.close();
+                    jbtnTransfer.setEnabled(true);
+                    webPBar.setVisible(false);
                     JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING, SQL, e));
+                    return;
                 }
             } else {
                 JFrame frame = new JFrame();

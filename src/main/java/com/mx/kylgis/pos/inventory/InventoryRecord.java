@@ -131,7 +131,7 @@ public class InventoryRecord {
         return m_Supplier;
     }    
     public String printSupplier() {
-        return StringUtils.encodeXML(m_Supplier.toString());
+        return m_Supplier == null ? "" : StringUtils.encodeXML(m_Supplier.toString());
     }  
     
     /**
@@ -142,7 +142,7 @@ public class InventoryRecord {
         return m_SupplierDoc;
     }    
     public String printSupplierDoc() {
-        return StringUtils.encodeXML(m_SupplierDoc.toString());
+        return m_SupplierDoc == null ? "" : StringUtils.encodeXML(m_SupplierDoc.toString());
     }     
        
     /**

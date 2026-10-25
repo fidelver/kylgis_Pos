@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>  
   <groupId>com.kylgis_Pos</groupId>  
   <artifactId>kylgis_Pos</artifactId>  
-  <version>1.0</version>
+  <version>1.3</version>
   <packaging>jar</packaging>  
   <properties> 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
@@ -54,11 +54,7 @@
       <artifactId>commons-digester</artifactId>  
       <version>2.1</version> 
     </dependency>  
-    <dependency> 
-      <groupId>com.lowagie</groupId>  
-      <artifactId>itext</artifactId>  
-      <version>2.1.7</version> 
-    </dependency>  
+    <!-- OpenPDF is the sole com.lowagie PDF implementation used by JasperReports 6.21.5; legacy iText 2.1.7 causes NoSuchMethodError during PDF export. -->
     <dependency> 
       <groupId>org.apache.poi</groupId>  
       <artifactId>poi</artifactId>  
@@ -100,17 +96,11 @@
       <version>2.0b6</version> 
     </dependency>  
     <dependency> 
-      <groupId>org.bidib.jbidib.org.qbang.rxtx</groupId>  
-      <artifactId>rxtxcomm</artifactId>  
-      <version>2.2</version> 
-    </dependency>  
-    <dependency> 
       <groupId>com.fazecast</groupId>
       <artifactId>jSerialComm</artifactId>
       <version>2.11.4</version>
     </dependency>
-    <!-- Portable serial transport for Java 21/Linux/Windows/ARM. RXTX remains
-         temporarily for scale drivers until that reserved collaborator scope is migrated. -->
+    <!-- Portable serial transport for Java 21/Linux/Windows/ARM. -->
     <dependency>
       <groupId>org.swinglabs.swingx</groupId>  
       <artifactId>swingx-all</artifactId>  
@@ -352,6 +342,10 @@
                   <targetPath>${basedir}/target/reports/com</targetPath>  
                   <directory>${basedir}/src/main/resources/com</directory>  
                   <filtering>false</filtering> 
+                  <excludes>
+                    <!-- Help catalog remains sealed in kylgispos.jar only. -->
+                    <exclude>mx/kylgis/pos/ui/help/**</exclude>
+                  </excludes>
                 </resource>  
                 <resource> 
                   <targetPath>${basedir}/target/locales</targetPath>  

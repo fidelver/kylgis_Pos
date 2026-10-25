@@ -37,6 +37,8 @@ public interface AppView {
     public DeviceScanner getDeviceScanner();
     public Session getSession();
     public AppProperties getProperties();
+    public OperationalHealth getOperationalHealth();
+    public void refreshOperationalHealthIndicators();
 
     /**
      *

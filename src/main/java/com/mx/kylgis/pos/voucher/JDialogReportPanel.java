@@ -9,6 +9,7 @@ import com.mx.kylgis.pos.data.loader.QBFBuilder;
 import com.mx.kylgis.pos.data.loader.SerializerReadBasic;
 import com.mx.kylgis.pos.data.loader.StaticSentence;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.reports.ReportFields;
 import com.mx.kylgis.pos.reports.ReportFieldsArray;
@@ -123,7 +124,15 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
                 reportparams.put("ISSUED", new Date());
                 reportparams.put("VALUE", voucherInfo.getAmount());
                 if (res != null) {
-                      reportparams.put("REPORT_RESOURCE_BUNDLE", ResourceBundle.getBundle(res));
+                      ResourceBundle reportBundle = ResourceBundle.getBundle(res);
+                      reportparams.put("REPORT_RESOURCE_BUNDLE", reportBundle);
+                      reportparams.put("EXPIRY", voucherInfo.getExpiresAt() == null
+                              ? reportBundle.getString("label.noexpiry")
+                              : Formats.TIMESTAMP.formatValue(voucherInfo.getExpiresAt()));
+                } else {
+                      reportparams.put("EXPIRY", voucherInfo.getExpiresAt() == null
+                              ? "No expiration"
+                              : Formats.TIMESTAMP.formatValue(voucherInfo.getExpiresAt()));
                 }                
               
 //                if (paramsreport.size()>0){
@@ -216,7 +225,6 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
         jPanel1 = new javax.swing.JPanel();
         jcmdOK = new javax.swing.JButton();
         jcmdCancel = new javax.swing.JButton();
-        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(AppLocal.getIntString("form.customertitle")); // NOI18N
@@ -259,8 +267,6 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
 
         jPanel8.add(jPanel1, java.awt.BorderLayout.LINE_END);
 
-        jButton1.setText("jButton1");
-        jPanel8.add(jButton1, java.awt.BorderLayout.CENTER);
 
         jPanel3.add(jPanel8, java.awt.BorderLayout.SOUTH);
 
@@ -283,7 +289,6 @@ public abstract class JDialogReportPanel extends javax.swing.JDialog {
     }//GEN-LAST:event_jcmdCancelActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;

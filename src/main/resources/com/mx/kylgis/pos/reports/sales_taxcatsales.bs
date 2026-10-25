@@ -25,7 +25,7 @@ report.setReport("/com/mx/kylgis/pos/reports/sales_taxcatsales");
 report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 
 report.setSentence("SELECT " +
-        "receipts.DATENEW, " +
+        "MIN(receipts.DATENEW) AS DATENEW, " +
         "taxes.name AS TAXNAME, " +
         "YEAR(receipts.datenew) AS YEAR, " +
         "MONTH(receipts.datenew) AS MONTH, " +

@@ -37,6 +37,12 @@ public class JRDataSourceBasic implements JRDataSource {
     private BaseSentence sent;
     private DataResultSet SRS = null;
     private Object current = null;
+    private int rowsRead = 0;
+
+    /** Number of records delivered by this data source to Jasper. */
+    public int getRowsRead() {
+        return rowsRead;
+    }
     
     private ReportFields m_fields = null;
     
@@ -83,6 +89,7 @@ public class JRDataSourceBasic implements JRDataSource {
         try {
             if (SRS.next()) {
                 current = SRS.getCurrent();
+                rowsRead++;
                 return true;
             } else {                
                 current = null;

@@ -24,7 +24,11 @@ import com.mx.kylgis.pos.data.user.DirtyManager;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.hardware.PeripheralPortCatalog;
+import com.mx.kylgis.pos.scale.ScaleRequestCatalog;
+import com.mx.kylgis.pos.scale.ScaleRequestCommand;
+import com.mx.kylgis.pos.scale.config.ScaleRequestSelectorPanel;
 import com.mx.kylgis.pos.util.ReportUtils;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import com.mx.kylgis.pos.util.StringParser;
 import java.awt.CardLayout;
 import java.awt.Component;
@@ -49,6 +53,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
     private javax.swing.JCheckBox digitalMirrorCheck;
     private javax.swing.JTextField digitalMirrorPath;
     private javax.swing.JButton digitalMirrorBrowse;
+    private ScaleRequestSelectorPanel scaleRequestSelector;
     
     private final ParametersConfig printer1printerparams;
     private final ParametersConfig printer2printerparams;
@@ -132,6 +137,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         
         jcboMachineScale.addActionListener(dirty);
         jcboSerialScale.addActionListener(dirty);
+        initScaleRequestControls();
 
         jcboMachineScanner.addActionListener(dirty);
         jcboSerialScanner.addActionListener(dirty);
@@ -263,6 +269,20 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         }
     }
 
+    private void initScaleRequestControls() {
+        scaleRequestSelector = new ScaleRequestSelectorPanel();
+        scaleRequestSelector.addActionListener(dirty);
+        scaleRequestSelector.addDocumentListener(dirty);
+        scaleRequestSelector.setScaleType(comboValue(jcboMachineScale.getSelectedItem()));
+
+        jPanel17.removeAll();
+        jPanel17.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 1));
+        jPanel17.add(jlblPrinterPort4);
+        jPanel17.add(jcboSerialScale);
+        jPanel17.add(scaleRequestSelector);
+        jPanel17.setPreferredSize(new java.awt.Dimension(400, 30));
+    }
+
     private void initReceiptMirrorControls() {
         receiptMirrorPanel = new javax.swing.JPanel(new java.awt.BorderLayout(6, 4));
         receiptMirrorPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
@@ -270,8 +290,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 javax.swing.BorderFactory.createEmptyBorder(3, 8, 6, 8)));
 
         javax.swing.JLabel warning = new javax.swing.JLabel(
-                "<html><b>Advertencia:</b> se recomienda configurar la impresora principal de recibos como Printer 1. "
-                + "Las salidas espejo Pantalla y Ticket digital están ligadas a Printer 1.</html>");
+                UiHelp.text("peripheral.mirror.warning"));
         receiptMirrorPanel.add(warning, java.awt.BorderLayout.NORTH);
 
         javax.swing.JPanel options = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 2));
@@ -322,9 +341,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 javax.swing.BorderFactory.createEtchedBorder(),
                 javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)));
         javax.swing.JLabel moreConfigLabel = new javax.swing.JLabel(
-                "<html><b>Más opciones:</b> Pantalla de recibo y Ticket digital.</html>");
+                UiHelp.text("peripheral.mirror.more"));
         javax.swing.JButton moreConfigButton = new javax.swing.JButton("Ver opciones ↓");
-        moreConfigButton.setToolTipText("Desplazarse a las salidas espejo del recibo principal");
+        UiHelp.set(moreConfigButton, "peripheral.mirror.scroll");
         moreConfigButton.setFocusPainted(false);
         moreConfigButton.addActionListener(e -> javax.swing.SwingUtilities.invokeLater(() -> {
             peripheralScroll.getVerticalScrollBar().setValue(peripheralScroll.getVerticalScrollBar().getMaximum());
@@ -647,6 +666,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                 "mtind221".equals(sparam)) {
             jcboSerialScale.setSelectedItem(p.nextToken(','));
         }
+        scaleRequestSelector.setConfiguredCommand(
+                config.getProperty(ScaleRequestCommand.PROPERTY));
+        scaleRequestSelector.setScaleType(sparam);
 
         p = new StringParser(config.getProperty("machine.scanner"));
         sparam = p.nextToken(':');
@@ -876,6 +898,14 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                     comboValue(jcboSerialScale.getSelectedItem()));
         } else {
             config.setProperty("machine.scale", sMachineScale);
+        }
+
+        try {
+            config.setProperty(ScaleRequestCommand.PROPERTY,
+                    scaleRequestSelector.getConfiguredCommand());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException(
+                    "Comando de solicitud de báscula inválido: " + ex.getMessage(), ex);
         }
 
         // El scanner
@@ -2385,7 +2415,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         if (value.isEmpty() || value.matches("COM\\d+|LPT\\d+|/dev/.*")) {
             path.setSelectedItem(defaultDigitalPath);
         }
-        path.setToolTipText("Carpeta donde KylGis guardará los tickets digitales. Puede escribir cualquier ruta válida.");
+        UiHelp.set(path, "peripheral.digitalpath");
     }
 
     private void jcboMachineScannerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboMachineScannerActionPerformed
@@ -2413,6 +2443,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
             cl.show(m_jScaleParams, "comm");
         } else {
             cl.show(m_jScaleParams, "empty");
+        }
+        if (scaleRequestSelector != null) {
+            scaleRequestSelector.setScaleType(comboValue(jcboMachineScale.getSelectedItem()));
         }
     }//GEN-LAST:event_jcboMachineScaleActionPerformed
 

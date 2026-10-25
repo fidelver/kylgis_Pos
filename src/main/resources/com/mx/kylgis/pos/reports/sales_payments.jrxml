@@ -29,9 +29,9 @@
 	<group name="GROUPDATE">
 		<groupExpression><![CDATA[$F{GROUPDATE}]]></groupExpression>
 		<groupHeader>
-			<band height="15">
+			<band height="20">
 				<textField pattern="">
-					<reportElement x="0" y="0" width="100" height="13" uuid="f5aad020-66bc-4179-8d67-93f4b6c77962"/>
+					<reportElement x="0" y="0" width="100" height="16" uuid="f5aad020-66bc-4179-8d67-93f4b6c77962"/>
 					<textElement>
 						<font isBold="true"/>
 					</textElement>
@@ -232,30 +232,30 @@
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="16" splitType="Stretch">
 			<textField isBlankWhenNull="false">
-				<reportElement key="textField-26" x="115" y="0" width="92" height="13" uuid="62c1ae27-bba9-4ea8-8c56-2c098ffda78a"/>
+				<reportElement key="textField-26" x="115" y="0" width="92" height="16" uuid="62c1ae27-bba9-4ea8-8c56-2c098ffda78a"/>
 				<textElement>
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[str("transpayment." + (String)$F{PAYMENT})]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.00" isBlankWhenNull="false">
-				<reportElement key="textField-28" x="435" y="0" width="100" height="13" uuid="e68f5dda-5e29-469c-be81-fedcf4189eea"/>
+				<reportElement key="textField-28" x="435" y="0" width="100" height="16" uuid="e68f5dda-5e29-469c-be81-fedcf4189eea"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{TOTAL})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
-				<reportElement key="textField" x="34" y="0" width="66" height="13" uuid="e5c90966-0244-453c-8a18-c37a96df6899"/>
+				<reportElement key="textField" x="34" y="0" width="66" height="16" uuid="e5c90966-0244-453c-8a18-c37a96df6899"/>
 				<textElement>
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.TIME.formatValue($F{DATENEW})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="207" y="0" width="100" height="13" uuid="47869208-ae6d-4298-8f79-234435088bba"/>
+				<reportElement x="207" y="0" width="100" height="16" uuid="47869208-ae6d-4298-8f79-234435088bba"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>

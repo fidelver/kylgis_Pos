@@ -34,6 +34,10 @@ import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.forms.AppView;
+import com.mx.kylgis.pos.forms.AppUser;
+import com.mx.kylgis.pos.voucher.VoucherEditAuthorization;
+import com.mx.kylgis.pos.voucher.VoucherEditContext;
+import com.mx.kylgis.pos.voucher.VoucherDiscountAllocator;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.printer.DeviceTicket;
@@ -146,15 +150,30 @@ public class JTicketsBagTicket extends JTicketsBag {
     @Override
     public void deleteTicket() {
         
-        if (m_ticketCopy != null) {           
-            try {               
-                m_dlSales.deleteTicket(m_ticketCopy, m_App.getInventoryLocation());
+        if (m_ticketCopy != null) {
+            try {
+                TicketInfo replacementTicket = m_panelticketedit.getActiveTicket();
+                if (VoucherEditContext.requiresAuthorization(m_ticketCopy)) {
+                    if (replacementTicket == null
+                            || !m_ticketCopy.getId().equals(replacementTicket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID))) {
+                        throw new BasicException("Edited ticket lost its voucher authorization/source context.");
+                    }
+                    // Voucher edits are finalized atomically inside DataLogicSales.saveTicket.
+
+
+
+
+
+                } else {
+                    m_dlSales.deleteTicket(m_ticketCopy, m_App.getInventoryLocation());
+                }
             } catch (BasicException eData) {
-                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
-                        AppLocal.getIntString("message.nosaveticket"), 
+                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
+                        AppLocal.getIntString("message.nosaveticket"),
                         eData);
-                msg.show(this);                
-            }            
+                msg.show(this);
+                return;
+            }
         }
         
         m_ticket = null;
@@ -196,6 +215,19 @@ public class JTicketsBagTicket extends JTicketsBag {
         return this;
     }
       
+    private boolean isRefundAvailable() {
+        if (m_ticket == null
+                || m_ticket.getTicketType() != TicketInfo.RECEIPT_NORMAL
+                || m_ticket.getTicketStatus() != 0) {
+            return false;
+        }
+        try {
+            return !m_dlSales.hasRecordedRefund(m_ticket.getTicketId());
+        } catch (BasicException ex) {
+            return false;
+        }
+    }
+
     private void readTicket(int iTicketid, int iTickettype) {
         Integer findTicket=0;    
         try {
@@ -233,7 +265,7 @@ public class JTicketsBagTicket extends JTicketsBag {
                             m_jRefund.setEnabled(false);                            
                         } else {
                             m_jEdit.setEnabled(true);
-                            m_jRefund.setEnabled(true);
+                            m_jRefund.setEnabled(isRefundAvailable());
                         }
                     }
                 try {
@@ -270,7 +302,7 @@ public class JTicketsBagTicket extends JTicketsBag {
         if (m_ticket != null
                 && (m_ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
                     &&  m_ticket.getTicketStatus() == 0)) {
-            m_jRefund.setEnabled(true);
+            m_jRefund.setEnabled(isRefundAvailable());
         }
 
         m_jPrint.setEnabled(m_ticket != null);
@@ -516,12 +548,33 @@ public class JTicketsBagTicket extends JTicketsBag {
     }// </editor-fold>//GEN-END:initComponents
 
     private void m_jEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jEditActionPerformed
-                 
-        m_ticketCopy = m_ticket;        
+        AppUser voucherAuthorizer = null;
+        if (VoucherEditContext.requiresAuthorization(m_ticket)) {
+            try {
+                voucherAuthorizer = VoucherEditAuthorization.request(this, m_dlSystem);
+            } catch (BasicException ex) {
+                JMessageDialog.showMessage(this,
+                        new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.voucheredit.autherror"), ex));
+                return;
+            }
+            if (voucherAuthorizer == null) {
+                return;
+            }
+        }
+
+        m_ticketCopy = m_ticket;
         m_TicketsBagTicketBag.showEdit();
         m_panelticketedit.showCatalog();
-        m_ticketCopy.setOldTicket(true); 
-        m_panelticketedit.setActiveTicket(m_ticket.copyTicket(), null);  
+        m_ticketCopy.setOldTicket(true);
+
+        TicketInfo editedTicket = m_ticket.copyTicket();
+        editedTicket.setProperty(VoucherEditContext.SOURCE_RECEIPT_ID, m_ticket.getId());
+        if (voucherAuthorizer != null) {
+            VoucherEditContext.stamp(editedTicket, m_ticket, voucherAuthorizer,
+                    m_App.getAppUserView().getUser());
+        }
+        m_panelticketedit.setActiveTicket(editedTicket, null);
         
     }//GEN-LAST:event_m_jEditActionPerformed
 
@@ -544,11 +597,41 @@ public class JTicketsBagTicket extends JTicketsBag {
 
     private void m_jRefundActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jRefundActionPerformed
         
-        java.util.List aRefundLines = new ArrayList();
+        try {
+            TicketInfo currentSale = m_ticket == null ? null
+                    : m_dlSales.loadTicket(TicketInfo.RECEIPT_NORMAL, m_ticket.getTicketId());
+            if (currentSale == null || currentSale.getTicketStatus() != 0
+                    || m_dlSales.hasRecordedRefund(currentSale.getTicketId())) {
+                m_jRefund.setEnabled(false);
+                JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
+                        "Esta venta ya fue devuelta o no está disponible para una nueva devolución."));
+                return;
+            }
+            m_ticket = currentSale;
+            taxeslogic.calculateTaxes(m_ticket);
+        } catch (BasicException | TaxesException ex) {
+            m_jRefund.setEnabled(false);
+            JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
+                    "No se pudo validar el estado actual de la venta.", ex));
+            return;
+        }
+
+        java.util.List aRefundLines;
+        try {
+            aRefundLines = VoucherDiscountAllocator.buildRefundableLines(m_ticket, taxeslogic);
+        } catch (BasicException ex) {
+            JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
+                    "No se pudo preparar la devolución con el descuento de cupón original.", ex));
+            return;
+        }
         
         for(int i = 0; i < m_ticket.getLinesCount(); i++) {
-            TicketLineInfo newline = new TicketLineInfo(m_ticket.getLine(i));
-            aRefundLines.add(newline);
+            TicketLineInfo sourceLine = m_ticket.getLine(i);
+            if ("true".equalsIgnoreCase(sourceLine.getProperty(VoucherDiscountAllocator.PROP_DISCOUNT))) {
+                continue;
+            }
+            TicketLineInfo newline = new TicketLineInfo(sourceLine);
+            // Voucher-aware refundable lines were prepared above; do not append legacy full-price copies.
         } 
 
         m_ticketCopy = null;

@@ -10,13 +10,13 @@ report.setSentence("SELECT "
                 + "categories.ID AS CATEGORY, "
                 + "categories.NAME AS CATEGORYNAME "
                 + "FROM products LEFT OUTER JOIN categories ON products.CATEGORY = categories.ID "
+                + "LEFT OUTER JOIN uom uom ON products.UOM = uom.ID "
                 + "WHERE ?(QBF_FILTER) "
                 + "ORDER BY categories.NAME, products.NAME");
 
-report.addParameter("products.NAME");
+report.addParameter("products.NAME|products.CODE|products.REFERENCE|uom.ID|uom.NAME");
 report.addParameter("products.CATEGORY");
-report.addParameter("products.CODE");
-report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter4());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.WarehouseProductFilter());
 
 report.addField("CODE", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("CODETYPE", com.mx.kylgis.pos.data.loader.Datas.STRING);

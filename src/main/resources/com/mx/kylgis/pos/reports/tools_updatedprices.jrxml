@@ -63,7 +63,7 @@ WHERE CSVERROR ='Updated Price Details']]>
 		</band>
 	</title>
 	<pageHeader>
-		<band height="13" splitType="Stretch"/>
+		<band height="16" splitType="Stretch"/>
 	</pageHeader>
 	<columnHeader>
 		<band height="18" splitType="Stretch">
@@ -122,51 +122,51 @@ WHERE CSVERROR ='Updated Price Details']]>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="16" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="0" width="53" height="13" uuid="1e5be3dc-ac6f-4fca-83a2-6fbedcfcc7e4"/>
+				<reportElement x="0" y="0" width="53" height="16" uuid="1e5be3dc-ac6f-4fca-83a2-6fbedcfcc7e4"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{REFERENCE}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="53" y="0" width="83" height="13" uuid="1939b86b-a08d-4796-8060-f33abb76d386"/>
+				<reportElement x="53" y="0" width="83" height="16" uuid="1939b86b-a08d-4796-8060-f33abb76d386"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{CODE}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="136" y="0" width="191" height="13" uuid="0c3e28d7-9c16-419b-aaeb-f1ed6483bf6e"/>
+				<reportElement x="136" y="0" width="191" height="16" uuid="0c3e28d7-9c16-419b-aaeb-f1ed6483bf6e"/>
 				<textElement>
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{NAME}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="327" y="0" width="52" height="13" uuid="831293be-3973-4d68-8346-ad4d2e01851a"/>
+				<reportElement x="327" y="0" width="52" height="16" uuid="831293be-3973-4d68-8346-ad4d2e01851a"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{previousbuy})]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="379" y="0" width="52" height="13" uuid="372130d7-e057-4030-8b59-6e66948f9153"/>
+				<reportElement x="379" y="0" width="52" height="16" uuid="372130d7-e057-4030-8b59-6e66948f9153"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICEBUY})]]></textFieldExpression>
 			</textField>
 			<textField pattern="###0.00">
-				<reportElement x="431" y="0" width="52" height="13" uuid="c5f412ca-2845-42ad-958a-cdd37373f526"/>
+				<reportElement x="431" y="0" width="52" height="16" uuid="c5f412ca-2845-42ad-958a-cdd37373f526"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{previoussell})]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="483" y="0" width="52" height="13" uuid="23cbe7ef-9be3-45eb-baa5-3c4eae4bf891"/>
+				<reportElement x="483" y="0" width="52" height="16" uuid="23cbe7ef-9be3-45eb-baa5-3c4eae4bf891"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif"/>
 				</textElement>

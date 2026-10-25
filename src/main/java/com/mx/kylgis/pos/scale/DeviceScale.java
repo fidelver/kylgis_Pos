@@ -32,7 +32,7 @@ import java.awt.Component;
  *
  * @author JG uniCenta
  */
-public class DeviceScale {
+public class DeviceScale implements AutoCloseable {
     
     private Scale m_scale;
     
@@ -56,25 +56,46 @@ public class DeviceScale {
         }
         switch (sScaleType) {
             case "acompc100":
-                m_scale = new ScaleAcomPC100(sScaleParam1);
+                m_scale = new ScaleAcomPC100(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57, 0x0D}));
                 break;
             case "averyberkel6720":
-                m_scale = new ScaleAvery(sScaleParam1);
+                m_scale = new ScaleAvery(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57, 0x0D}));
                 break;                
             case "casiopd1":
-                m_scale = new ScaleCasioPD1(sScaleParam1);
+                m_scale = new ScaleCasioPD1(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57, 0x0D}));
                 break;
             case "dialog1":
-                m_scale = new ScaleComm(sScaleParam1);
+                m_scale = new ScaleComm(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x05}));
                 break;
             case "samsungesp":
-                m_scale = new ScaleSamsungEsp(sScaleParam1);
+                m_scale = new ScaleSamsungEsp(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x24}));
                 break;
             case "caspdii":
-                m_scale = new ScaleCASPDII(sScaleParam1);
+                m_scale = new ScaleCASPDII(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x57}));
+                break;
+            case "mtind221":
+                m_scale = new ScaleMTIND221(sScaleParam1,
+                        ScaleRequestCommand.resolve(props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x50}));
                 break;
             case "torreymetrologylatam":
-                m_scale = new ScaleTorreyMetrologyLatam(sScaleParam1);
+                m_scale = new ScaleTorreyMetrologyLatam(
+                        sScaleParam1,
+                        ScaleRequestCommand.resolve(
+                                props.getProperty(ScaleRequestCommand.PROPERTY),
+                                new byte[]{0x50}));
                 break;
             case "fake":
                 // a fake scale for debugging purposes
@@ -96,6 +117,20 @@ public class DeviceScale {
      */
     public boolean existsScale() {
         return m_scale != null;
+    }
+
+    public static boolean supportsHotReload(AppProperties props) {
+        if (ScaleServiceConfig.getServiceId(props) != null) {
+            return true;
+        }
+        StringParser parser = new StringParser(props.getProperty("machine.scale"));
+        String type = parser.nextToken(':');
+        return type == null || type.isBlank()
+                || "Not defined".equalsIgnoreCase(type)
+                || "none".equalsIgnoreCase(type)
+                || "fake".equals(type)
+                || "screen".equals(type)
+                || "torreymetrologylatam".equals(type);
     }
     
     /**
@@ -119,5 +154,16 @@ public class DeviceScale {
                 return result;
             }
         }
-    }    
+    }
+
+    @Override
+    public void close() {
+        if (m_scale != null) {
+            try {
+                m_scale.close();
+            } finally {
+                m_scale = null;
+            }
+        }
+    }
 }

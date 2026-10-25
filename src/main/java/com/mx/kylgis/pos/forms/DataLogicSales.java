@@ -29,6 +29,7 @@ import com.mx.kylgis.pos.catalog.CategoryStock;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
 import com.mx.kylgis.pos.customers.CustomerTransaction;
 import com.mx.kylgis.pos.inventory.*;
+import com.mx.kylgis.pos.inventory.transform.SaleRecipeConsumptionService;
 import com.mx.kylgis.pos.mant.FloorsInfo;
 import com.mx.kylgis.pos.payment.PaymentInfo;
 import com.mx.kylgis.pos.payment.PaymentInfoTicket;
@@ -36,11 +37,22 @@ import com.mx.kylgis.pos.sales.ReprintTicketInfo;
 import com.mx.kylgis.pos.suppliers.SupplierInfo;
 import com.mx.kylgis.pos.suppliers.SupplierInfoExt;
 import com.mx.kylgis.pos.ticket.*;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 import com.mx.kylgis.pos.voucher.VoucherInfo;
+import com.mx.kylgis.pos.voucher.VoucherEditContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.io.File;
@@ -144,7 +156,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 new Field("MEMODATE", Datas.TIMESTAMP, Formats.DATE),
                 
                 new Field("ISCATALOG", Datas.BOOLEAN, Formats.BOOLEAN),
-                new Field("CATORDER", Datas.INT, Formats.INT)
+                new Field("CATORDER", Datas.INT, Formats.INT),
+                new Field("ISRECIPEINGREDIENT", Datas.BOOLEAN, Formats.BOOLEAN)
         );
         
 // creating customers object here for now for future global reuse
@@ -210,6 +223,40 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         ); 
     }
     
+    /**
+     * Creates an isolated read-only data-logic instance for background product
+     * searches. Its JDBC connection is never shared with the POS session.
+     */
+    public final ProductSearchContext openProductSearchContext() throws BasicException {
+        try {
+            Session searchSession = s.forkReadOnly();
+            DataLogicSales searchSales = new DataLogicSales();
+            searchSales.init(searchSession);
+            return new ProductSearchContext(searchSession, searchSales);
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to open read-only product search session.", ex);
+        }
+    }
+
+    public static final class ProductSearchContext implements AutoCloseable {
+        private final Session session;
+        private final DataLogicSales sales;
+
+        private ProductSearchContext(Session session, DataLogicSales sales) {
+            this.session = session;
+            this.sales = sales;
+        }
+
+        public DataLogicSales getSales() {
+            return sales;
+        }
+
+        @Override
+        public void close() {
+            session.close();
+        }
+    }
+
 // Import Creates
     public final void createCategory(Object[] category) throws BasicException {
         m_createCat.exec(category);
@@ -471,6 +518,23 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             , CategoryInfo.getSerializerRead()).list();
     }
 
+    /** Categories available to inventory/warehouse, independent of sales catalog visibility. */
+    public final List<CategoryInfo> getRootCategoriesInventory() throws BasicException {
+        return new PreparedSentence(s
+            , "SELECT "
+                + "ID, "
+                + "NAME, "
+                + "IMAGE, "
+                + "TEXTTIP, "
+                + "CATSHOWNAME, "
+                + "CATORDER "
+                + "FROM categories "
+                + "WHERE PARENTID IS NULL "
+                + "ORDER BY CATORDER, NAME"
+            , null
+            , CategoryInfo.getSerializerRead()).list();
+    }
+
     /**
      *
      * @param category
@@ -536,6 +600,47 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "ORDER BY O.CATORDER, P.NAME "                
 		, SerializerWriteString.INSTANCE
 		, ProductInfoExt.getSerializerRead()).list(category);
+    }
+
+    /** Products manageable by inventory, independent of products_cat. */
+    public List<ProductInfoExt> getProductCatalogInventory(String category) throws BasicException {
+        return new PreparedSentence(s
+                , "SELECT "
+                + "P.ID, "
+                + "P.REFERENCE, "
+                + "P.CODE, "
+                + "P.CODETYPE, "
+                + "P.NAME, "
+                + "P.PRICEBUY, "
+                + "P.PRICESELL, "
+                + "P.CATEGORY, "
+                + "P.TAXCAT, "
+                + "P.ATTRIBUTESET_ID, "
+                + "P.STOCKCOST, "
+                + "P.STOCKVOLUME, "
+                + "P.IMAGE, "
+                + "P.ISCOM, "
+                + "P.ISSCALE, "
+                + "P.ISCONSTANT, "
+                + "P.PRINTKB, "
+                + "P.SENDSTATUS, "
+                + "P.ISSERVICE, "
+                + "P.ATTRIBUTES, "
+                + "P.DISPLAY, "
+                + "P.ISVPRICE, "
+                + "P.ISVERPATRIB, "
+                + "P.TEXTTIP, "
+                + "P.WARRANTY, "
+                + "P.STOCKUNITS, "
+                + "P.PRINTTO, "
+                + "P.SUPPLIER, "
+                + "P.UOM, "
+                + "P.MEMODATE "
+                + "FROM products P "
+                + "WHERE P.CATEGORY = ? AND P.ISSERVICE = " + s.DB.FALSE() + " "
+                + "ORDER BY P.NAME "
+                , SerializerWriteString.INSTANCE
+                , ProductInfoExt.getSerializerRead()).list(category);
     }
 
     /**
@@ -627,6 +732,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     + "products.MEMODATE "
                 + "FROM categories INNER JOIN products ON (products.CATEGORY = categories.ID) "
                 + "WHERE products.ISCONSTANT = " +s.DB.TRUE()+ " "
+                + "AND EXISTS (SELECT 1 FROM products_cat PC WHERE PC.PRODUCT = products.ID) "
                 + "ORDER BY categories.NAME, products.NAME", 
                 null,
                 ProductInfoExt.getSerializerRead()).list();
@@ -719,7 +825,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "FROM products "
                 + "WHERE ?(QBF_FILTER) "
                 + "ORDER BY REFERENCE", 
-                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"})
+                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE|REFERENCE"})
 		, new SerializerWriteBasic(new Datas[] {
                     Datas.OBJECT, Datas.STRING, 
                     Datas.OBJECT, Datas.DOUBLE, 
@@ -769,7 +875,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "MEMODATE "
 		+ "FROM products "
                 + "WHERE ISCOM = " + s.DB.FALSE() + " AND ?(QBF_FILTER) ORDER BY REFERENCE",
-                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"})
+                new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE|REFERENCE"})
 		, new SerializerWriteBasic(new Datas[] {
                     Datas.OBJECT, Datas.STRING, 
                     Datas.OBJECT, Datas.DOUBLE, 
@@ -893,7 +999,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 		+ "MEMODATE "
                 + "FROM products "
                 + "WHERE ISCOM = " + s.DB.TRUE() + " AND ?(QBF_FILTER) "
-                + "ORDER BY REFERENCE", new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"})
+                + "ORDER BY REFERENCE", new String[] {"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE|REFERENCE"})
 		, new SerializerWriteBasic(new Datas[] {
                     Datas.OBJECT, Datas.STRING, 
                     Datas.OBJECT, Datas.DOUBLE, 
@@ -1574,9 +1680,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 , new SerializerReadClass(TicketLineInfo.class)).list(ticket.getId()));
 
             ticket.setPayments(new PreparedSentence(s
-                , "SELECT PAYMENT, TOTAL, TRANSID, TENDERED, CARDNAME FROM payments WHERE RECEIPT = ?"                    
+                , "SELECT PAYMENT, TOTAL, TRANSID, TENDERED, CARDNAME, VOUCHER FROM payments WHERE RECEIPT = ?"                    
                 , SerializerWriteString.INSTANCE
                 , new SerializerReadClass(PaymentInfoTicket.class)).list(ticket.getId()));
+            ticket.setVoucherDiscounts(loadVoucherDiscounts(ticket.getId()));
         }
         return ticket;
     }
@@ -1587,12 +1694,179 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @param location
      * @throws BasicException
      */
+    private TicketInfo loadNormalTicketByReceiptId(final String receiptId) throws BasicException {
+        TicketInfo ticket = (TicketInfo) new PreparedSentence(s,
+                "SELECT T.ID, T.TICKETTYPE, T.TICKETID, R.DATENEW, R.MONEY, R.ATTRIBUTES, "
+                + "P.ID, P.NAME, T.CUSTOMER, T.STATUS "
+                + "FROM receipts R JOIN tickets T ON R.ID = T.ID "
+                + "LEFT OUTER JOIN people P ON T.PERSON = P.ID "
+                + "WHERE T.ID = ? AND T.TICKETTYPE = 0",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(TicketInfo.class)).find(receiptId);
+
+        if (ticket != null) {
+            String customerId = ticket.getCustomerId();
+            ticket.setCustomer(customerId == null ? null : loadCustomerExt(customerId));
+            ticket.setLines(new PreparedSentence(s,
+                    "SELECT L.TICKET, L.LINE, L.PRODUCT, L.ATTRIBUTESETINSTANCE_ID, "
+                    + "L.UNITS, L.PRICE, T.ID, T.NAME, T.CATEGORY, T.CUSTCATEGORY, "
+                    + "T.PARENTID, T.RATE, T.RATECASCADE, T.RATEORDER, L.ATTRIBUTES "
+                    + "FROM ticketlines L, taxes T "
+                    + "WHERE L.TAXID = T.ID AND L.TICKET = ? ORDER BY L.LINE",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadClass(TicketLineInfo.class)).list(ticket.getId()));
+            ticket.setPayments(new PreparedSentence(s,
+                    "SELECT PAYMENT, TOTAL, TRANSID, TENDERED, CARDNAME, VOUCHER "
+                    + "FROM payments WHERE RECEIPT = ?",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadClass(PaymentInfoTicket.class)).list(ticket.getId()));
+            ticket.setVoucherDiscounts(loadVoucherDiscounts(ticket.getId()));
+        }
+        return ticket;
+    }
+
+    private List<VoucherDiscountInfo> loadVoucherDiscounts(final String receiptId) throws BasicException {
+        return new PreparedSentence(s,
+                "SELECT R.VOUCHER_ID, R.VOUCHER_NUMBER, R.VOUCHER_CUSTOMER_BEFORE, "
+                + "V.AMOUNT, R.DISCOUNT_AMOUNT FROM voucher_redemptions R "
+                + "JOIN vouchers V ON V.ID = R.VOUCHER_ID "
+                + "WHERE R.RECEIPT_ID = ? AND R.STATUS = 'ACTIVE' ORDER BY R.REDEEMED_AT, R.ID",
+                SerializerWriteString.INSTANCE,
+                new SerializerRead() {
+                    @Override
+                    public Object readValues(DataRead dr) throws BasicException {
+                        Double faceValue = dr.getDouble(4);
+                        Double appliedAmount = dr.getDouble(5);
+                        return new VoucherDiscountInfo(dr.getString(1), dr.getString(2), dr.getString(3),
+                                faceValue == null ? 0.0 : faceValue,
+                                appliedAmount == null ? 0.0 : appliedAmount);
+                    }
+                }).list(receiptId);
+    }
+
+    /**
+     * QA-only bridge used by the payment dialog. The regular POS path is a no-op
+     * unless the isolated durable-ledger flag is explicitly enabled.
+     */
+    public void prepareDurableOperation(TicketInfo ticket) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareOperation(s, ticket);
+        }
+    }
+
+    public void prepareDurableCardIntent(TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareExternalIntent(s, ticket, component, payment);
+        }
+    }
+
+    public void finishDurableCardIntent(TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.finishExternalIntent(s, ticket, component, payment);
+        }
+    }
+
+    /**
+     * Returns whether a refund ticket has already been recorded for the source sale.
+     * The check is deliberately scoped to completed refund rows so a second refund
+     * cannot be created after the original sale has been marked as refunded.
+     */
+    public final boolean hasRecordedRefund(final int saleTicketId) throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM tickets WHERE TICKETTYPE = 1 AND STATUS = ?",
+                SerializerWriteInteger.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(saleTicketId);
+        return count != null && count > 0;
+    }
+
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
+        if (ticket.requiresPaymentReconciliation()) {
+            throw new BasicException("Payment recovery preparation is not confirmed; reconcile before saving or charging.");
+        }
 
     Transaction t;
     t = new Transaction(s) {
     @Override
     public Object transact() throws BasicException {
+
+        if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+            final int sourceTicketId = ticket.getTicketStatus();
+            if (sourceTicketId <= 0) {
+                throw new BasicException("La devolución no tiene una venta original válida.");
+            }
+            Integer sourceStatus = (Integer) new PreparedSentence(s,
+                    "SELECT STATUS FROM tickets WHERE TICKETTYPE = 0 AND TICKETID = ? FOR UPDATE",
+                    SerializerWriteInteger.INSTANCE,
+                    SerializerReadInteger.INSTANCE).find(sourceTicketId);
+            if (sourceStatus == null || sourceStatus != 0 || hasRecordedRefund(sourceTicketId)) {
+                throw new BasicException("Esta venta ya tiene una devolución o no está disponible para devolver.");
+            }
+        }
+
+        Set<String> vouchersToConsume = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (VoucherDiscountInfo discount : ticket.getVoucherDiscounts()) {
+            if (discount != null) {
+                String customerId = discount.getCustomerId();
+                String voucherNumber = discount.getVoucher();
+
+                if (customerId != null && !customerId.isBlank()
+                        && !customerId.equals(ticket.getCustomerId())) {
+                    throw new BasicException("Voucher belongs to another customer.");
+                }
+                if (voucherNumber == null || voucherNumber.isBlank()) {
+                    throw new BasicException("Voucher redemption requires a valid voucher number.");
+                }
+                if (!vouchersToConsume.add(voucherNumber.trim())) {
+                    throw new BasicException("The same voucher cannot be used more than once in a sale.");
+                }
+            }
+        }
+
+        String sourceReceiptId = ticket.getProperty(VoucherEditContext.SOURCE_RECEIPT_ID);
+        String authorizationUserId = ticket.getProperty(VoucherEditContext.AUTH_USER_ID);
+        String operatorUserId = ticket.getProperty(VoucherEditContext.OPERATOR_ID);
+        String authorizationAt = ticket.getProperty(VoucherEditContext.AUTH_AT);
+        boolean editedNormalSale = ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL && ticket.getOldTicket();
+        int sourceVoucherCount = 0;
+        boolean voucherEditAuthorized = false;
+        TicketInfo sourceVoucherEditTicket = null;
+
+        if (editedNormalSale) {
+            if (sourceReceiptId == null || sourceReceiptId.isBlank()
+                    || !lockSourceNormalReceiptForVoucherEdit(sourceReceiptId)) {
+                throw new BasicException("Edited sale is missing or has already finalized its source receipt context.");
+            }
+            sourceVoucherCount = countVoucherUsages(sourceReceiptId);
+            if (sourceVoucherCount > 0) {
+                voucherEditAuthorized = isAuthorizedVoucherEditUser(authorizationUserId);
+                if (!voucherEditAuthorized) {
+                    throw new BasicException("Administrator or Manager authorization is required to edit a sale that consumed vouchers.");
+                }
+                if (!isVisibleVoucherEditOperator(operatorUserId)) {
+                    throw new BasicException("Voucher edit audit requires a valid visible POS operator.");
+                }
+                parseVoucherAuthorizationTime(authorizationAt);
+                sourceVoucherEditTicket = loadNormalTicketByReceiptId(sourceReceiptId);
+                if (sourceVoucherEditTicket == null) {
+                    throw new BasicException("Unable to load the locked source sale for atomic voucher edit finalization.");
+                }
+            }
+        }
+
+        for (VoucherDiscountInfo discount : ticket.getVoucherDiscounts()) {
+            int affected = consumeVoucher(discount, ticket.getCustomerId());
+            if (affected != 1) {
+                boolean reusedFromEditedSale = editedNormalSale
+                        && sourceVoucherCount > 0
+                        && voucherEditAuthorized
+                        && isReusableVoucherFromSourceReceipt(sourceReceiptId, discount.getVoucher());
+                if (!reusedFromEditedSale) {
+                    throw new BasicException("Voucher is invalid, belongs to another customer, is already redeemed, expired, or duplicated in the voucher table.");
+                }
+            }
+        }
 
         // Set Receipt Id
         if (ticket.getTicketId() == 0) {
@@ -1636,6 +1910,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
             });
 
+        for (VoucherDiscountInfo discount : ticket.getVoucherDiscounts()) {
+            insertVoucherRedemption(discount, ticket);
+        }
+
     // new ticket
         new PreparedSentence(s
             , "INSERT INTO tickets (ID, TICKETTYPE, TICKETID, PERSON, CUSTOMER, STATUS) "
@@ -1654,19 +1932,22 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
         });
         
+    if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
     // update status of existing ticket
         new PreparedSentence(s
             , "UPDATE tickets SET STATUS = ? "
-                + "WHERE TICKETTYPE = 0 AND TICKETID = ?"
+                + "WHERE TICKETTYPE = 0 AND TICKETID = ? AND STATUS = 0"
             , SerializerWriteParams.INSTANCE )
                 .exec(new DataParams() {
 
             @Override
             public void writeValues() throws BasicException {
-                setInt(1, ticket.getTicketId());
-                setInt(2, ticket.getTicketStatus());                
+                setInt(1, ticket.getTicketStatus());
+                setInt(2, ticket.getTicketId());                
             }
         });
+
+        }
 
         SentenceExec ticketlineinsert = new PreparedSentence(s
             , "INSERT INTO ticketlines (TICKET, LINE, "
@@ -1678,7 +1959,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         for (TicketLineInfo l : ticket.getLines()) {
             ticketlineinsert.exec(l);
 
-            if (l.getProductID() != null && l.isProductService() != true)  {
+            if (l.getProductID() != null && l.isProductService() != true
+                    && !hasActiveSaleRecipe(l.getProductID()))  {
                 getStockDiaryInsert().exec(new Object[] {
                 UUID.randomUUID().toString(),
                 ticket.getDate(),
@@ -1698,11 +1980,15 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "TENDERED, CARDNAME, VOUCHER) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 , SerializerWriteParams.INSTANCE);
 
-        for (final PaymentInfo payment : ticket.getPayments()) {
+        for (int component = 0; component < ticket.getPayments().size(); component++) {
+            final PaymentInfo payment = ticket.getPayments().get(component);
+            final String paymentRowId = SaleOperationLedgerQA.enabled()
+                    ? SaleOperationLedgerQA.paymentRowId(s, ticket, component)
+                    : UUID.randomUUID().toString();
             paymentinsert.exec(new DataParams() {
                 @Override
                 public void writeValues() throws BasicException {
-                    setString(1, UUID.randomUUID().toString());
+                    setString(1, paymentRowId);
                     setString(2, ticket.getId());
                     setString(3, payment.getName());
                     setDouble(4, payment.getTotal());
@@ -1714,10 +2000,6 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     setString(9, payment.getVoucher());
                 }
             });
-
-            if (payment.getName().contains("voucher")) {
-                getVoucherNonActive().exec(payment.getVoucher());
-            }
 
             if ("debt".equals(payment.getName()) || "debtpaid".equals(payment.getName())) {
                 ticket.getCustomer().updateCurDebt(payment.getTotal(), ticket.getDate());
@@ -1731,6 +2013,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 });
             }
         }
+
+                if (sourceVoucherEditTicket != null) {
+                    finalizeVoucherEditedSaleAtomic(sourceVoucherEditTicket, ticket, location,
+                            operatorUserId, authorizationUserId, authorizationAt);
+                }
 
                 SentenceExec taxlinesinsert = new PreparedSentence(s
                     , "INSERT INTO taxlines (ID, RECEIPT, TAXID, BASE, AMOUNT)  "
@@ -1751,11 +2038,48 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         });
                     }
                 }
+
+                // Recipe consumption is part of this same ticket transaction. It never
+                // rejects a sale for shortage/negative stock; it records an admin alert.
+                SaleRecipeConsumptionService recipeConsumption =
+                        new SaleRecipeConsumptionService(s);
+                if (ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
+                        && !ticket.getOldTicket()) {
+                    List<SaleRecipeConsumptionService.SaleLine> recipeLines = new ArrayList<>();
+                    for (int i = 0; i < ticket.getLinesCount(); i++) {
+                        TicketLineInfo line = ticket.getLine(i);
+                        recipeLines.add(new SaleRecipeConsumptionService.SaleLine(
+                                i + 1, line.getProductID(),
+                                java.math.BigDecimal.valueOf(line.getMultiply()),
+                                line.isProductService()));
+                    }
+                    recipeConsumption.consume(
+                            new SaleRecipeConsumptionService.SaleConsumptionRequest(
+                                    "SALE-RECIPE:" + ticket.getId(), ticket.getId(),
+                                    ticket.getTicketId(), location, recipeLines,
+                                    ticket.getUser().getName()));
+                } else if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+                    recipeConsumption.reverseForRefund(
+                            new SaleRecipeConsumptionService.RefundRequest(
+                                    "SALE-RECIPE-REFUND:" + ticket.getId(),
+                                    ticket.getTicketStatus(), ticket.getUser().getName()));
+                }
             return null;
         }
     };
 
-        t.execute();
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareAndClaim(s, ticket);
+            try {
+                t.execute();
+            } catch (BasicException uncertainty) {
+                SaleOperationLedgerQA.holdUnknown(s, ticket);
+                throw uncertainty;
+            }
+            SaleOperationLedgerQA.commitConfirmed(s, ticket);
+        } else {
+            t.execute();
+        }
 }
 
     /**
@@ -1764,17 +2088,182 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @param location
      * @throws BasicException
      */
+    private void finalizeVoucherEditedSaleAtomic(final TicketInfo sourceTicket,
+            final TicketInfo replacementTicket, final String location,
+            final String operatorUserId, final String authorizationUserId,
+            final String authorizationAt) throws BasicException {
+
+        if (!lockSourceNormalReceiptForVoucherEdit(sourceTicket.getId())) {
+            throw new BasicException("The source sale is no longer available for atomic voucher edit finalization.");
+        }
+
+        Set<String> sourceVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        sourceVoucherNumbers.addAll(getVoucherPaymentsForReceipt(sourceTicket.getId()));
+        if (sourceVoucherNumbers.isEmpty()) {
+            throw new BasicException("The source sale no longer contains the vouchers expected by this authorized edit.");
+        }
+        if (!isAuthorizedVoucherEditUser(authorizationUserId)) {
+            throw new BasicException("Administrator or Manager authorization is required to reactivate vouchers from an edited sale.");
+        }
+        if (!isVisibleVoucherEditOperator(operatorUserId)) {
+            throw new BasicException("Voucher edit audit requires a valid visible POS operator.");
+        }
+        Date voucherAuthorizationTime = parseVoucherAuthorizationTime(authorizationAt);
+        if (replacementTicket == null || replacementTicket.getId() == null
+                || replacementTicket.getId().isBlank() || !receiptExists(replacementTicket.getId())) {
+            throw new BasicException("Replacement receipt is missing while finalizing voucher reactivation.");
+        }
+
+        Set<String> replacementVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        replacementVoucherNumbers.addAll(getVoucherPaymentsForReceipt(replacementTicket.getId()));
+
+        Date reversalTime = new Date();
+        for (int i = 0; i < sourceTicket.getLinesCount(); i++) {
+            if (sourceTicket.getLine(i).getProductID() != null) {
+                getStockDiaryInsert().exec(new Object[]{
+                    UUID.randomUUID().toString(),
+                    reversalTime,
+                    sourceTicket.getLine(i).getMultiply() >= 0.0
+                            ? MovementReason.IN_REFUND.getKey()
+                            : MovementReason.OUT_SALE.getKey(),
+                    location,
+                    sourceTicket.getLine(i).getProductID(),
+                    sourceTicket.getLine(i).getProductAttSetInstId(),
+                    sourceTicket.getLine(i).getMultiply(),
+                    sourceTicket.getLine(i).getPrice(),
+                    sourceTicket.getUser().getName()
+                });
+            }
+
+            List<ProductsBundleInfo> bundle = sourceTicket.getLine(i).getProductID() == null
+                    ? java.util.Collections.emptyList()
+                    : getProductsBundle((String) sourceTicket.getLine(i).getProductID());
+            if (bundle.size() > 0) {
+                for (ProductsBundleInfo bundleComponent : bundle) {
+                    ProductInfoExt bundleProduct = getProductInfo(bundleComponent.getProductBundleId());
+                    getStockDiaryInsert().exec(new Object[]{
+                        UUID.randomUUID().toString(),
+                        reversalTime,
+                        sourceTicket.getLine(i).getMultiply() * bundleComponent.getQuantity() >= 0.0
+                                ? MovementReason.IN_REFUND.getKey()
+                                : MovementReason.OUT_SALE.getKey(),
+                        location,
+                        bundleComponent.getProductBundleId(),
+                        null,
+                        sourceTicket.getLine(i).getMultiply() * bundleComponent.getQuantity(),
+                        bundleProduct.getPriceSell(),
+                        sourceTicket.getUser().getName()
+                    });
+                }
+            }
+        }
+
+        CustomerInfoExt currentDebtCustomer = null;
+        for (PaymentInfo payment : sourceTicket.getPayments()) {
+            if ("debt".equals(payment.getName()) || "debtpaid".equals(payment.getName())) {
+                if (sourceTicket.getCustomerId() == null) {
+                    throw new BasicException("Edited source sale has debt movements without a customer.");
+                }
+                if (currentDebtCustomer == null) {
+                    currentDebtCustomer = loadCustomerExt(sourceTicket.getCustomerId());
+                    if (currentDebtCustomer == null) {
+                        throw new BasicException("Unable to load customer while reversing edited sale debt.");
+                    }
+                }
+                currentDebtCustomer.updateCurDebt(-payment.getTotal(), sourceTicket.getDate());
+                final CustomerInfoExt debtCustomer = currentDebtCustomer;
+                getDebtUpdate().exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setDouble(1, debtCustomer.getAccdebt());
+                        setTimestamp(2, debtCustomer.getCurdate());
+                        setString(3, debtCustomer.getId());
+                    }
+                });
+            }
+        }
+
+        reverseVoucherRedemptions(sourceTicket.getId(), replacementTicket.getId());
+
+        new StaticSentence(s, "DELETE FROM taxlines WHERE RECEIPT = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM payments WHERE RECEIPT = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM ticketlines WHERE TICKET = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM tickets WHERE ID = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+        new StaticSentence(s, "DELETE FROM receipts WHERE ID = ?",
+                SerializerWriteString.INSTANCE).exec(sourceTicket.getId());
+
+        for (String voucherNumber : sourceVoucherNumbers) {
+            if (replacementVoucherNumbers.contains(voucherNumber)) {
+                insertVoucherEditAudit(voucherNumber, sourceTicket.getId(), replacementTicket.getId(),
+                        operatorUserId, authorizationUserId, voucherAuthorizationTime, "EDIT_REUSED");
+            } else {
+                int affected = reactivateVoucherAfterEdit(voucherNumber);
+                if (affected != 1) {
+                    throw new BasicException("Unable to reactivate voucher from edited sale.");
+                }
+                insertVoucherEditAudit(voucherNumber, sourceTicket.getId(), replacementTicket.getId(),
+                        operatorUserId, authorizationUserId, voucherAuthorizationTime, "EDIT_REACTIVATED");
+            }
+        }
+    }
+
     public final void deleteTicket(final TicketInfo ticket, final String location) throws BasicException {
+        deleteTicketInternal(ticket, location, null, null, null, null, false);
+    }
+
+    private void deleteEditedTicket(final TicketInfo sourceTicket, final String location,
+            final String replacementReceiptId, final String operatorUserId,
+            final String authorizationUserId, final String authorizationAt) throws BasicException {
+        deleteTicketInternal(sourceTicket, location, replacementReceiptId, operatorUserId,
+                authorizationUserId, authorizationAt, true);
+    }
+
+    private void deleteTicketInternal(final TicketInfo ticket, final String location,
+            final String replacementReceiptId, final String operatorUserId,
+            final String authorizationUserId, final String authorizationAt,
+            final boolean reactivateUnusedVouchers) throws BasicException {
 
         Transaction t;
         t = new Transaction(s) {
             @Override
             public Object transact() throws BasicException {
 
+                Set<String> sourceVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                Set<String> replacementVoucherNumbers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                Date voucherAuthorizationTime = null;
+                if (reactivateUnusedVouchers) {
+                    if (!lockSourceNormalReceiptForVoucherEdit(ticket.getId())) {
+                        throw new BasicException("The source sale is no longer available for voucher edit finalization.");
+                    }
+                    sourceVoucherNumbers.addAll(getVoucherPaymentsForReceipt(ticket.getId()));
+                    if (sourceVoucherNumbers.isEmpty()) {
+                        throw new BasicException("The source sale no longer contains the vouchers expected by this authorized edit.");
+                    }
+                    if (!sourceVoucherNumbers.isEmpty()) {
+                        if (!isAuthorizedVoucherEditUser(authorizationUserId)) {
+                            throw new BasicException("Administrator or Manager authorization is required to reactivate vouchers from an edited sale.");
+                        }
+                        if (!isVisibleVoucherEditOperator(operatorUserId)) {
+                            throw new BasicException("Voucher edit audit requires a valid visible POS operator.");
+                        }
+                        voucherAuthorizationTime = parseVoucherAuthorizationTime(authorizationAt);
+                        if (replacementReceiptId == null || replacementReceiptId.isBlank()
+                                || !receiptExists(replacementReceiptId)) {
+                            throw new BasicException("Replacement receipt is missing while finalizing voucher reactivation.");
+                        }
+                        replacementVoucherNumbers.addAll(getVoucherPaymentsForReceipt(replacementReceiptId));
+                    }
+                }
+
                 // update the inventory
                 Date d = new Date();
                 for (int i = 0; i < ticket.getLinesCount(); i++) {
-                    if (ticket.getLine(i).getProductID() != null)  {
+                    if (ticket.getLine(i).getProductID() != null
+                            && !hasActiveSaleRecipe(ticket.getLine(i).getProductID()))  {
                         // Hay que actualizar el stock si el hay producto
                         getStockDiaryInsert().exec( new Object[] {
                             UUID.randomUUID().toString(),
@@ -1789,7 +2278,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         });
                     }
 // For productBundle
-                    List<ProductsBundleInfo> bundle = getProductsBundle((String)ticket.getLine(i).getProductID());
+                    List<ProductsBundleInfo> bundle = ticket.getLine(i).getProductID() == null
+                            ? java.util.Collections.emptyList()
+                            : getProductsBundle((String) ticket.getLine(i).getProductID());
 
                     if (bundle.size() > 0) {
                         for (ProductsBundleInfo bundleComponent : bundle) {
@@ -1829,6 +2320,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 }
 
                 // and delete the receipt
+                if (reactivateUnusedVouchers) {
+                    reverseVoucherRedemptions(ticket.getId(), replacementReceiptId);
+                }
                 new StaticSentence(s
                         , "DELETE FROM taxlines WHERE RECEIPT = ?"
                         , SerializerWriteString.INSTANCE).exec(ticket.getId());
@@ -1844,6 +2338,25 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 new StaticSentence(s
                         , "DELETE FROM receipts WHERE ID = ?"
                         , SerializerWriteString.INSTANCE).exec(ticket.getId());
+
+                if (reactivateUnusedVouchers) {
+                    for (String voucherNumber : sourceVoucherNumbers) {
+                        if (replacementVoucherNumbers.contains(voucherNumber)) {
+                            insertVoucherEditAudit(voucherNumber, ticket.getId(), replacementReceiptId,
+                                    operatorUserId, authorizationUserId, voucherAuthorizationTime,
+                                    "EDIT_REUSED");
+                        }
+                        if (!replacementVoucherNumbers.contains(voucherNumber)) {
+                            int affected = reactivateVoucherAfterEdit(voucherNumber);
+                            if (affected != 1) {
+                                throw new BasicException("Unable to reactivate voucher from edited sale.");
+                            }
+                            insertVoucherEditAudit(voucherNumber, ticket.getId(), replacementReceiptId,
+                                    operatorUserId, authorizationUserId, voucherAuthorizationTime,
+                                    "EDIT_REACTIVATED");
+                        }
+                    }
+                }
                 return null;
             }
         };
@@ -1938,13 +2451,14 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             + "THEN " + s.DB.FALSE() 
                             + " ELSE " + s.DB.TRUE() 
                         + " END, "
-                    + "C.CATORDER "
+                    + "C.CATORDER, "
+                    + "P.ISRECIPEINGREDIENT "
                     + "FROM products P LEFT OUTER JOIN products_cat C "
                     + "ON P.ID = C.PRODUCT "
                     + "WHERE ?(QBF_FILTER) "
                     + "ORDER BY P.REFERENCE", 
                     new String[] {
-                        "P.NAME", "P.PRICEBUY", "P.PRICESELL", "P.CATEGORY", "P.CODE"})
+                        "P.NAME", "P.PRICEBUY", "P.PRICESELL", "P.CATEGORY", "P.CODE|P.REFERENCE"})
 	, new SerializerWriteBasic(new Datas[] {
             Datas.OBJECT, Datas.STRING, 
             Datas.OBJECT, Datas.DOUBLE, 
@@ -1959,6 +2473,42 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      * @return
      */
     
+    /**
+     * Keeps products.supplier and the N:M association table synchronized without
+     * removing secondary suppliers. During the compatibility phase, the legacy
+     * supplier combo changes only the preferred association.
+     */
+    private void syncPreferredProductSupplier(Object params) throws BasicException {
+        Object[] values = (Object[]) params;
+        String supplierId = values[27] == null ? null : values[27].toString().trim();
+
+        new PreparedSentence(s,
+                "UPDATE product_suppliers SET is_preferred = " + s.DB.FALSE()
+                + " WHERE product_id = ?",
+                new SerializerWriteBasicExt(productsRow.getDatas(), new int[]{0}))
+                .exec(params);
+
+        if (supplierId == null || supplierId.isEmpty()) {
+            return;
+        }
+
+        int updated = new PreparedSentence(s,
+                "UPDATE product_suppliers SET is_preferred = " + s.DB.TRUE()
+                + ", active = " + s.DB.TRUE()
+                + " WHERE product_id = ? AND supplier_id = ?",
+                new SerializerWriteBasicExt(productsRow.getDatas(), new int[]{0, 27}))
+                .exec(params);
+
+        if (updated == 0) {
+            new PreparedSentence(s,
+                    "INSERT INTO product_suppliers "
+                    + "(product_id, supplier_id, is_preferred, active) VALUES (?, ?, "
+                    + s.DB.TRUE() + ", " + s.DB.TRUE() + ")",
+                    new SerializerWriteBasicExt(productsRow.getDatas(), new int[]{0, 27}))
+                    .exec(params);
+        }
+    }
+
     public final SentenceExec getProductCatInsert() {
 	return new SentenceExecTransaction(s) {
         @Override
@@ -1995,22 +2545,27 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     + "PRINTTO, "
                     + "SUPPLIER, "
                     + "UOM, "
-                    + "MEMODATE ) "                        
+                    + "MEMODATE, "
+                    + "ISRECIPEINGREDIENT ) "
                     + "VALUES ("
                     + "?, ?, ?, ?, ?, ?, "
                     + "?, ?, ?, ?, ?, ?, "
                     + "?, ?, ?, ?, ?, ?, "
                     + "?, ?, ?, ?, ?, ?, "
-                    + "?, ?, ?, ?, ?, ?)"
+                    + "?, ?, ?, ?, ?, ?, ?)"
 		, new SerializerWriteBasicExt(productsRow.getDatas(), 
                 new int[]{0, 
                     1, 2, 3, 4, 5, 6, 
                     7, 8, 9, 10, 11, 12, 
                     13, 14, 15, 16, 17, 18,
                     19, 20, 21, 22, 23, 24, 
-                    25, 26, 27, 28, 29}))
+                    25, 26, 27, 28, 29, 32}))
                     
                     .exec(params);
+
+                if (i > 0) {
+                    syncPreferredProductSupplier(params);
+                }
 
                 if (i > 0 && ((Boolean)values[30])) {
                     return new PreparedSentence(s
@@ -2065,7 +2620,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         + "PRINTTO = ?, "
                         + "SUPPLIER = ?, "
                         + "UOM = ?, "
-                        + "MEMODATE = ? "
+                        + "MEMODATE = ?, "
+                        + "ISRECIPEINGREDIENT = ? "
                     + "WHERE ID = ?"
 		, new SerializerWriteBasicExt(productsRow.getDatas(), 
                         new int[]{0, 
@@ -2074,9 +2630,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             11, 12, 13, 14, 15,
                             16, 17, 18, 19, 20, 
                             21, 22, 23, 24, 25, 
-                            26, 27, 28, 29, 0}))
+                            26, 27, 28, 29, 32, 0}))
                         .exec(params);
             	if (i > 0) {
+                    syncPreferredProductSupplier(params);
                     if (((Boolean)values[30])) {
 			if (new PreparedSentence(s
                                 , "UPDATE products_cat SET CATORDER = ? WHERE PRODUCT = ?"
@@ -2124,6 +2681,23 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         return new PreparedSentence(s
                 , "UPDATE customers SET CURDEBT = ?, CURDATE = ? WHERE ID = ?"
                 , SerializerWriteParams.INSTANCE);
+    }
+
+    private boolean hasActiveSaleRecipe(String productId) throws BasicException {
+        if (productId == null || productId.trim().isEmpty()) {
+            return false;
+        }
+        try (PreparedStatement statement = s.getConnection().prepareStatement(
+                "SELECT 1 FROM recipe_versions "
+                + "WHERE product_id = ? AND UPPER(status) = 'ACTIVE' "
+                + "AND UPPER(recipe_mode) = 'SALE_CONSUMPTION' LIMIT 1")) {
+            statement.setString(1, productId);
+            try (ResultSet row = statement.executeQuery()) {
+                return row.next();
+            }
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to determine whether the product has a sale recipe.", ex);
+        }
     }
 
     /**
@@ -2175,7 +2749,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         @Override
         public int execInTransaction(Object params) throws BasicException {
         
-            int updateresult = ((Object[]) params)[5] == null 
+            Object[] paramsArray = (Object[]) params;
+            int updateresult = paramsArray[5] == null 
             ? new PreparedSentence(s
                 , "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
                         + "WHERE LOCATION = ? AND PRODUCT = ? "
@@ -2194,6 +2769,15 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             + "VALUES (?, ?, ?, ?)"
                     , new SerializerWriteBasicExt(stockdiaryDatas, new int[] {3, 4, 5, 6})).exec(params);
                 }
+                learnSupplierFromPurchase((Object[]) params);
+                if (paramsArray[2] instanceof Number
+                        && ((Number) paramsArray[2]).intValue() == ((Number) MovementReason.IN_PURCHASE.getKey()).intValue()) {
+                    try {
+                        SaleRecipeConsumptionService.refreshActiveRecipeCosts(s.getConnection());
+                    } catch (SQLException ex) {
+                        throw new BasicException("Unable to refresh active sale recipe costs after purchase.", ex);
+                    }
+                }
                 return new PreparedSentence(s
                     , "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, "
                             + "ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, "
@@ -2210,6 +2794,123 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      *
      * @return
      */
+    private void learnSupplierFromPurchase(Object[] params) throws BasicException {
+        if (params == null || params.length < 10 || !(params[2] instanceof Number)
+                || ((Number) params[2]).intValue() != 1) {
+            return;
+        }
+
+        String productId = params[4] == null ? null : params[4].toString().trim();
+        String supplierId = params[9] == null ? null : params[9].toString().trim();
+        if (productId == null || productId.isEmpty()
+                || supplierId == null || supplierId.isEmpty()) {
+            return;
+        }
+
+        Double lastCost = params[7] instanceof Number
+                ? ((Number) params[7]).doubleValue() : null;
+        Timestamp lastPurchase = params[1] instanceof java.util.Date
+                ? new Timestamp(((java.util.Date) params[1]).getTime()) : null;
+
+        try {
+            Connection connection = s.getConnection();
+            // Use the product row as the serialization point shared with the
+            // product-supplier editor. Without this lock, a concurrent editor
+            // save could delete an association learned by this purchase.
+            try (PreparedStatement lockProduct = connection.prepareStatement(
+                    "SELECT id FROM products WHERE id = ? FOR UPDATE")) {
+                lockProduct.setString(1, productId);
+                try (ResultSet product = lockProduct.executeQuery()) {
+                    if (!product.next()) {
+                        throw new SQLException("Unknown product while learning supplier: " + productId);
+                    }
+                }
+            }
+            boolean associationExists;
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT 1 FROM product_suppliers WHERE product_id = ? AND supplier_id = ?")) {
+                statement.setString(1, productId);
+                statement.setString(2, supplierId);
+                try (ResultSet rows = statement.executeQuery()) {
+                    associationExists = rows.next();
+                }
+            }
+
+            if (associationExists) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE product_suppliers SET active = ?, last_cost = ?, last_purchase = ? "
+                        + "WHERE product_id = ? AND supplier_id = ?")) {
+                    statement.setBoolean(1, true);
+                    if (lastCost == null) {
+                        statement.setNull(2, java.sql.Types.DOUBLE);
+                    } else {
+                        statement.setDouble(2, lastCost);
+                    }
+                    statement.setTimestamp(3, lastPurchase);
+                    statement.setString(4, productId);
+                    statement.setString(5, supplierId);
+                    statement.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO product_suppliers "
+                        + "(product_id, supplier_id, is_preferred, active, last_cost, last_purchase) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)")) {
+                    statement.setString(1, productId);
+                    statement.setString(2, supplierId);
+                    statement.setBoolean(3, false);
+                    statement.setBoolean(4, true);
+                    if (lastCost == null) {
+                        statement.setNull(5, java.sql.Types.DOUBLE);
+                    } else {
+                        statement.setDouble(5, lastCost);
+                    }
+                    statement.setTimestamp(6, lastPurchase);
+                    statement.executeUpdate();
+                }
+
+            }
+
+            // Learn new suppliers without replacing an existing preference.
+            // This conditional update serializes concurrent first purchases.
+            int becamePreferred;
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE products SET supplier = ? WHERE id = ? "
+                    + "AND (supplier IS NULL OR TRIM(supplier) = '')")) {
+                statement.setString(1, supplierId);
+                statement.setString(2, productId);
+                becamePreferred = statement.executeUpdate();
+            }
+
+            if (becamePreferred == 1) {
+                try (PreparedStatement clear = connection.prepareStatement(
+                        "UPDATE product_suppliers SET is_preferred = ? WHERE product_id = ?");
+                        PreparedStatement prefer = connection.prepareStatement(
+                                "UPDATE product_suppliers SET is_preferred = ?, active = ? "
+                                + "WHERE product_id = ? AND supplier_id = ?")) {
+                    clear.setBoolean(1, false);
+                    clear.setString(2, productId);
+                    clear.executeUpdate();
+
+                    prefer.setBoolean(1, true);
+                    prefer.setBoolean(2, true);
+                    prefer.setString(3, productId);
+                    prefer.setString(4, supplierId);
+                    if (prefer.executeUpdate() != 1) {
+                        throw new SQLException("Purchase supplier association was not updated exactly once.");
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to learn product supplier from purchase.", ex);
+        }
+    }
+
+    /**
+     *
+     * @return
+     */
+
     public final SentenceExec getStockDiaryDelete() {
         return new SentenceExecTransaction(s) {
         @Override
@@ -2356,8 +3057,34 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      */
     public final SentenceExec getCatalogCategoryAdd() {
         return new StaticSentence(s
-                , "INSERT INTO products_cat(PRODUCT, CATORDER) SELECT ID, " + s.DB.INTEGER_NULL() + " FROM products WHERE CATEGORY = ?"
+                , "INSERT INTO products_cat(PRODUCT, CATORDER) "
+                + "SELECT P.ID, " + s.DB.INTEGER_NULL() + " FROM products P "
+                + "WHERE P.CATEGORY = ? AND NOT EXISTS "
+                + "(SELECT 1 FROM products_cat C WHERE C.PRODUCT = P.ID)"
                 , SerializerWriteString.INSTANCE);
+    }
+
+    /** Returns {total products in category, products currently in sales catalog}. */
+    public final int[] getCatalogCategoryCounts(String category) throws BasicException {
+        Integer total = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM products WHERE CATEGORY = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(category);
+        Integer inCatalog = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM products P INNER JOIN products_cat C ON P.ID = C.PRODUCT WHERE P.CATEGORY = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(category);
+        return new int[] {total == null ? 0 : total, inCatalog == null ? 0 : inCatalog};
+    }
+
+    /** Number of catalog rows in a category with an explicit sales-button order. */
+    public final int getCatalogCategoryOrderedCount(String category) throws BasicException {
+        Integer ordered = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM products P INNER JOIN products_cat C ON P.ID = C.PRODUCT "
+                + "WHERE P.CATEGORY = ? AND C.CATORDER IS NOT NULL",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(category);
+        return ordered == null ? 0 : ordered;
     }
 
     /**
@@ -2527,20 +3254,262 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         return new StaticSentence(s,
             "SELECT " +
                 "vouchers.ID,vouchers.VOUCHER_NUMBER,vouchers.CUSTOMER, " +
-                "customers.NAME,AMOUNT, STATUS " +
+                "customers.NAME,AMOUNT, STATUS, EXPIRES_AT " +
               "FROM vouchers   " +
                 "JOIN customers ON customers.id = vouchers.CUSTOMER  " +
               "WHERE STATUS='A' " +
+              "AND (EXPIRES_AT IS NULL OR EXPIRES_AT > CURRENT_TIMESTAMP) " +
               "ORDER BY vouchers.VOUCHER_NUMBER ASC"
-            , null, VoucherInfo.getSerializerRead());      
+            , null, VoucherInfo.getSerializerRead());
     }
-    public final SentenceExec getVoucherNonActive() {
-        return new PreparedSentence(s, 
-                "UPDATE vouchers SET STATUS = 'D' " +
-                "WHERE VOUCHER_NUMBER = ?"
-                , SerializerWriteString.INSTANCE);
+
+    public final SentenceList getVoucherListByCustomer() {
+        return new PreparedSentence(s,
+            "SELECT " +
+                "vouchers.ID,vouchers.VOUCHER_NUMBER,vouchers.CUSTOMER, " +
+                "customers.NAME,AMOUNT, STATUS, EXPIRES_AT " +
+              "FROM vouchers " +
+                "JOIN customers ON customers.id = vouchers.CUSTOMER " +
+              "WHERE vouchers.STATUS='A' AND vouchers.CUSTOMER = ? " +
+              "AND (vouchers.EXPIRES_AT IS NULL OR vouchers.EXPIRES_AT > CURRENT_TIMESTAMP) " +
+              "ORDER BY vouchers.VOUCHER_NUMBER ASC",
+            SerializerWriteString.INSTANCE,
+            VoucherInfo.getSerializerRead());
     }
-    
+
+    public final List<VoucherInfo> getVoucherListByCustomerForEdit(final String customerId,
+            final String sourceReceiptId) throws BasicException {
+        return new PreparedSentence(s,
+                "SELECT V.ID, V.VOUCHER_NUMBER, V.CUSTOMER, C.NAME, V.AMOUNT, V.STATUS, V.EXPIRES_AT "
+                + "FROM vouchers V JOIN customers C ON C.ID = V.CUSTOMER "
+                + "WHERE V.CUSTOMER = ? "
+                + "AND (V.EXPIRES_AT IS NULL OR V.EXPIRES_AT > CURRENT_TIMESTAMP) "
+                + "AND (V.STATUS = 'A' OR (V.STATUS = 'D' AND (EXISTS ("
+                + "SELECT 1 FROM payments P WHERE P.RECEIPT = ? "
+                + "AND P.PAYMENT = 'voucherin' AND P.VOUCHER = V.VOUCHER_NUMBER) "
+                + "OR EXISTS (SELECT 1 FROM voucher_redemptions R WHERE R.RECEIPT_ID = ? "
+                + "AND R.VOUCHER_NUMBER = V.VOUCHER_NUMBER AND R.STATUS = 'ACTIVE')))) "
+                + "ORDER BY V.VOUCHER_NUMBER ASC",
+                SerializerWriteParams.INSTANCE,
+                VoucherInfo.getSerializerRead()).list(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, customerId);
+                        setString(2, sourceReceiptId);
+                        setString(3, sourceReceiptId);
+                    }
+                });
+    }
+
+    private boolean receiptExists(String receiptId) throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM receipts WHERE ID = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(receiptId);
+        return count != null && count == 1;
+    }
+
+    private boolean sourceNormalReceiptExists(String sourceReceiptId) throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM tickets WHERE ID = ? AND TICKETTYPE = 0",
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(sourceReceiptId);
+        return count != null && count == 1;
+    }
+
+    private int countVoucherUsages(String receiptId) throws BasicException {
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT (SELECT COUNT(*) FROM payments WHERE RECEIPT = ? "
+                + "AND PAYMENT = 'voucherin' AND VOUCHER IS NOT NULL AND VOUCHER <> '') "
+                + "+ (SELECT COUNT(*) FROM voucher_redemptions WHERE RECEIPT_ID = ? AND STATUS = 'ACTIVE')",
+                SerializerWriteParams.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, receiptId);
+                        setString(2, receiptId);
+                    }
+                });
+        return count == null ? 0 : count;
+    }
+
+    private boolean isAuthorizedVoucherEditUser(String userId) throws BasicException {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM people WHERE ID = ? AND ROLE IN ('0','1') "
+                + "AND VISIBLE = " + s.DB.TRUE(),
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(userId);
+        return count != null && count == 1;
+    }
+
+    private boolean lockSourceNormalReceiptForVoucherEdit(String sourceReceiptId) throws BasicException {
+        if (sourceReceiptId == null || sourceReceiptId.isBlank()) {
+            return false;
+        }
+        String lockedId = (String) new PreparedSentence(s,
+                "SELECT ID FROM tickets WHERE ID = ? AND TICKETTYPE = 0 FOR UPDATE",
+                SerializerWriteString.INSTANCE,
+                SerializerReadString.INSTANCE).find(sourceReceiptId);
+        return sourceReceiptId.equals(lockedId);
+    }
+
+    private boolean isVisibleVoucherEditOperator(String userId) throws BasicException {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM people WHERE ID = ? AND VISIBLE = " + s.DB.TRUE(),
+                SerializerWriteString.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(userId);
+        return count != null && count == 1;
+    }
+
+    private Date parseVoucherAuthorizationTime(String value) throws BasicException {
+        if (value == null || value.isBlank()) {
+            throw new BasicException("Voucher edit audit is missing its authorization timestamp.");
+        }
+        try {
+            return Date.from(Instant.parse(value));
+        } catch (RuntimeException ex) {
+            throw new BasicException("Voucher edit audit has an invalid authorization timestamp.", ex);
+        }
+    }
+
+    private void insertVoucherEditAudit(final String voucherNumber,
+            final String originalReceiptId, final String newReceiptId,
+            final String operatorUserId, final String authorizationUserId,
+            final Date authorizationTime, final String reason) throws BasicException {
+        if (voucherNumber == null || voucherNumber.isBlank()
+                || originalReceiptId == null || originalReceiptId.isBlank()
+                || newReceiptId == null || newReceiptId.isBlank()
+                || operatorUserId == null || operatorUserId.isBlank()
+                || authorizationUserId == null || authorizationUserId.isBlank()
+                || authorizationTime == null || reason == null || reason.isBlank()) {
+            throw new BasicException("Incomplete voucher edit audit context.");
+        }
+        new PreparedSentence(s,
+                "INSERT INTO voucher_reactivation_audit "
+                + "(ID, VOUCHER_NUMBER, ORIGINAL_RECEIPT, NEW_RECEIPT, OPERATOR_ID, "
+                + "AUTHORIZED_BY, AUTHORIZED_AT, REASON) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                SerializerWriteParams.INSTANCE).exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, UUID.randomUUID().toString());
+                        setString(2, voucherNumber);
+                        setString(3, originalReceiptId);
+                        setString(4, newReceiptId);
+                        setString(5, operatorUserId);
+                        setString(6, authorizationUserId);
+                        setTimestamp(7, authorizationTime);
+                        setString(8, reason);
+                    }
+                });
+    }
+
+    public boolean isReusableVoucherFromSourceReceipt(String sourceReceiptId,
+            String voucherNumber) throws BasicException {
+        if (sourceReceiptId == null || voucherNumber == null) {
+            return false;
+        }
+        Integer count = (Integer) new PreparedSentence(s,
+                "SELECT COUNT(*) FROM vouchers V WHERE V.VOUCHER_NUMBER = ? AND V.STATUS = 'D' "
+                + "AND (V.EXPIRES_AT IS NULL OR V.EXPIRES_AT > CURRENT_TIMESTAMP) AND ("
+                + "EXISTS (SELECT 1 FROM payments P WHERE P.RECEIPT = ? "
+                + "AND P.PAYMENT = 'voucherin' AND P.VOUCHER = V.VOUCHER_NUMBER) "
+                + "OR EXISTS (SELECT 1 FROM voucher_redemptions R WHERE R.RECEIPT_ID = ? "
+                + "AND R.VOUCHER_NUMBER = V.VOUCHER_NUMBER AND R.STATUS = 'ACTIVE'))",
+                SerializerWriteParams.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, voucherNumber);
+                        setString(2, sourceReceiptId);
+                        setString(3, sourceReceiptId);
+                    }
+                });
+        return count != null && count == 1;
+    }
+
+    private List<String> getVoucherPaymentsForReceipt(String receiptId) throws BasicException {
+        return new PreparedSentence(s,
+                "SELECT VOUCHER FROM payments WHERE RECEIPT = ? "
+                + "AND PAYMENT = 'voucherin' AND VOUCHER IS NOT NULL AND VOUCHER <> '' "
+                + "UNION SELECT VOUCHER_NUMBER FROM voucher_redemptions "
+                + "WHERE RECEIPT_ID = ? AND STATUS = 'ACTIVE'",
+                SerializerWriteParams.INSTANCE,
+                SerializerReadString.INSTANCE).list(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, receiptId);
+                        setString(2, receiptId);
+                    }
+                });
+    }
+
+    private int reactivateVoucherAfterEdit(final String voucherNumber)
+            throws BasicException {
+        return new PreparedSentence(s,
+                "UPDATE vouchers SET STATUS = 'A' WHERE VOUCHER_NUMBER = ? AND STATUS = 'D'",
+                SerializerWriteString.INSTANCE).exec(voucherNumber);
+    }
+
+    private int consumeVoucher(final VoucherDiscountInfo discount, final String customerId)
+            throws BasicException {
+        return new PreparedSentence(s,
+                "UPDATE vouchers SET STATUS = 'D' "
+                + "WHERE ID = ? AND VOUCHER_NUMBER = ? AND STATUS = 'A' "
+                + "AND (CUSTOMER = ? OR CUSTOMER IS NULL) "
+                + "AND (EXPIRES_AT IS NULL OR EXPIRES_AT > CURRENT_TIMESTAMP)",
+                SerializerWriteParams.INSTANCE).exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, discount.getVoucherId());
+                        setString(2, discount.getVoucher());
+                        setString(3, customerId);
+                    }
+                });
+    }
+
+    private void insertVoucherRedemption(final VoucherDiscountInfo discount, final TicketInfo ticket)
+            throws BasicException {
+        new PreparedSentence(s,
+                "INSERT INTO voucher_redemptions "
+                + "(ID, VOUCHER_ID, VOUCHER_NUMBER, RECEIPT_ID, CUSTOMER_ID, "
+                + "VOUCHER_CUSTOMER_BEFORE, DISCOUNT_AMOUNT, REDEEMED_AT, OPERATOR_ID, STATUS, "
+                + "REVERSED_AT, REPLACEMENT_RECEIPT_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', NULL, NULL)",
+                SerializerWriteParams.INSTANCE).exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, UUID.randomUUID().toString());
+                        setString(2, discount.getVoucherId());
+                        setString(3, discount.getVoucher());
+                        setString(4, ticket.getId());
+                        setString(5, ticket.getCustomerId());
+                        setString(6, discount.getCustomerId());
+                        setDouble(7, discount.getTotal());
+                        setTimestamp(8, ticket.getDate());
+                        setString(9, ticket.getUser().getId());
+                    }
+                });
+    }
+
+    private void reverseVoucherRedemptions(final String sourceReceiptId,
+            final String replacementReceiptId) throws BasicException {
+        new PreparedSentence(s,
+                "UPDATE voucher_redemptions SET STATUS = 'REVERSED', REVERSED_AT = CURRENT_TIMESTAMP, "
+                + "REPLACEMENT_RECEIPT_ID = ? WHERE RECEIPT_ID = ? AND STATUS = 'ACTIVE'",
+                SerializerWriteParams.INSTANCE).exec(new DataParams() {
+                    @Override
+                    public void writeValues() throws BasicException {
+                        setString(1, replacementReceiptId);
+                        setString(2, sourceReceiptId);
+                    }
+                });
+    }
+
     public final SentenceExec resetPickupId() {
 
         return new PreparedSentence(s, 

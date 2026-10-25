@@ -536,6 +536,21 @@ CREATE TABLE IF NOT EXISTS `suppliers` (
 	UNIQUE INDEX `suppliers_skey_inx` ( `searchkey` )
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Compact;
 
+/* KylGis 1.2: N:M product to supplier associations. */
+CREATE TABLE IF NOT EXISTS `product_suppliers` (
+	`product_id` varchar(255) NOT NULL,
+	`supplier_id` varchar(255) NOT NULL,
+	`is_preferred` bit(1) NOT NULL default b'0',
+	`active` bit(1) NOT NULL default b'1',
+	`supplier_sku` varchar(255) default NULL,
+	`purchase_uom` varchar(255) default NULL,
+	`last_cost` double default NULL,
+	`priority` int(11) default NULL,
+	`last_purchase` datetime default NULL,
+	PRIMARY KEY (`product_id`, `supplier_id`),
+	KEY `product_suppliers_supplier_inx` (`supplier_id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Compact;
+
 /* Header line. Object: taxcategories. Script date: 23/07/2016 08:00:00 */
 CREATE TABLE IF NOT EXISTS `taxcategories` (
 	`id` varchar(255) NOT NULL,
@@ -665,9 +680,26 @@ CREATE TABLE IF NOT EXISTS `uom` (
 /* Header line. Object: vouchers. Script date: 30/09/2015 09:33:33. */
 CREATE TABLE IF NOT EXISTS `vouchers` (
    `id` VARCHAR(100) NOT NULL,
-   `voucher_number` VARCHAR(100) DEFAULT NULL,
+   `voucher_number` VARCHAR(100) NOT NULL,
    `customer` VARCHAR(100) DEFAULT NULL,
    `amount` DOUBLE DEFAULT NULL,
    `status` CHAR(1) DEFAULT 'A',
+   `expires_at` DATETIME DEFAULT NULL,
+   UNIQUE INDEX `vouchers_number_uq` (`voucher_number`),
   PRIMARY KEY ( `id` )
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Compact;
+
+CREATE TABLE IF NOT EXISTS `voucher_reactivation_audit` (
+   `id` VARCHAR(100) NOT NULL,
+   `voucher_number` VARCHAR(100) NOT NULL,
+   `original_receipt` VARCHAR(255) NOT NULL,
+   `new_receipt` VARCHAR(255) NOT NULL,
+   `operator_id` VARCHAR(255) NOT NULL,
+   `authorized_by` VARCHAR(255) NOT NULL,
+   `authorized_at` DATETIME NOT NULL,
+   `reason` VARCHAR(50) NOT NULL,
+   PRIMARY KEY (`id`),
+   UNIQUE INDEX `voucher_reactivation_original_uq` (`original_receipt`, `voucher_number`),
+   INDEX `voucher_reactivation_new_inx` (`new_receipt`),
+   INDEX `voucher_reactivation_authorized_inx` (`authorized_by`, `authorized_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Compact;

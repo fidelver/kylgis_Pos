@@ -20,20 +20,23 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.scale;
 
-import gnu.io.*;
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import java.io.*;
-import java.util.TooManyListenersException;
 
 /**
 *
 * @author uniCenta + H Singh
 */
-public class ScaleAcomPC100 implements Scale, SerialPortEventListener {
+public class ScaleAcomPC100 implements Scale, SerialPortDataListener {
 
-private CommPortIdentifier m_PortIdPrinter;
 private SerialPort m_CommPortPrinter;
 
+private static final byte[] DEFAULT_WEIGHT_REQUEST = new byte[]{0x57, 0x0D};
+
 private final String m_sPortScale;
+private final byte[] m_weightRequest;
 private OutputStream m_out;
 private InputStream m_in;
 
@@ -49,12 +52,18 @@ private String m_sScaleReading;
 /** Creates a new instance of ScaleComm
 * @param sPortPrinter */
     public ScaleAcomPC100(String sPortPrinter) {
+        this(sPortPrinter, DEFAULT_WEIGHT_REQUEST);
+    }
+
+    public ScaleAcomPC100(String sPortPrinter, byte[] weightRequest) {
         m_sPortScale = sPortPrinter;
+        m_weightRequest = weightRequest.clone();
         m_out = null;
         m_in = null;
         m_iStatusScale = SCALE_READY;
         m_dWeightBuffer = 0.0;
         m_dWeightDecimals = 1.0;
+        m_sScaleReading = "";
     }
 
 /**
@@ -78,7 +87,7 @@ public Double readWeight() {
 
         m_dWeightBuffer = 0.0;
         m_dWeightDecimals = 1.0;
-        write(new byte[] {0x57,0X0D}); // $
+        write(m_weightRequest);
         flush();
 
         try {
@@ -110,23 +119,26 @@ private void flush() {
 private void write(byte[] data) {
     try {
         if (m_out == null) {
-            m_PortIdPrinter = CommPortIdentifier.getPortIdentifier(m_sPortScale);
-            m_CommPortPrinter = (SerialPort) m_PortIdPrinter.open("PORTID", 2000);
+            m_CommPortPrinter = SerialPort.getCommPort(m_sPortScale);
+
+            m_CommPortPrinter.setComPortParameters(9600, 7,
+
+                    SerialPort.ONE_STOP_BIT, SerialPort.EVEN_PARITY);
+
+            if (!m_CommPortPrinter.openPort(2000)) {
+
+                return;
+
+            }
 
             m_out = m_CommPortPrinter.getOutputStream();
+
             m_in = m_CommPortPrinter.getInputStream();
 
-            m_CommPortPrinter.addEventListener(this);
-            m_CommPortPrinter.notifyOnDataAvailable(true);
-
-            m_CommPortPrinter.setSerialPortParams(9600, 
-                    SerialPort.DATABITS_7, 
-                    SerialPort.STOPBITS_1, 
-                    SerialPort.PARITY_EVEN);
+            m_CommPortPrinter.addDataListener(this);
         }
         m_out.write(data);
-    } catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException 
-            | TooManyListenersException | IOException e) {
+    } catch (IOException e) {
     }
 }
 
@@ -135,47 +147,38 @@ private void write(byte[] data) {
 * @param e
 */
 @Override
+public int getListeningEvents() {
+    return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+}
+
+@Override
 public void serialEvent(SerialPortEvent e) {
-
-    switch (e.getEventType()) {
-        case SerialPortEvent.BI:
-        case SerialPortEvent.OE:
-        case SerialPortEvent.FE:
-        case SerialPortEvent.PE:
-        case SerialPortEvent.CD:
-        case SerialPortEvent.CTS:
-        case SerialPortEvent.DSR:
-        case SerialPortEvent.RI:
-        case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-            break;
-        case SerialPortEvent.DATA_AVAILABLE:
-            try {
-                int i;
-                i = m_in.available();
-                byte[] readBuffer = new byte[i];
-                if (i > 0) {
-                    m_in.read(readBuffer);
-                }
-
-                m_sScaleReading = m_sScaleReading + new String(readBuffer);
-
-                try {
-                    int start = m_sScaleReading.indexOf((char) 10);
-                    int end = m_sScaleReading.indexOf((char) 3);
-
-                if (start >= 0 && end >= 0) {
-
-                    start = m_sScaleReading.indexOf((char) 10);
-                    end = m_sScaleReading.indexOf((char) 75);
-                    m_dWeightBuffer = Double.parseDouble(m_sScaleReading.substring(start+1, end));
-                    m_sScaleReading = "";
-                }
-            } catch (IndexOutOfBoundsException ex) {
-                System.out.println("IndexOutOfBoundsException, message not complete yet. Waiting for more data.");
-            }
-
-            } catch (IOException eIO) {}
-                break;
-        }
+    if (e.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+        return;
     }
+    try {
+        int i = m_in.available();
+        byte[] readBuffer = new byte[i];
+        if (i > 0) {
+            m_in.read(readBuffer);
+        }
+
+        m_sScaleReading = m_sScaleReading + new String(readBuffer);
+
+        try {
+            int start = m_sScaleReading.indexOf((char) 10);
+            int end = m_sScaleReading.indexOf((char) 3);
+
+            if (start >= 0 && end >= 0) {
+                start = m_sScaleReading.indexOf((char) 10);
+                end = m_sScaleReading.indexOf((char) 75);
+                m_dWeightBuffer = Double.parseDouble(m_sScaleReading.substring(start + 1, end));
+                m_sScaleReading = "";
+            }
+        } catch (IndexOutOfBoundsException ex) {
+            System.out.println("IndexOutOfBoundsException, message not complete yet. Waiting for more data.");
+        }
+    } catch (IOException eIO) {
+    }
+}
 }

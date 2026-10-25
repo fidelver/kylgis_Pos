@@ -20,20 +20,20 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.config;
 
-import com.alee.laf.WebLookAndFeel;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.forms.AppConfig;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.ApplicationIdentity;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.forms.JRootFrame;
+import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  *
@@ -48,6 +48,7 @@ public class JFrmConfig extends javax.swing.JFrame {
     public JFrmConfig(AppProperties props) {
       
         initComponents();
+        UiHelp.install();
         
         try {
             this.setIconImage(ImageIO.read(JRootFrame.class.getResourceAsStream("/com/mx/kylgis/pos/images/favicon.png")));
@@ -108,7 +109,8 @@ public class JFrmConfig extends javax.swing.JFrame {
                 config.load();    
                 AppConfig.setActiveInstance(config);
                 
-                WebLookAndFeel.install ();                 
+                KylGisLookAndFeel.installLegacyWebLookAndFeel(
+                        Logger.getLogger(JFrmConfig.class.getName()));
                 
 //                try {                    
 //                    UIManager.setLookAndFeel(config.getProperty("swing.defaultlaf"));

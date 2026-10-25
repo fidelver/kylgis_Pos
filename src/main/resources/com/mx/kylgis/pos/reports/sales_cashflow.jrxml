@@ -269,7 +269,7 @@
 					<font fontName="SansSerif" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$R{label.total}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$R{label.cashflow.total}]]></textFieldExpression>
 			</textField>
 			<line>
 				<reportElement key="line-5" mode="Opaque" x="435" y="5" width="100" height="1" forecolor="#000000" backcolor="#FFFFFF" uuid="75002aca-3610-4a61-8baf-560863efeb6d"/>

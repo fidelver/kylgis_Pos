@@ -26,22 +26,27 @@ report.setTitleKey("Menu.ExtendedByProducts");
 report.setReport("/com/mx/kylgis/pos/reports/sales_extproducts");
 report.setResourceBundle("com/mx/kylgis/pos/reports/sales_messages");
 
+// The JRXML expects net, tax and gross by customer/category/product.
+// Every ticketline is joined only once, avoiding implicit comma-joins.
 report.setSentence("SELECT " +
-        "customers.TAXID,  " +
-        "customers.NAME AS CUSTOMER, " +
-        "categories.NAME AS CATEGORY, " +
-        "products.REFERENCE AS REFERENCE,  " +
-        "products.NAME AS PRODUCT, " +
-        "SUM(ticketlines.UNITS) AS UNIT,  " +
-        "SUM(ticketlines.UNITS * ticketlines.PRICE) AS TOTAL, " +
-        "SUM(ticketlines.UNITS * ticketlines.PRICE) / SUM(ticketlines.UNITS) AS MEANPRICE " +
-        "FROM tickets  " +
-            "LEFT OUTER JOIN customers ON tickets.CUSTOMER = customers.ID, ticketlines " +
-            "LEFT OUTER JOIN products ON ticketlines.PRODUCT = products.ID " +
-            "LEFT OUTER JOIN categories ON products.CATEGORY = categories.ID, receipts " +
-        "WHERE receipts.ID = tickets.ID AND tickets.ID = ticketlines.TICKET AND ?(QBF_FILTER) " +
-        "GROUP BY customers.ID, categories.ID, products.ID " +
-        "ORDER BY customers.NAME, categories.NAME, products.NAME");
+        "COALESCE(customers.NAME, 'PUBLICO GENERAL') AS CUSTname, " +
+        "COALESCE(categories.NAME, 'SIN CATEGORIA') AS CATname, " +
+        "products.REFERENCE AS PRODref, products.NAME AS PRODname, " +
+        "SUM(ticketlines.UNITS) AS TOTALunits, " +
+        "SUM(ticketlines.UNITS * ticketlines.PRICE) AS TOTALnet, " +
+        "SUM(ticketlines.UNITS * ticketlines.PRICE * taxes.RATE) AS TOTALtax, " +
+        "SUM(ticketlines.UNITS * ticketlines.PRICE * (1 + taxes.RATE)) AS TOTALgross " +
+        "FROM ticketlines " +
+        "JOIN tickets ON tickets.ID = ticketlines.TICKET " +
+        "JOIN receipts ON receipts.ID = tickets.ID " +
+        "JOIN taxes ON taxes.ID = ticketlines.TAXID " +
+        "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+        "LEFT JOIN products ON ticketlines.PRODUCT = products.ID " +
+        "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
+        "WHERE ?(QBF_FILTER) " +
+        "GROUP BY customers.ID, customers.NAME, categories.ID, categories.NAME, " +
+        "products.ID, products.REFERENCE, products.NAME " +
+        "ORDER BY CUSTname, CATname, PRODname");
 
 report.addParameter("receipts.DATENEW");
 report.addParameter("receipts.DATENEW");
@@ -58,13 +63,13 @@ report.addParameter("customers.ID");
 report.addParameter("customers.NAME");
 report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsCustomer());
 
-report.addField("TAXID", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("CUSTOMER", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("CATEGORY", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("PRODUCT", com.mx.kylgis.pos.data.loader.Datas.STRING);
-report.addField("UNIT", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("TOTAL", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
-report.addField("MEANPRICE", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("CUSTname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("CATname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODref", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("PRODname", com.mx.kylgis.pos.data.loader.Datas.STRING);
+report.addField("TOTALunits", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALnet", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALtax", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
+report.addField("TOTALgross", com.mx.kylgis.pos.data.loader.Datas.DOUBLE);
 
 report;

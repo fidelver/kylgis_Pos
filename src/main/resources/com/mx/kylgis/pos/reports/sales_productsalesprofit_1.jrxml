@@ -46,9 +46,9 @@
 	<group name="Product">
 		<groupExpression><![CDATA[$F{CODE}]]></groupExpression>
 		<groupHeader>
-			<band height="13">
+			<band height="16">
 				<textField isBlankWhenNull="false">
-					<reportElement key="textField" x="0" y="0" width="74" height="13" forecolor="#000000" uuid="c60164f1-2405-4fe0-a95d-f5568e9290b7"/>
+					<reportElement key="textField" x="0" y="0" width="74" height="16" forecolor="#000000" uuid="c60164f1-2405-4fe0-a95d-f5568e9290b7"/>
 					<textElement verticalAlignment="Top">
 						<font fontName="SansSerif" size="10" isBold="true" pdfFontName="Helvetica-Bold"/>
 					</textElement>
@@ -305,58 +305,58 @@
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="16" splitType="Stretch">
 			<textField isBlankWhenNull="false">
-				<reportElement key="textField" x="172" y="0" width="29" height="13" uuid="47ce0d6f-3315-4748-a5f1-041936cafa62"/>
+				<reportElement key="textField" x="172" y="0" width="29" height="16" uuid="47ce0d6f-3315-4748-a5f1-041936cafa62"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10" isBold="true" pdfFontName="Helvetica-Bold"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{TICKETID}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
-				<reportElement key="textField" x="201" y="0" width="79" height="13" uuid="1e988498-be57-4253-a8cf-83b8e98fa8f5"/>
+				<reportElement key="textField" x="201" y="0" width="79" height="16" uuid="1e988498-be57-4253-a8cf-83b8e98fa8f5"/>
 				<textElement textAlignment="Center">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DATE.formatValue($F{DATE})]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="false">
-				<reportElement key="textField" x="7" y="0" width="163" height="13" uuid="2ae235c6-0489-4af2-8f44-e7fb8e828881"/>
+				<reportElement key="textField" x="7" y="0" width="163" height="16" uuid="2ae235c6-0489-4af2-8f44-e7fb8e828881"/>
 				<textElement textAlignment="Left">
 					<font fontName="SansSerif" size="10" isBold="false" pdfFontName="Helvetica-Bold"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{NAME}]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.00" isBlankWhenNull="false">
-				<reportElement key="textField" x="333" y="0" width="53" height="13" uuid="35a13bd6-34f5-46ff-8e98-47f1a3301d98"/>
+				<reportElement key="textField" x="333" y="0" width="53" height="16" uuid="35a13bd6-34f5-46ff-8e98-47f1a3301d98"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICESELL})]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.00" isBlankWhenNull="false">
-				<reportElement key="textField" x="282" y="0" width="51" height="13" uuid="e890c5b9-f871-40e7-a286-d603314d1a51"/>
+				<reportElement key="textField" x="282" y="0" width="51" height="16" uuid="e890c5b9-f871-40e7-a286-d603314d1a51"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{PRICEBUY})]]></textFieldExpression>
 			</textField>
 			<textField pattern="###0" isBlankWhenNull="false">
-				<reportElement key="textField" x="386" y="0" width="30" height="13" uuid="a0aa291c-e992-4639-afbd-8464f59874a5"/>
+				<reportElement key="textField" x="386" y="0" width="30" height="16" uuid="a0aa291c-e992-4639-afbd-8464f59874a5"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10" isBold="false" pdfFontName="Helvetica-Bold"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.DOUBLE.formatValue($F{UNITSSOLD})]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.00" isBlankWhenNull="false">
-				<reportElement key="textField" x="416" y="0" width="53" height="13" uuid="2ec4a489-daf1-4ab2-a3e5-0d1f3bd9bc1d"/>
+				<reportElement key="textField" x="416" y="0" width="53" height="16" uuid="2ec4a489-daf1-4ab2-a3e5-0d1f3bd9bc1d"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[com.mx.kylgis.pos.format.Formats.CURRENCY.formatValue($F{TOTAL})]]></textFieldExpression>
 			</textField>
 			<textField pattern="##0.00" isBlankWhenNull="false">
-				<reportElement key="textField" x="469" y="0" width="66" height="13" uuid="143e7bc6-f8b4-4dd3-a863-5e0716ef53b0"/>
+				<reportElement key="textField" x="469" y="0" width="66" height="16" uuid="143e7bc6-f8b4-4dd3-a863-5e0716ef53b0"/>
 				<textElement textAlignment="Right">
 					<font fontName="SansSerif" size="10"/>
 				</textElement>

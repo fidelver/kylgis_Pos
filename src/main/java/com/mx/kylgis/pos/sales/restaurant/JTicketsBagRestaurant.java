@@ -20,11 +20,6 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.sales.restaurant;
 
-import com.alee.extended.time.ClockType;
-import com.alee.extended.time.WebClock;
-import com.alee.managers.notification.NotificationIcon;
-import com.alee.managers.notification.NotificationManager;
-import com.alee.managers.notification.WebNotification;
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.beans.JGuestsPop;
 import com.mx.kylgis.pos.beans.JNumberPop;
@@ -48,6 +43,7 @@ import com.mx.kylgis.pos.scripting.ScriptException;
 import com.mx.kylgis.pos.scripting.ScriptFactory;
 import com.mx.kylgis.pos.ticket.TicketInfo;
 import com.mx.kylgis.pos.ticket.TicketLineInfo;
+import com.mx.kylgis.pos.ui.KylGisNotifications;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -186,18 +182,7 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
     }
 
     public void printNotify(){
-        final WebNotification notificationPopup = new WebNotification ();
-        notificationPopup.setIcon ( NotificationIcon.information );
-        notificationPopup.setDisplayTime ( 4000 );
-
-        final WebClock clock = new WebClock ();
-        clock.setClockType ( ClockType.timer );
-        clock.setTimeLeft ( 5000 );
-        clock.setTimePattern ( "'Printed successfully'" );
-        notificationPopup.setContent ( clock );
-
-        NotificationManager.showNotification ( notificationPopup );
-        clock.start ();    
+        KylGisNotifications.showTimedInformation("'Printed successfully'");
     }
 
     public void updateGuestCount() {

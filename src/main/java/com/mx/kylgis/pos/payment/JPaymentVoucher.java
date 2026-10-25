@@ -30,6 +30,7 @@ import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.util.RoundUtils;
+import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
 import com.mx.kylgis.pos.voucher.VoucherInfo;
 import java.awt.Component;
 import java.beans.PropertyChangeEvent;
@@ -53,17 +54,18 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
     private double m_dTicket;
     private double m_dTotal;  
 
-    private final String m_sVoucher; // "voucherin", "voucherout"
     private String m_sVoucher1;
+    private String m_customerId;
+    private javax.swing.JTextField m_directVoucherCode;
+    private javax.swing.JButton m_directVoucherSearch;
    
     /** Creates new form JPaymentTicket
      * @param app
      * @param notifier
-     * @param sVoucher */
-    public JPaymentVoucher(AppView app, JPaymentNotifier notifier, String sVoucher) {
+     */
+    public JPaymentVoucher(AppView app, JPaymentNotifier notifier) {
 
         m_notifier = notifier;
-        m_sVoucher = sVoucher;
         m_dTotal=0.0;
         
         init(app);
@@ -74,26 +76,19 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
     }
     private void init(AppView app) {
 
-        try {
-            dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
-            dlCustomers = (DataLogicCustomers) app.getBean("com.mx.kylgis.pos.customers.DataLogicCustomers");
-            m_sentvouch = dlSales.getVoucherList();
+        dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");
+        dlCustomers = (DataLogicCustomers) app.getBean("com.mx.kylgis.pos.customers.DataLogicCustomers");
+        m_sentvouch = dlSales.getVoucherListByCustomer();
 
-            initComponents();        
+        initComponents();
+        installDirectVoucherLookup();
 
-            m_VoucherModel = new ComboBoxValModel();
-            List a = m_sentvouch.list();
-//            a.add(0, null);
+        m_VoucherModel = new ComboBoxValModel();
+        m_jVoucher.setModel(m_VoucherModel);
+        m_jVoucher.setEnabled(false);
+        webLblcustomerName.setText(null);
+    }
 
-            m_VoucherModel = new ComboBoxValModel(a);
-            m_jVoucher.setModel(m_VoucherModel);
-
-            webLblcustomerName.setText(null);            
-            
-        } catch (BasicException ex) {
-        }
-    }    
-    
     /**
      *
      * @param customerext
@@ -102,17 +97,105 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
      */
     @Override
     public void activate(CustomerInfoExt customerext, double dTotal,String transID) {
-    
+
             m_dTotal = dTotal;
-            
+            m_customerId = customerext == null ? null : customerext.getId();
+
             m_jTendered.reset();
-//            m_jTendered.activate();
+            refreshVoucherModel(customerext);
 
             m_jKeys.setEnabled(false);
-            m_jTendered.setEnabled(false);            
-            
+            m_jTendered.setEnabled(false);
+
             printState();
         }
+
+    private void refreshVoucherModel(CustomerInfoExt customerext) {
+        m_jMoneyEuros.setText(null);
+        voucherStatus.setText(null);
+        m_voucherInfo = null;
+        if (m_directVoucherCode != null) {
+            m_directVoucherCode.setText("");
+        }
+        webLblcustomerName.setText(customerext == null ? null : customerext.getName());
+
+        try {
+            String sourceReceiptId = getVoucherEditSourceReceiptId();
+            List vouchers = customerext == null
+                    ? java.util.Collections.emptyList()
+                    : sourceReceiptId == null || sourceReceiptId.isBlank()
+                            ? m_sentvouch.list(customerext.getId())
+                            : dlSales.getVoucherListByCustomerForEdit(customerext.getId(), sourceReceiptId);
+            m_VoucherModel = new ComboBoxValModel(vouchers);
+            m_jVoucher.setModel(m_VoucherModel);
+            m_jVoucher.setEnabled(customerext != null && !vouchers.isEmpty());
+        } catch (BasicException ex) {
+            m_VoucherModel = new ComboBoxValModel();
+            m_jVoucher.setModel(m_VoucherModel);
+            m_jVoucher.setEnabled(false);
+        }
+    }
+
+    private void installDirectVoucherLookup() {
+        javax.swing.JPanel direct = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        javax.swing.JLabel label = new javax.swing.JLabel("Código de cupón:");
+        label.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
+        m_directVoucherCode = new javax.swing.JTextField(22);
+        m_directVoucherCode.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 16));
+        m_directVoucherSearch = new javax.swing.JButton("Buscar");
+        m_directVoucherSearch.addActionListener(e -> lookupDirectVoucher());
+        m_directVoucherCode.addActionListener(e -> lookupDirectVoucher());
+        direct.add(label);
+        direct.add(m_directVoucherCode);
+        direct.add(m_directVoucherSearch);
+        add(direct, java.awt.BorderLayout.SOUTH);
+    }
+
+    private void lookupDirectVoucher() {
+        String code = com.mx.kylgis.pos.voucher.VoucherCodeGenerator.normalize(
+                m_directVoucherCode == null ? null : m_directVoucherCode.getText());
+        m_voucherInfo = null;
+        m_jVoucher.setSelectedItem(null);
+        if (code.isEmpty()) {
+            voucherStatus.setText("Capture un código de cupón.");
+            return;
+        }
+        try {
+            VoucherInfo voucher = dlCustomers.getVoucherInfoByNumber(code);
+            if (voucher == null) {
+                voucherStatus.setText("Cupón no encontrado.");
+                return;
+            }
+            String sourceReceiptId = getVoucherEditSourceReceiptId();
+            boolean active = "A".equals(voucher.getStatus());
+            boolean authorizedSourceVoucher = "D".equals(voucher.getStatus())
+                    && sourceReceiptId != null && !sourceReceiptId.isBlank()
+                    && dlSales.isReusableVoucherFromSourceReceipt(sourceReceiptId, voucher.getVoucherNumber());
+            if (!active && !authorizedSourceVoucher) {
+                voucherStatus.setText("Cupón ya redimido o inactivo.");
+                return;
+            }
+            if (voucher.isExpired(new java.util.Date())) {
+                voucherStatus.setText("Cupón vencido.");
+                return;
+            }
+            if (voucher.getCustomerId() != null
+                    && (m_customerId == null || !m_customerId.equals(voucher.getCustomerId()))) {
+                voucherStatus.setText("Cupón asignado a otro cliente.");
+                return;
+            }
+            m_voucherInfo = voucher;
+            m_jVoucher.setSelectedItem(null);
+            m_jTendered.setDoubleValue(voucher.getAmount());
+            m_jMoneyEuros.setText(Formats.CURRENCY.formatValue(voucher.getAmount()));
+            webLblcustomerName.setText(voucher.getCustomerId() == null
+                    ? "Cupón de campaña abierto" : voucher.getCustomerName());
+            voucherStatus.setText(active ? "Disponible" : "Redimido en venta origen (edición autorizada)");
+            printState();
+        } catch (BasicException ex) {
+            voucherStatus.setText("No se pudo consultar el cupón.");
+        }
+    }
 
     /**
      *
@@ -129,28 +212,54 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
      */
     @Override
     public PaymentInfo executePayment() {
-/*        try {
-            String id = m_VoucherModel.getSelectedKey().toString();
-            VoucherInfo m_voucherInfo = dlCustomers.getVoucherInfo(id);
+        VoucherInfo voucherInfo = m_voucherInfo;
+        if (voucherInfo == null) {
+            Object selected = m_VoucherModel.getSelectedItem();
+            if (selected instanceof VoucherInfo selectedVoucher) {
+                voucherInfo = selectedVoucher;
+            }
+        }
+        if (voucherInfo == null || voucherInfo.isExpired(new java.util.Date())) {
+            return null;
+        }
+        if (voucherInfo.getCustomerId() != null
+                && (m_customerId == null || !m_customerId.equals(voucherInfo.getCustomerId()))) {
+            return null;
+        }
 
-        } catch (BasicException ex) {
+        String sourceReceiptId = getVoucherEditSourceReceiptId();
+        boolean active = "A".equals(voucherInfo.getStatus());
+        boolean authorizedSourceVoucher = false;
+        if ("D".equals(voucherInfo.getStatus())
+                && sourceReceiptId != null && !sourceReceiptId.isBlank()) {
+            try {
+                authorizedSourceVoucher = dlSales.isReusableVoucherFromSourceReceipt(
+                        sourceReceiptId, voucherInfo.getVoucherNumber());
+            } catch (BasicException ex) {
+                return null;
+            }
         }
-            if (m_dTicket>m_dTotal){
-                return new VoucherPaymentInfo(m_dTotal, m_sPaper,m_voucherInfo.getVoucherNumber());
-            }else{
-                return new VoucherPaymentInfo(m_dTicket, m_sPaper,m_voucherInfo.getVoucherNumber());
-            }         
-*/
-        try {
-            String id = m_VoucherModel.getSelectedKey().toString();
-            VoucherInfo m_voucherInfo1 = dlCustomers.getVoucherInfo(id);
-            m_sVoucher1 = m_voucherInfo1.getVoucherNumber();                    
-        } catch (BasicException ex) {
+        if (!active && !authorizedSourceVoucher) {
+            return null;
         }
-            return new PaymentInfoTicket(m_dTicket, m_sVoucher, m_sVoucher1);                    
-        
-    }    
-    
+        m_sVoucher1 = voucherInfo.getVoucherNumber();
+        double discountCapacity = m_notifier instanceof JPaymentSelect paymentSelect
+                ? paymentSelect.getVoucherDiscountCapacity()
+                : Math.max(0.0, m_dTotal);
+        double appliedAmount = Math.min(voucherInfo.getAmount(), discountCapacity);
+        if (appliedAmount <= 0.0) {
+            return null;
+        }
+        return new VoucherDiscountInfo(voucherInfo.getId(), m_sVoucher1,
+                voucherInfo.getCustomerId(), voucherInfo.getAmount(), appliedAmount);
+    }
+
+    private String getVoucherEditSourceReceiptId() {
+        return m_notifier instanceof JPaymentSelect paymentSelect
+                ? paymentSelect.getVoucherEditSourceReceiptId()
+                : null;
+    }
+
     private void printState() {
 
         Double value = m_jTendered.getDoubleValue();
@@ -320,7 +429,7 @@ public class JPaymentVoucher extends javax.swing.JPanel implements JPaymentInter
             try {
 
                 String id = m_VoucherModel.getSelectedKey().toString();
-                VoucherInfo m_voucherInfo = dlCustomers.getVoucherInfo(id);
+                m_voucherInfo = dlCustomers.getVoucherInfo(id);
 
                 if (m_voucherInfo != null){
                     m_jTendered.setDoubleValue(m_voucherInfo.getAmount());

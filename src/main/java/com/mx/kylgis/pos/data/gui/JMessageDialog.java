@@ -195,11 +195,11 @@ public class JMessageDialog extends javax.swing.JDialog {
         jPanel4.setLayout(new javax.swing.BoxLayout(jPanel4, javax.swing.BoxLayout.Y_AXIS));
 
         jlblErrorCode.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jlblErrorCode.setText("jlblErrorCode");
+        jlblErrorCode.setText("");
         jPanel4.add(jlblErrorCode);
 
         jlblMessage.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jlblMessage.setText("jlblMessage");
+        jlblMessage.setText("");
         jlblMessage.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jlblMessage.setMinimumSize(new java.awt.Dimension(200, 100));
         jlblMessage.setPreferredSize(new java.awt.Dimension(200, 100));

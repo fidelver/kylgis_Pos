@@ -24,6 +24,7 @@ import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.DataRead;
 import com.mx.kylgis.pos.data.loader.IKeyed;
 import com.mx.kylgis.pos.data.loader.SerializerRead;
+import java.util.Date;
 
 
 public class VoucherInfo implements IKeyed {
@@ -33,6 +34,7 @@ public class VoucherInfo implements IKeyed {
     private String customerName;
     private double amount;
     private String status;
+    private Date expiresAt;
 
     public VoucherInfo() {
     }
@@ -42,7 +44,8 @@ public class VoucherInfo implements IKeyed {
         String customerId, 
         String customerName,
         double amount, 
-        String status) 
+        String status,
+        Date expiresAt) 
     {
         this.id = id;
         this.voucherNumber = voucherNumber;
@@ -50,6 +53,7 @@ public class VoucherInfo implements IKeyed {
         this.customerName = customerName;
         this.amount = amount;
         this.status = status;
+        this.expiresAt = expiresAt;
     }
       
 
@@ -148,6 +152,18 @@ public class VoucherInfo implements IKeyed {
         this.status = status;
     }
 
+    public Date getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Date expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+    public boolean isExpired(Date now) {
+        return expiresAt != null && !expiresAt.after(now);
+    }
+
     public static SerializerRead getSerializerRead() {
         return new SerializerRead() 
         {
@@ -158,7 +174,8 @@ public class VoucherInfo implements IKeyed {
                     dr.getString(3),
                     dr.getString(4),
                     dr.getDouble(5),
-                    dr.getString(6));
+                    dr.getString(6),
+                    dr.getTimestamp(7));
         }};
     }    
 }

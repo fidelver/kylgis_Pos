@@ -41,6 +41,7 @@ public final class Session {
     private final String m_surl;
     private final String m_sappuser;
     private final String m_spassword;
+    private final boolean m_readOnly;
     
     private Connection m_c;
     private boolean m_bInTransaction;
@@ -57,9 +58,14 @@ public final class Session {
      * @param password
      * @throws java.sql.SQLException */
     public Session(String url, String user, String password) throws SQLException {
+        this(url, user, password, false);
+    }
+
+    private Session(String url, String user, String password, boolean readOnly) throws SQLException {
         m_surl = url;
         m_sappuser = user;
         m_spassword = password;
+        m_readOnly = readOnly;
         
         m_c = null;
         m_bInTransaction = false;
@@ -83,6 +89,9 @@ public final class Session {
         m_c = (m_sappuser == null && m_spassword == null)
         ? DriverManager.getConnection(m_surl)
         : DriverManager.getConnection(m_surl, m_sappuser, m_spassword);         
+        if (m_readOnly) {
+            m_c.setReadOnly(true);
+        }
         m_c.setAutoCommit(true);
         m_bInTransaction = false;
         markConnectionValidation();
@@ -121,6 +130,14 @@ public final class Session {
      * @return
      * @throws SQLException
      */
+    /** Independent connection for the explicitly gated isolated sale-ledger QA.
+     * Never shares the transaction-bound connection with saveTicket(). */
+    public Connection openIndependentConnectionForQA() throws SQLException {
+        return (m_sappuser == null && m_spassword == null)
+                ? DriverManager.getConnection(m_surl)
+                : DriverManager.getConnection(m_surl, m_sappuser, m_spassword);
+    }
+
     public Connection getConnection() throws SQLException {
         
         if (!m_bInTransaction) {
@@ -190,6 +207,29 @@ public final class Session {
      */
     public boolean isTransaction() {
         return m_bInTransaction;
+    }
+
+    /**
+     * Opens an independent connection using the same JDBC credentials and
+     * database dialect, marked read-only before it is exposed to callers.
+     */
+    public Session forkReadOnly() throws SQLException {
+        return new Session(m_surl, m_sappuser, m_spassword, true);
+    }
+
+    /**
+     * Opens a dedicated read-only health-check session with short network
+     * timeouts on MySQL/MariaDB URLs so loss of network cannot block the UI
+     * health worker for the driver's default TCP timeout.
+     */
+    public Session forkHealthCheck(int timeoutMillis) throws SQLException {
+        int bounded = Math.max(500, Math.min(timeoutMillis, 5000));
+        String url = m_surl;
+        if (url != null && (url.startsWith("jdbc:mysql:") || url.startsWith("jdbc:mariadb:"))) {
+            String separator = url.contains("?") ? "&" : "?";
+            url = url + separator + "connectTimeout=" + bounded + "&socketTimeout=" + bounded;
+        }
+        return new Session(url, m_sappuser, m_spassword, true);
     }
 
     private void discardConnectionAfterTransactionFailure() {
@@ -284,6 +324,7 @@ public final class Session {
             case "HSQL Database Engine":
                 return new SessionDBHSQLDB();
             case "MySQL":
+            case "MariaDB":
                 return new SessionDBMySQL();
             case "PostgreSQL":
                 return new SessionDBPostgreSQL();

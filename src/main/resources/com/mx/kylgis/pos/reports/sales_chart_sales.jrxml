@@ -49,7 +49,7 @@ GROUP BY categories.NAME]]>
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
-					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica-Bold" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica-Bold" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$R{label.printed}]]></textFieldExpression>
@@ -57,7 +57,7 @@ GROUP BY categories.NAME]]>
 			<textField evaluationTime="Report" pattern="dd/MM/yyyy h.mm a" isBlankWhenNull="false">
 				<reportElement key="textField" x="647" y="14" width="135" height="15" uuid="95b8b2fa-9438-4151-83ea-6572050592de"/>
 				<textElement textAlignment="Right">
-					<font fontName="Arial" size="10"/>
+					<font fontName="SansSerif" size="10"/>
 				</textElement>
 				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
 			</textField>

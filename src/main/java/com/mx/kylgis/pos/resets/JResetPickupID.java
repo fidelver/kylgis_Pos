@@ -31,10 +31,9 @@ import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
+import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
 
 
 /**
@@ -110,19 +109,8 @@ public class JResetPickupID extends javax.swing.JFrame {
                 config.load();    
                 AppConfig.setActiveInstance(config);
                 
-// Set the look and feel.
-// JG 6 May 2013 to Multicatch                
-                try {                    
-                    Object laf = Class.forName(config.getProperty("swing.defaultlaf"))
-                            .getDeclaredConstructor().newInstance();
-                    if (laf instanceof LookAndFeel){
-                        UIManager.setLookAndFeel((LookAndFeel) laf);
-//                    } else if (laf instanceof SubstanceSkin) {                      
-//                        SubstanceLookAndFeel.setSkin((SubstanceSkin) laf);                   
-                    }
-// JG 6 May 2013 to multicatch
-                } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
-                }
+                KylGisLookAndFeel.apply(config.getProperty("swing.defaultlaf"),
+                        Logger.getLogger(JResetPickupID.class.getName()));
                 
                 JResetPickupID resetFrame = new JResetPickupID(config);//
                 resetFrame.setSize(360, 120);

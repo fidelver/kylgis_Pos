@@ -78,6 +78,7 @@ import java.nio.file.StandardOpenOption;
 public class JRootApp extends JPanel implements AppView {
 
     private AppProperties m_props;
+    private AppProperties m_peripheralProps;
     private Session session;     
     private DataLogicSystem m_dlSystem;
     
@@ -108,6 +109,16 @@ public class JRootApp extends JPanel implements AppView {
     private DeviceScanner m_Scanner;
     private DeviceTicket m_TP;   
     private TicketParser m_TTP;
+    private javax.swing.Timer m_healthMonitorTimer;
+    private volatile boolean m_healthProbeRunning;
+    private String m_databaseHealthHost;
+    private int m_databaseHealthPort = -1;
+    private String m_databaseHealthLastOctet;
+    private Session m_databaseHealthSession;
+    private final OperationalHealth m_health = new OperationalHealth();
+    private final JLabel m_healthPeripherals = new JLabel();
+    private final JLabel m_healthResources = new JLabel();
+    private final JButton m_healthRefreshButton = new JButton("↻ Refrescar");
     
     private final Map<String, BeanFactory> m_aBeanFactories;
     
@@ -195,10 +206,33 @@ public class JRootApp extends JPanel implements AppView {
         
         initComponents ();            
         configureTopBranding();
+        configureHealthBar();
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(30, 30));
         serverMonitor.setVisible(false);
         webMemoryBar1.setShowMaximumMemory ( true );
     }
+    private void configureHealthBar() {
+        java.awt.Font font = new java.awt.Font("Arial", java.awt.Font.BOLD, 11);
+        panelTask.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 2));
+        m_jHost.setFont(font);
+        m_healthPeripherals.setFont(font);
+        m_healthResources.setFont(font);
+        m_jHost.setPreferredSize(new java.awt.Dimension(500, 24));
+        m_healthPeripherals.setPreferredSize(new java.awt.Dimension(150, 24));
+        m_healthResources.setPreferredSize(new java.awt.Dimension(150, 24));
+        webMemoryBar1.setPreferredSize(new java.awt.Dimension(100, 24));
+        m_healthPeripherals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
+        m_healthResources.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4));
+        m_healthRefreshButton.setFocusable(false);
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_healthRefreshButton,"app.health.returnLogin");
+        m_healthRefreshButton.setPreferredSize(new java.awt.Dimension(105, 24));
+        m_healthRefreshButton.addActionListener(evt -> returnToLoginAfterDatabaseCheck());
+        panelTask.add(m_healthPeripherals, 1);
+        panelTask.add(m_healthResources, 2);
+        panelTask.add(m_healthRefreshButton, 3);
+        refreshHealthBar();
+    }
+
     private void configureTopBranding() {
         java.net.URL logoUrl = getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png");
         if (logoUrl != null) {
@@ -219,7 +253,7 @@ public class JRootApp extends JPanel implements AppView {
         }
         try {
             m_iButtonMonitor = OptionalIButtonMonitor.start(
-                    m_props.getProperty("machine.iButton.library"),
+                    peripheralProperties().getProperty("machine.iButton.library"),
                     new OptionalIButtonMonitor.Listener() {
                 @Override
                 public void deviceArrived(String address) {
@@ -290,7 +324,103 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     public void releaseResources() {
+        closeDatabaseHealthSession();
+        closeRuntimePeripherals(true);
+    }
+
+    public synchronized boolean reloadPeripheralConfiguration() {
+        AppProperties previous = peripheralProperties();
+        final AppConfig candidate;
+        try {
+            candidate = new AppConfig(m_props.getConfigFile());
+        } catch (RuntimeException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.WARNING,
+                    "Unable to load saved peripheral configuration", ex);
+            return false;
+        }
+
+        boolean scaleChanged = scaleConfigurationChanged(previous, candidate);
+        if (scaleChanged && (!DeviceScale.supportsHotReload(previous)
+                || !DeviceScale.supportsHotReload(candidate))) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.INFO,
+                    "Scale change requires restart for this driver; peripheral hot reload was not attempted");
+            return false;
+        }
+
+        closeRuntimePeripherals(scaleChanged);
+        try {
+            m_peripheralProps = candidate;
+            initializeRuntimePeripherals(candidate, scaleChanged);
+            updateOperationIndicator();
+            return true;
+        } catch (RuntimeException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.WARNING,
+                    "Unable to apply peripheral configuration; restoring previous runtime devices", ex);
+            closeRuntimePeripherals(scaleChanged);
+            m_peripheralProps = previous;
+            try {
+                initializeRuntimePeripherals(previous, scaleChanged);
+            } catch (RuntimeException rollbackEx) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.SEVERE,
+                        "Unable to restore previous peripheral configuration", rollbackEx);
+            }
+            updateOperationIndicator();
+            return false;
+        }
+    }
+
+    private boolean scaleConfigurationChanged(AppProperties previous, AppProperties candidate) {
+        return !Objects.equals(previous.getProperty("machine.scale"), candidate.getProperty("machine.scale"))
+                || !Objects.equals(previous.getProperty(com.mx.kylgis.pos.scale.ScaleRequestCommand.PROPERTY),
+                        candidate.getProperty(com.mx.kylgis.pos.scale.ScaleRequestCommand.PROPERTY))
+                || !Objects.equals(
+                        com.mx.kylgis.pos.scale.service.ScaleServiceConfig.getServiceId(previous),
+                        com.mx.kylgis.pos.scale.service.ScaleServiceConfig.getServiceId(candidate));
+    }
+
+    private void initializeRuntimePeripherals(AppProperties props, boolean initializeScale) {
+        m_TP = new DeviceTicket(this, props);
+        m_TTP = new TicketParser(getDeviceTicket(), m_dlSystem);
+        printerStart();
+        if (initializeScale || m_Scale == null) {
+            m_Scale = new DeviceScale(this, props);
+        }
+        m_Scanner = DeviceScannerFactory.createInstance(props);
+        if (Boolean.parseBoolean(props.getProperty("machine.iButton"))) {
+            initIButtonMonitor();
+        }
+    }
+
+    private void closeRuntimePeripherals(boolean closeScale) {
         shutdownIButtonMonitor();
+        if (m_Scanner != null) {
+            try {
+                m_Scanner.disconnectDevice();
+            } catch (RuntimeException ex) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                        "Error disconnecting scanner during peripheral reload", ex);
+            }
+            m_Scanner = null;
+        }
+        if (closeScale && m_Scale != null) {
+            try {
+                m_Scale.close();
+            } catch (RuntimeException ex) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                        "Error closing scale during peripheral reload", ex);
+            }
+            m_Scale = null;
+        }
+        if (m_TP != null) {
+            try {
+                m_TP.close();
+            } catch (RuntimeException ex) {
+                Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                        "Error closing ticket devices during peripheral reload", ex);
+            }
+            m_TP = null;
+            m_TTP = null;
+        }
     }
 
     /**
@@ -301,14 +431,18 @@ public class JRootApp extends JPanel implements AppView {
     public boolean initApp(AppProperties props) {
         
         m_props = props;
-        m_jPanelDown.setVisible(!(Boolean.valueOf(m_props.getProperty("till.hideinfo"))));            
+        m_peripheralProps = props;
+        m_jPanelDown.setVisible(!(Boolean.valueOf(m_props.getProperty("till.hideinfo"))));
+        setOperationIndicator("Inicializando", new java.awt.Color(184, 134, 11), null);
 
         applyComponentOrientation(ComponentOrientation.getOrientation(Locale.getDefault()));
         
         try {
             session = AppViewConnection.createSession(m_props);
+            cacheDatabaseHealthEndpoint();
             
         } catch (BasicException e) {
+            setOperationIndicator("Sin conexión", new java.awt.Color(176, 0, 32), null);
             JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_DANGER, e.getMessage(), e));
             return false;
         }
@@ -323,7 +457,43 @@ public class JRootApp extends JPanel implements AppView {
  * 
 */
         String sDBVersion = readDataBaseVersion();        
-        if (!AppLocal.APP_VERSION.equals(sDBVersion)) {
+        String targetDBVersion = ApplicationIdentity.getVersion();
+        if (!targetDBVersion.equals(sDBVersion)
+                && DatabaseUpgradeService.supports(sDBVersion, targetDBVersion)) {
+            if (JOptionPane.showConfirmDialog(this,
+                    AppLocal.getIntString("message.kylgisdbupgrade", sDBVersion, targetDBVersion),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.OK_OPTION,
+                    JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+                session.close();
+                return false;
+            }
+            try {
+                DatabaseUpgradeService.upgrade(session, m_props, sDBVersion, targetDBVersion);
+                sDBVersion = targetDBVersion;
+            } catch (BasicException e) {
+                JMessageDialog.showMessage(this,
+                        new MessageInf(MessageInf.SGN_DANGER,
+                        AppLocal.getIntString("database.scripterror"), e));
+                session.close();
+                return false;
+            }
+        }
+
+        if (DatabaseUpgradeService.VERSION_1_3.equals(targetDBVersion)
+                && DatabaseUpgradeService.VERSION_1_3.equals(sDBVersion)) {
+            try {
+                DatabaseUpgradeService.ensureRecipeUiAccess(session);
+            } catch (BasicException e) {
+                JMessageDialog.showMessage(this,
+                        new MessageInf(MessageInf.SGN_DANGER,
+                        AppLocal.getIntString("database.scripterror"), e));
+                session.close();
+                return false;
+            }
+        }
+
+        if (!targetDBVersion.equals(sDBVersion)) {
             String sScript = sDBVersion == null 
             ? m_dlSystem.getInitScript() + "-create.sql"
             : m_dlSystem.getInitScript() + "-upgrade_master.sql";                    
@@ -350,6 +520,12 @@ public class JRootApp extends JPanel implements AppView {
                         bsentence.putParameter("APP_VERSION", Matcher.quoteReplacement(ApplicationIdentity.getVersion()));
 
                         java.util.List l = bsentence.list();
+                        if (sDBVersion == null) {
+                            DatabaseUpgradeService.validateFreshSchema(
+                                    session, m_props, targetDBVersion);
+                            sDBVersion = targetDBVersion;
+                        }
+
 
                         if (l.size() > 0) { 
                             JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING
@@ -461,23 +637,9 @@ public class JRootApp extends JPanel implements AppView {
             
         new javax.swing.Timer(250, new PrintTimeAction()).start();
         
-        String sWareHouse;
+        updateOperationIndicator();
+        startHealthMonitor();
 
-        try {
-            sWareHouse = m_dlSystem.findLocationName(m_sInventoryLocation);
-        } catch (BasicException e) {
-            sWareHouse = null;
-        }        
-        
-        String url;
-        try {
-            url = session.getURL();
-        } catch (SQLException e) {
-            url = "";
-        }        
-            m_jHost.setText("<html>" + m_props.getHost() + " - " + sWareHouse + "<br>" + url);
-        
-        
         String newLogo = m_props.getProperty("start.logo");
         if (newLogo != null) {
            if ("".equals(newLogo)){
@@ -490,7 +652,7 @@ public class JRootApp extends JPanel implements AppView {
         String newText = m_props.getProperty("start.text");
         if (newText != null) {
             if (newText.equals("")){
-                jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
+                jLabel1.setText("<html><center>" + com.mx.kylgis.pos.ui.help.UiHelp.text("app.welcome.title") + "<br>" +
                 "Copyright \u00A9 2026 KylGis POS<br>" +
                 "https://pos.kylgis.com<br>" +
                 "<br>" +
@@ -522,10 +684,426 @@ public class JRootApp extends JPanel implements AppView {
         String ibutton = m_props.getProperty("machine.iButton");        
         if(ibutton.equals("true")) {
             initIButtonMonitor();
+            updateOperationIndicator();
         }    
         return true;
     }
    
+    private void updateOperationIndicator() {
+        m_health.clear(OperationalHealth.Category.DATABASE);
+        diagnosePeripherals();
+        diagnoseResources();
+        refreshHealthBar();
+    }
+
+    private void cacheDatabaseHealthEndpoint() {
+        m_databaseHealthHost = null;
+        m_databaseHealthPort = -1;
+        m_databaseHealthLastOctet = null;
+        if (session == null) {
+            return;
+        }
+        try {
+            String jdbcUrl = session.getURL();
+            if (jdbcUrl == null || !jdbcUrl.startsWith("jdbc:")) {
+                return;
+            }
+            java.net.URI uri = new java.net.URI(jdbcUrl.substring("jdbc:".length()));
+            m_databaseHealthHost = uri.getHost();
+            m_databaseHealthPort = uri.getPort() > 0 ? uri.getPort() : 3306;
+            if (m_databaseHealthHost != null) {
+                String[] octets = m_databaseHealthHost.split("\\.");
+                if (octets.length == 4) {
+                    boolean valid = true;
+                    for (String octet : octets) {
+                        int value = Integer.parseInt(octet);
+                        valid &= value >= 0 && value <= 255;
+                    }
+                    if (valid) {
+                        m_databaseHealthLastOctet = octets[3];
+                    }
+                }
+            }
+        } catch (SQLException | java.net.URISyntaxException | NumberFormatException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                    "Unable to cache database endpoint for health monitoring.", ex);
+        }
+    }
+
+    private void diagnoseDatabase() {
+        probeDatabaseHealth();
+    }
+
+    public synchronized boolean isDatabaseAvailableNow() {
+        boolean available = probeDatabaseHealth();
+        if (SwingUtilities.isEventDispatchThread()) {
+            refreshHealthBar();
+        } else {
+            SwingUtilities.invokeLater(this::refreshHealthBar);
+        }
+        return available;
+    }
+
+    private synchronized boolean probeDatabaseHealth() {
+        m_health.clear(OperationalHealth.Category.DATABASE);
+        if (session == null) {
+            closeDatabaseHealthSession();
+            m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
+                    OperationalHealth.Severity.RED, "Sesión de BBDD no disponible", null);
+            return false;
+        }
+
+        try {
+            if (m_databaseHealthSession == null) {
+                m_databaseHealthSession = session.forkHealthCheck(1500);
+            }
+            Connection connection = m_databaseHealthSession.getConnection();
+            try (Statement probe = connection.createStatement()) {
+                probe.setQueryTimeout(2);
+                try (ResultSet ignored = probe.executeQuery("SELECT 1")) {
+                    if (!ignored.next()) {
+                        throw new SQLException("Database health query returned no row");
+                    }
+                }
+            }
+            return true;
+        } catch (SQLException ex) {
+            closeDatabaseHealthSession();
+            m_health.report(OperationalHealth.Category.DATABASE, "database.runtime",
+                    OperationalHealth.Severity.RED, "BBDD no disponible", null);
+            return false;
+        }
+    }
+
+    private void returnToLoginAfterDatabaseCheck() {
+        m_healthRefreshButton.setEnabled(false);
+        m_healthRefreshButton.setText("Verificando…");
+        new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return isDatabaseAvailableNow();
+            }
+
+            @Override
+            protected void done() {
+                m_healthRefreshButton.setEnabled(true);
+                m_healthRefreshButton.setText("↻ Refrescar");
+                try {
+                    if (Boolean.TRUE.equals(get())) {
+                        JOptionPane.showMessageDialog(JRootApp.this,
+                                "Conexión con la BBDD restablecida.\n"
+                                + "Al aceptar se volverá al inicio de sesión para reconstruir la interfaz.",
+                                "BBDD disponible", JOptionPane.INFORMATION_MESSAGE);
+                        if (m_principalapp != null) {
+                            // Follow the same safe logout path used by the side-panel Exit action.
+                            // closeAppView() deactivates the active panel, removes it and then
+                            // rebuilds the login view only after the database probe succeeded.
+                            closeAppView();
+                        } else {
+                            showLogin();
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(JRootApp.this,
+                                "La conexión con la BBDD aún no está disponible.",
+                                "BBDD no disponible", JOptionPane.WARNING_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(JRootApp.this,
+                            "No se pudo verificar la BBDD.",
+                            "BBDD no disponible", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        }.execute();
+    }
+
+    private void closeDatabaseHealthSession() {
+        Session probe = m_databaseHealthSession;
+        m_databaseHealthSession = null;
+        if (probe != null) {
+            probe.close();
+        }
+    }
+
+    private void setOperationIndicator(String state, java.awt.Color color, String dbLastOctet) {
+        m_health.clear(OperationalHealth.Category.DATABASE);
+        OperationalHealth.Severity severity = "Sin conexión".equals(state)
+                ? OperationalHealth.Severity.RED : OperationalHealth.Severity.AMBER;
+        m_health.report(OperationalHealth.Category.DATABASE, "database.startup",
+                severity, state, OperationalHealth.CAP_STARTUP);
+        refreshHealthBar();
+    }
+
+    private void refreshHealthBar() {
+        updateHealthLabel(m_jHost, OperationalHealth.Category.DATABASE,
+                "Host: " + escapeHtml(safeStatusText(m_props == null ? null : m_props.getHost(), "POS"))
+                + databaseSuffix());
+        updateHealthLabel(m_healthPeripherals, OperationalHealth.Category.PERIPHERALS, null);
+        updateHealthLabel(m_healthResources, OperationalHealth.Category.RESOURCES, null);
+        panelTask.revalidate();
+        panelTask.repaint();
+    }
+
+    private String databaseSuffix() {
+        String lastOctet = getDatabaseIpv4LastOctet();
+        return lastOctet == null ? "" : " · IP: …" + escapeHtml(lastOctet);
+    }
+
+    private void updateHealthLabel(JLabel label, OperationalHealth.Category category, String suffix) {
+        OperationalHealth.Severity severity = m_health.getSeverity(category);
+        String state;
+        java.awt.Color color;
+        switch (severity) {
+            case RED:
+                state = "Corrección necesaria";
+                color = new java.awt.Color(176, 0, 32);
+                break;
+            case AMBER:
+                state = "Atención";
+                color = new java.awt.Color(184, 134, 11);
+                break;
+            default:
+                state = "OK";
+                color = new java.awt.Color(0, 128, 0);
+                break;
+        }
+        StringBuilder text = new StringBuilder("<html><b>● ")
+                .append(escapeHtml(category.getLabel()))
+                .append(": ").append(escapeHtml(state)).append("</b>");
+        if (suffix != null && !suffix.isEmpty()) {
+            text.append(" · ").append(suffix);
+        }
+        text.append("</html>");
+        label.setIcon(null);
+        label.setForeground(color);
+        label.setText(text.toString());
+        label.setToolTipText(buildHealthTooltip(category));
+    }
+
+    private String buildHealthTooltip(OperationalHealth.Category category) {
+        java.util.List<OperationalHealth.Issue> issues = m_health.getIssues(category);
+        if (issues.isEmpty()) {
+            return category.getLabel() + ": sin incidencias detectadas";
+        }
+        StringBuilder tooltip = new StringBuilder("<html>");
+        for (OperationalHealth.Issue issue : issues) {
+            tooltip.append("• ").append(escapeHtml(issue.getMessage())).append("<br>");
+        }
+        return tooltip.append("</html>").toString();
+    }
+
+    private AppProperties peripheralProperties() {
+        return m_peripheralProps == null ? m_props : m_peripheralProps;
+    }
+
+    private synchronized void diagnosePeripherals() {
+        m_health.clear(OperationalHealth.Category.PERIPHERALS);
+
+        String receiptIndex = m_TP == null ? "1" : m_TP.getReceiptPrinterIndex();
+        for (int i = 1; i <= 6; i++) {
+            String key = i == 1 ? "machine.printer" : "machine.printer." + i;
+            String configured = normalizedConfig(peripheralProperties().getProperty(key));
+            if (!isConfiguredDevice(configured)) {
+                continue;
+            }
+            boolean unavailable = m_TP == null
+                    || m_TP.getDevicePrinter(Integer.toString(i)) instanceof com.mx.kylgis.pos.printer.DevicePrinterNull
+                    || configuredEndpointUnavailable(configured);
+            if (unavailable) {
+                String capability = Integer.toString(i).equals(receiptIndex)
+                        ? OperationalHealth.CAP_PRINT_RECEIPT : null;
+                m_health.report(OperationalHealth.Category.PERIPHERALS,
+                        "printer." + i, OperationalHealth.Severity.AMBER,
+                        "Impresora " + i + " configurada pero no disponible", capability);
+            }
+        }
+
+        String scale = normalizedConfig(peripheralProperties().getProperty("machine.scale"));
+        if (isConfiguredDevice(scale) && (m_Scale == null || !m_Scale.existsScale()
+                || configuredEndpointUnavailable(scale))) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "scale",
+                    OperationalHealth.Severity.AMBER,
+                    "Báscula configurada pero no disponible", OperationalHealth.CAP_SCALE);
+        }
+
+        String scanner = normalizedConfig(peripheralProperties().getProperty("machine.scanner"));
+        if (isConfiguredDevice(scanner) && m_Scanner == null) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "scanner",
+                    OperationalHealth.Severity.AMBER,
+                    "Escáner configurado pero no disponible", OperationalHealth.CAP_SCANNER);
+        }
+
+        String display = normalizedConfig(peripheralProperties().getProperty("machine.display"));
+        if (isConfiguredDevice(display) && (m_TP == null
+                || m_TP.getDeviceDisplay() instanceof com.mx.kylgis.pos.printer.DeviceDisplayNull)) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "display",
+                    OperationalHealth.Severity.AMBER,
+                    "Display configurado pero no disponible", OperationalHealth.CAP_DISPLAY);
+        }
+
+        if (Boolean.parseBoolean(peripheralProperties().getProperty("machine.iButton")) && m_iButtonMonitor == null) {
+            m_health.report(OperationalHealth.Category.PERIPHERALS, "ibutton",
+                    OperationalHealth.Severity.AMBER,
+                    "iButton configurado pero no disponible", OperationalHealth.CAP_IBUTTON);
+        }
+    }
+
+    private void startHealthMonitor() {
+        if (m_healthMonitorTimer != null) {
+            m_healthMonitorTimer.stop();
+        }
+        m_healthMonitorTimer = new javax.swing.Timer(5000, evt -> refreshOperationalHealthAsync());
+        m_healthMonitorTimer.setInitialDelay(5000);
+        m_healthMonitorTimer.start();
+    }
+
+    private void refreshOperationalHealthAsync() {
+        if (m_healthProbeRunning || m_props == null) {
+            return;
+        }
+        m_healthProbeRunning = true;
+        new javax.swing.SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                diagnoseDatabase();
+                diagnosePeripherals();
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                m_healthProbeRunning = false;
+                refreshHealthBar();
+            }
+        }.execute();
+    }
+
+    private boolean configuredEndpointUnavailable(String configured) {
+        String endpoint = extractDevicePath(configured);
+        if (endpoint == null) {
+            return false;
+        }
+        java.nio.file.Path path = java.nio.file.Paths.get(endpoint);
+        if (!java.nio.file.Files.exists(path)
+                || !java.nio.file.Files.isReadable(path)
+                || !java.nio.file.Files.isWritable(path)) {
+            return true;
+        }
+        // RFCOMM printers are expected to stay disconnected while idle and
+        // establish the Bluetooth link only when a print job writes to the port.
+        // Treating the idle RFCOMM state as a fault creates a false amber health
+        // condition. Runtime print failures are reported by the print paths.
+        return false;
+    }
+
+    private static String extractDevicePath(String configured) {
+        if (configured == null) {
+            return null;
+        }
+        int start = configured.indexOf("/dev/");
+        if (start < 0) {
+            return null;
+        }
+        int end = start;
+        while (end < configured.length()) {
+            char ch = configured.charAt(end);
+            if (Character.isWhitespace(ch) || ch == ',' || ch == ';') {
+                break;
+            }
+            end++;
+        }
+        return end > start ? configured.substring(start, end) : null;
+    }
+
+    private boolean isRfcommConnected(String endpoint) {
+        String index = endpoint.substring("/dev/rfcomm".length());
+        Process process = null;
+        try {
+            process = new ProcessBuilder("rfcomm", "show", index)
+                    .redirectErrorStream(true).start();
+            if (!process.waitFor(1200, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                return false;
+            }
+            String output = new String(process.getInputStream().readAllBytes(),
+                    java.nio.charset.StandardCharsets.UTF_8).toLowerCase(java.util.Locale.ROOT);
+            return process.exitValue() == 0 && output.contains("connected");
+        } catch (IOException ex) {
+            Logger.getLogger(JRootApp.class.getName()).log(Level.FINE,
+                    "No se pudo consultar estado RFCOMM de " + endpoint, ex);
+            return true;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return false;
+        } finally {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
+    }
+
+    private void diagnoseResources() {
+        m_health.clear(OperationalHealth.Category.RESOURCES);
+        checkPrinterResource("Printer.Ticket", OperationalHealth.CAP_PRINT_RECEIPT);
+        checkPrinterResource("Printer.Ticket2", OperationalHealth.CAP_PRINT_RECEIPT_ALT);
+        checkPrinterResource("Printer.TicketTotal", OperationalHealth.CAP_PRINT_TOTAL);
+        checkPrinterResource("Printer.TicketLine", OperationalHealth.CAP_PRINT_LINE);
+        checkPrinterResource("Printer.CustomerPaid", OperationalHealth.CAP_PRINT_CUSTOMER);
+        checkPrinterResource("Printer.CustomerPaid2", OperationalHealth.CAP_PRINT_CUSTOMER);
+        checkPrinterResource("Printer.TicketPreview", OperationalHealth.CAP_PRINT_PREVIEW);
+        checkPrinterResource("Printer.TicketPreview2", OperationalHealth.CAP_PRINT_PREVIEW);
+        checkPrinterResource("Printer.Inventory", OperationalHealth.CAP_PRINT_INVENTORY);
+        checkPrinterResource("Printer.CloseCash", OperationalHealth.CAP_PRINT_CASH);
+        checkPrinterResource("Printer.PartialCash", OperationalHealth.CAP_PRINT_CASH);
+        checkPrinterResource("Printer.CloseCash.Preview", OperationalHealth.CAP_PRINT_PREVIEW);
+        checkPrinterResource("Printer.ReprintTicket", OperationalHealth.CAP_PRINT_REPRINT);
+        checkPrinterResource("Printer.PrintLastTicket", OperationalHealth.CAP_PRINT_REPRINT);
+        checkPrinterResource("Printer.Start", null);
+    }
+
+    private void checkPrinterResource(String name, String capability) {
+        String template = m_dlSystem == null ? null : m_dlSystem.getResourceAsXML(name);
+        if (template == null || template.trim().isEmpty()) {
+            m_health.report(OperationalHealth.Category.RESOURCES, name,
+                    OperationalHealth.Severity.AMBER,
+                    "Plantilla ausente: " + name, capability);
+            return;
+        }
+        try {
+            com.mx.kylgis.pos.printer.TicketTemplateValidator.validateForRuntimeHealth(name, template);
+        } catch (BasicException ex) {
+            m_health.report(OperationalHealth.Category.RESOURCES, name,
+                    OperationalHealth.Severity.AMBER,
+                    "Plantilla inválida: " + name, capability);
+        }
+    }
+
+    private static String normalizedConfig(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static boolean isConfiguredDevice(String value) {
+        return value != null && !value.isEmpty()
+                && !"Not defined".equalsIgnoreCase(value)
+                && !"none".equalsIgnoreCase(value);
+    }
+
+    private String getDatabaseIpv4LastOctet() {
+        return m_databaseHealthLastOctet;
+    }
+
+    private static String safeStatusText(String value, String fallback) {
+        String normalized = value == null ? "" : value.trim();
+        return normalized.isEmpty() ? fallback : normalized;
+    }
+
+    private static String escapeHtml(String value) {
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
     private String readDataBaseVersion() {
         try {
             return m_dlSystem.findVersion();
@@ -537,6 +1115,9 @@ public class JRootApp extends JPanel implements AppView {
     public void tryToClose() {   
         
         if (closeAppView()) {
+                if (m_healthMonitorTimer != null) {
+                    m_healthMonitorTimer.stop();
+                }
                 m_TP.getDeviceDisplay().clearVisor();
                 m_TP.close();
                 shutdownIButtonMonitor();
@@ -646,6 +1227,16 @@ public class JRootApp extends JPanel implements AppView {
     public AppProperties getProperties() {
         return m_props;
     }
+
+    @Override
+    public OperationalHealth getOperationalHealth() {
+        return m_health;
+    }
+
+    @Override
+    public void refreshOperationalHealthIndicators() {
+        refreshHealthBar();
+    }
     
     @Override
     public Object getBean(String beanfactory) throws BeanFactoryException {
@@ -686,14 +1277,41 @@ public class JRootApp extends JPanel implements AppView {
     }
     
     private static String mapNewClass(String classname) {
-        String newclass = m_oldclasses.get(classname);
+        String normalized = normalizeLegacyBeanFactoryName(classname);
+        String newclass = m_oldclasses.get(normalized);
         return newclass == null 
-                ? classname 
+                ? normalized 
                 : newclass;
     }
     
+    static String normalizeLegacyBeanFactoryName(String beanfactory) {
+        if (beanfactory == null || beanfactory.isEmpty()) {
+            return beanfactory;
+        }
+
+        String[][] prefixes = {
+            {"/com/openbravo/pos/", "/com/mx/kylgis/pos/"},
+            {"/com/unicenta/pos/", "/com/mx/kylgis/pos/"},
+            {"/com/openbravo/", "/com/mx/kylgis/pos/"},
+            {"/com/unicenta/", "/com/mx/kylgis/pos/"},
+            {"com.openbravo.pos.", "com.mx.kylgis.pos."},
+            {"com.unicenta.pos.", "com.mx.kylgis.pos."},
+            {"com.openbravo.", "com.mx.kylgis.pos."},
+            {"com.unicenta.", "com.mx.kylgis.pos."}
+        };
+
+        for (String[] prefix : prefixes) {
+            if (beanfactory.startsWith(prefix[0])) {
+                return prefix[1] + beanfactory.substring(prefix[0].length());
+            }
+        }
+        return beanfactory;
+    }
+
     private static void initOldClasses() {
         m_oldclasses = new HashMap<>();
+        // Stable logical alias used by customized Menu.Root resources for voucher maintenance.
+        m_oldclasses.put("voucher.campaigns", "com.mx.kylgis.pos.voucher.VoucherPanel");
         
         m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomers", "/com/mx/kylgis/pos/reports/customers.bs");
         m_oldclasses.put("com.mx.kylgis.pos.reports.JReportCustomersB", "/com/mx/kylgis/pos/reports/customers_b.bs");
@@ -747,12 +1365,11 @@ public class JRootApp extends JPanel implements AppView {
         
         try {
            
-            jScrollPane1.getViewport().setView(null);
+            java.util.List people = m_dlSystem.listPeopleVisible();
 
             JFlowPanel jPeople = new JFlowPanel();
             jPeople.applyComponentOrientation(getComponentOrientation());
            
-            java.util.List people = m_dlSystem.listPeopleVisible();
                      
             for (Object people1 : people) {
                 AppUser user = (AppUser) people1;
@@ -773,6 +1390,12 @@ public class JRootApp extends JPanel implements AppView {
             jScrollPane1.getViewport().setView(jPeople);
             
         } catch (BasicException ee) {
+            m_health.report(OperationalHealth.Category.DATABASE, "database.login",
+                    OperationalHealth.Severity.RED,
+                    "No se pudo actualizar la lista de usuarios", null);
+            refreshHealthBar();
+            Logger.getLogger(JRootApp.class.getName()).log(
+                    Level.FINE, "Unable to refresh visible users; keeping current login view.", ee);
         }
     }
 
@@ -837,8 +1460,9 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     public void exitToLogin() {
-        closeAppView();
-        showLogin();
+        if (closeAppView()) {
+            showLogin();
+        }
     }
     
     public boolean closeAppView() {
@@ -995,7 +1619,7 @@ public class JRootApp extends JPanel implements AppView {
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/kylgis_pos.png"))); // NOI18N
-        jLabel1.setText("<html><center>KylGis POS Punto de Venta Táctil<br>" +
+        jLabel1.setText("<html><center>" + com.mx.kylgis.pos.ui.help.UiHelp.text("app.welcome.title") + "<br>" +
             "Copyright \u00A9 2026 KylGis POS<br>" +
             "https://pos.kylgis.com<br>" +
             "<br>" +

@@ -236,6 +236,37 @@ public class JEditorKeys extends javax.swing.JPanel implements EditorKeys {
     }
 
     /**
+     * Returns the editor currently receiving physical keyboard input.
+     * Used by contextual dialogs to keep navigation local to the focused editor.
+     *
+     * @return active editor, or {@code null} when no editor is active
+     */
+    public EditorComponent getActiveEditor() {
+        return editorcurrent;
+    }
+
+    /**
+     * Binds a keystroke only while this editor keyboard owns the focus.
+     * No global dispatcher/listener is installed, so scanners and unrelated
+     * numeric/text inputs keep their existing behavior.
+     *
+     * @param keyStroke keystroke to bind
+     * @param actionKey local action-map key
+     * @param action action to execute
+     */
+    public void bindFocusedKeyAction(javax.swing.KeyStroke keyStroke,
+            String actionKey, javax.swing.Action action) {
+        if (keyStroke == null || actionKey == null || action == null) {
+            throw new IllegalArgumentException("keyStroke, actionKey and action are required");
+        }
+        if (keyStroke.getKeyCode() == java.awt.event.KeyEvent.VK_TAB) {
+            m_txtKeys.setFocusTraversalKeysEnabled(false);
+        }
+        m_txtKeys.getInputMap(javax.swing.JComponent.WHEN_FOCUSED).put(keyStroke, actionKey);
+        m_txtKeys.getActionMap().put(actionKey, action);
+    }
+
+    /**
      *
      * @param enabled
      */

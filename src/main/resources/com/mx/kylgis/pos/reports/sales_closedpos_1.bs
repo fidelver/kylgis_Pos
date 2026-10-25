@@ -30,10 +30,12 @@ report.setSentence("SELECT " +
                     "closedcash.MONEY, " +
                     "closedcash.DATESTART, " +
                     "closedcash.DATEEND, " +
-                    "payments.PAYMENT, " +
-                    "ROUND(SUM(payments.TOTAL),2) AS TOTAL " +
-                    "FROM closedcash, payments, receipts " +
-                    "WHERE closedcash.MONEY = receipts.MONEY AND payments.RECEIPT = receipts.ID AND ?(QBF_FILTER) " +
+                    "COALESCE(payments.PAYMENT, '') AS PAYMENT, " +
+                    "ROUND(COALESCE(SUM(payments.TOTAL), 0.0),2) AS TOTAL " +
+                    "FROM closedcash " +
+                    "LEFT JOIN receipts ON receipts.MONEY = closedcash.MONEY " +
+                    "LEFT JOIN payments ON payments.RECEIPT = receipts.ID " +
+                    "WHERE ?(QBF_FILTER) " +
                     "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, payments.PAYMENT " +
                     "ORDER BY closedcash.HOST, closedcash.HOSTSEQUENCE");
 
