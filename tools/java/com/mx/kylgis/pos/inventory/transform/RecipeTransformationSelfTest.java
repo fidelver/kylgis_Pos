@@ -37,6 +37,7 @@ public final class RecipeTransformationSelfTest {
         testDuplicateWasteProductRejected();
         testZeroWasteQuantityRejected();
         testRecipeComponentLabels();
+        testProductCatalogSearch();
         testTransformationLabels();
         testHistoryLimitBounds();
         System.out.println("KYLGIS_RECIPE_SELFTEST_OK tests=" + tests);
@@ -231,6 +232,18 @@ public final class RecipeTransformationSelfTest {
                 "missing product catalog label must not expose product id");
         require("Unidad sin nombre".equals(fallback.uomLabel()),
                 "missing UOM catalog label must not expose UOM id");
+        pass();
+    }
+
+    private static void testProductCatalogSearch() {
+        RecipeUiCatalogService.ProductChoice product =
+                new RecipeUiCatalogService.ProductChoice(
+                        "id", "REF-001", "750123", "Mozzarella", "KG", "Quesos");
+        require(product.matchesSearch("mozz"), "catalog search must match product name");
+        require(product.matchesSearch("750123"), "catalog search must match article code");
+        require(product.matchesSearch("ques"), "catalog search must match category");
+        require(product.matchesSearch("REF-001 queso"), "catalog search must combine terms");
+        require(!product.matchesSearch("pepperoni"), "catalog search must reject unrelated terms");
         pass();
     }
 

@@ -28,6 +28,7 @@ from ui_help_report_controls import TRANSLATIONS as LOCALIZED_REPORT_CONTROLS
 from ui_help_operational_actions import COPY as OPERATIONAL_COPY, TARGETS as OPERATIONAL_TARGETS, LEGACY_CAPTIONS as OPERATIONAL_LEGACY_CAPTIONS
 from ui_help_restaurant_actions import TRANSLATIONS as RESTAURANT_ACTION_COPY, TARGETS as RESTAURANT_ACTION_TARGETS
 from ui_help_db_accounts import TRANSLATIONS as DATABASE_ACCOUNT_HELP
+from ui_help_control_actions import action_for as reviewed_action, text_for as reviewed_action_text
 
 assert not (set(SYSTEM_UI_LABELS)&set(COUPON_UI_LABELS))
 assert not (set(SYSTEM_UI_LABELS)&set(OTHER_UI_LABELS))
@@ -322,12 +323,98 @@ SPECIAL = {
         "Définissez les filtres et dates du rapport ; exécutez-le pour actualiser les résultats.",
         "Defina filtros e datas do relatório; execute novamente para atualizar os resultados."
     ],
+    "recipe.catalog.choose.help": [
+        "Click to open the product search and selection window.",
+        "Pulsa para abrir la ventana de búsqueda y selección de productos.",
+        "Klicken Sie, um das Fenster zur Produktsuche und -auswahl zu öffnen.",
+        "Cliquez pour ouvrir la fenêtre de recherche et de sélection du produit.",
+        "Clique para abrir a janela de pesquisa e seleção de produtos."
+    ],
+    "recipe.catalog.search.help": [
+        "Type a product name, item code or category to show all matching products.",
+        "Escribe el nombre, código o categoría para mostrar todos los productos coincidentes.",
+        "Geben Sie Name, Artikelcode oder Kategorie ein, um alle passenden Produkte anzuzeigen.",
+        "Saisissez le nom, le code article ou la catégorie pour afficher tous les produits correspondants.",
+        "Digite o nome, código ou categoria para mostrar todos os produtos correspondentes."
+    ],
+    "recipe.catalog.select.help": [
+        "Select the required product from the matching results.",
+        "Selecciona el producto requerido de las coincidencias.",
+        "Wählen Sie das gewünschte Produkt aus den Treffern aus.",
+        "Sélectionnez le produit requis parmi les résultats.",
+        "Selecione o produto desejado entre os resultados."
+    ],
+    "recipe.catalog.no.ingredients": [
+        "No products are marked as recipe ingredients.",
+        "No hay productos marcados como ingredientes de receta.",
+        "Keine Produkte sind als Rezeptzutaten markiert.",
+        "Aucun produit n'est marqué comme ingrédient de recette.",
+        "Nenhum produto está marcado como ingrediente de receita."
+    ],
+    "recipe.catalog.accept.help": [
+        "Click Accept to use the selected product.",
+        "Pulsa Aceptar para utilizar el producto seleccionado.",
+        "Klicken Sie auf Übernehmen, um das ausgewählte Produkt zu verwenden.",
+        "Cliquez sur Valider pour utiliser le produit sélectionné.",
+        "Clique em Aceitar para utilizar o produto selecionado."
+    ],
+    "recipe.catalog.cancel.help": [
+        "Click Cancel to close without selecting a product.",
+        "Pulsa Cancelar para cerrar sin seleccionar ningún producto.",
+        "Klicken Sie auf Abbrechen, um ohne Produktauswahl zu schließen.",
+        "Cliquez sur Annuler pour fermer sans sélectionner de produit.",
+        "Clique em Cancelar para fechar sem selecionar um produto."
+    ],
 }
 LANG_INDEX={
     "base":0, "en_US":0,
     "es":1,"es_AR":1,"es_MX":1,
     "de":2,"fr":3,"pt":4,"pt_BR":4,
 }
+# Menu buttons are dynamic Swing actions. Their visible caption can be a
+# runtime value, so the tooltip must describe the destination, not repeat the
+# caption. Spanish is the primary POS locale; the English copy is the safe
+# fallback for other locales until a native translation is supplied.
+MENU_HELP={
+    "base":{
+        "menu.panel":"Open the «{0}» panel.",
+        "menu.report":"Open the «{0}» report to review its results.",
+        "menu.sales":"Open the sales panel to create and close tickets.",
+        "menu.ticketedit":"Open ticket search to review or reprint sales.",
+        "menu.customerspayment":"Open customer accounts to register payments or balances.",
+        "menu.payments":"Open payment management.",
+        "menu.closecash":"Open cash closing to count and reconcile payments.",
+        "menu.products":"Open product management and inventory data.",
+        "menu.stockmovement":"Open stock movements to record entries, exits and adjustments.",
+        "menu.recipes":"Open recipe management to create and version recipes.",
+        "menu.recipeproduction":"Open recipe production to consume ingredients and add the resulting product.",
+        "menu.transformhistory":"Open transformation history to review inventory conversions.",
+        "menu.uomconversion":"Open unit conversion settings used by recipes and inventory.",
+        "menu.remoteprint":"Send the current order to the remote kitchen printer.",
+    },
+    "es":{
+        "menu.panel":"Abre el panel «{0}» para trabajar con esa función.",
+        "menu.report":"Abre el informe «{0}» para consultar sus resultados.",
+        "menu.sales":"Abre el panel de ventas para crear y cerrar tickets.",
+        "menu.ticketedit":"Abre la búsqueda de tickets para consultar o reimprimir ventas.",
+        "menu.customerspayment":"Abre las cuentas de clientes para registrar pagos o saldos.",
+        "menu.payments":"Abre la gestión de pagos.",
+        "menu.closecash":"Abre el cierre de caja para contar y conciliar efectivo y pagos.",
+        "menu.products":"Abre la administración de productos y sus existencias.",
+        "menu.stockmovement":"Abre los movimientos de inventario para registrar entradas, salidas y ajustes.",
+        "menu.recipes":"Abre la gestión de recetas para crear y versionar preparaciones.",
+        "menu.recipeproduction":"Abre la producción de recetas para consumir ingredientes y agregar el producto resultante.",
+        "menu.transformhistory":"Abre el historial de transformaciones para revisar conversiones de inventario.",
+        "menu.uomconversion":"Abre las conversiones de unidades usadas por recetas e inventario.",
+        "menu.remoteprint":"Envía la comanda actual a la impresora remota de cocina.",
+    },
+}
+MENU_HELP["en_US"]=MENU_HELP["base"]
+MENU_HELP["es_AR"]=MENU_HELP["es"]
+MENU_HELP["es_MX"]=MENU_HELP["es"]
+for _locale in ("al_SQ","ar","da","de","el","et","fr","hr","it","nl","pt","pt_BR"):
+    MENU_HELP[_locale]=MENU_HELP["base"]
+assert set(MENU_HELP)==set(PHRASES)
 UI_CAPTIONS={
     "platforms.included": ("Built-in platforms (fixed)","Plataformas incluidas (fijas)"),
     "platforms.note": ("Built-in platforms are always available and cannot be removed.","Las plataformas incluidas siempre estarán disponibles y no se pueden eliminar."),
@@ -400,7 +487,12 @@ GLOSSARY={
 def read_bundle(path:Path)->dict[str,str]:
     rows={}
     if path.exists():
-        for line in path.read_text(encoding="latin1").splitlines():
+        try:
+            content = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            # Legacy NetBeans bundles may still be ISO-8859-1.
+            content = path.read_text(encoding="latin1")
+        for line in content.splitlines():
             if "=" in line and not line.startswith(("#","!")):
                 k,v=line.split("=",1)
                 value=v.strip()
@@ -453,6 +545,157 @@ def contextual_semantic(owner,name):
     if context is not None and label in ("name","text","list","table","label"):
         return label+" ("+context+")"
     return label
+
+def semantic_sentence(locale, typ, name, semantic, domain, category, strings):
+    """Describe the operation inferred from the real owner/control identity.
+
+    This is deliberately action-oriented: a caption such as a person name,
+    printer name or generic "OK" must never become the explanation itself.
+    Curated specific and native entries still take precedence.
+    """
+    lower=(name+" "+semantic).lower()
+    es=locale in ("es","es_AR","es_MX")
+    owner=lower.split("#",1)[0]
+    field=lower.split("#",1)[-1]
+    if es:
+        if category=="button":
+            if "remoteprt" in field or ("remote" in lower and ("print" in lower or "printer" in lower)):
+                return "Envía la comanda actual a la impresora remota de cocina."
+            if "jnumberkeys" in owner:
+                if "ce" in field or "clear" in field:
+                    return "Borra la entrada numérica actual."
+                if "equals" in field:
+                    return "Calcula y confirma el resultado de la operación numérica."
+                if "plus" in field:
+                    return "Suma el siguiente valor a la operación activa."
+                if "minus" in field:
+                    return "Resta el siguiente valor de la operación activa."
+                if "multiply" in field:
+                    return "Multiplica por el siguiente valor de la operación activa."
+                if "divide" in field:
+                    return "Divide entre el siguiente valor de la operación activa."
+                if "point" in field or "decimal" in field:
+                    return "Introduce el separador decimal en la cantidad activa."
+                if "key" in field:
+                    return "Introduce el dígito de la tecla en el importe o cantidad activa."
+            if "jcalendardialog" in owner and ("cancel" in field or field.endswith("cancel")):
+                return "Cancela la selección de fecha y cierra el calendario."
+            if "jcalendardialog" in owner and ("ok" in field or "accept" in field):
+                return "Confirma la fecha seleccionada y la devuelve al formulario."
+            if "resourcesview" in owner and "readscript" in field:
+                return "Carga el contenido del archivo seleccionado en el editor de recursos."
+            if "peopleview" in owner and "jbutton1" in field:
+                return "Abre el diálogo para cambiar la contraseña del usuario."
+            if "catalog" in owner and ("back" in field or "return" in field):
+                return "Regresa al nivel anterior del catálogo de productos."
+            if "config" in owner and "connect" in field:
+                return "Prueba la conexión con la base de datos configurada."
+            if "config" in owner and "createdb" in field:
+                return "Crea la base de datos con los parámetros configurados."
+            if "config" in owner and "setdb" in field:
+                return "Guarda y aplica la configuración de la base de datos."
+            if "config" in owner and "reset" in field:
+                return "Restablece los valores de configuración del panel."
+            if "config" in owner and ("logo" in field or "image" in field):
+                return "Abre el selector para configurar la imagen o logotipo."
+            if "config" in owner and ("html" in field or "text" in field):
+                return "Abre el editor para configurar el contenido mostrado."
+            if "config" in owner and ("add" in field or "new" in field):
+                return "Agrega la configuración o elemento seleccionado."
+            if "config" in owner and ("remove" in field or "delete" in field):
+                return "Elimina la configuración o elemento seleccionado."
+            if "config" in owner and ("up" in field or "down" in field):
+                return "Reordena el elemento seleccionado dentro de la configuración."
+            if "config" in owner and "provision" in field:
+                return "Provisiona el módulo o nodo con la configuración elegida."
+            if "config" in owner and "browse" in field:
+                return "Abre el selector para localizar el recurso de configuración."
+            if "config" in owner and "restore" in field:
+                return "Restaura los valores predeterminados de esta configuración."
+            if typ=="JLabel":
+                return "Muestra «"+domain+"» como información del panel."
+            if "cancel" in field or "close" in field or "exit" in field:
+                return "Cancela la operación actual y cierra este diálogo."
+            if "reprint" in lower or "printlast" in lower:
+                return "Reimprime el último ticket registrado."
+            if "preview" in lower:
+                return "Muestra una vista previa del ticket sin finalizar la venta."
+            if "print" in lower or "printer" in lower:
+                return "Envía o imprime el documento usando la impresora configurada."
+            if "split" in lower:
+                return "Divide el ticket para separar sus líneas en cuentas independientes."
+            if "delete" in lower or "remove" in lower or "del" in field:
+                return "Elimina el registro o la línea seleccionada después de confirmarlo."
+            if "clear" in lower or "reset" in lower:
+                return "Limpia los filtros o valores actuales sin guardar cambios."
+            if "execute" in lower or "apply" in lower or "filter" in lower:
+                return "Aplica los filtros actuales y actualiza los resultados del panel."
+            if "save" in lower or "accept" in lower or "ok" in field:
+                return "Confirma y guarda los datos capturados en este formulario."
+            if "refresh" in lower or "reload" in lower:
+                return "Actualiza la información mostrada con los datos más recientes."
+            if "customer" in lower:
+                return "Abre el selector de clientes para asociar uno al ticket o registro."
+            if "supplier" in lower:
+                return "Abre el selector de proveedores para asociar uno al registro."
+            if "product" in lower or "search" in lower or "find" in lower:
+                return "Abre el buscador para localizar y seleccionar el producto requerido."
+            if "user" in lower or "employee" in lower:
+                return "Abre el selector de usuarios o empleados para asignar el responsable."
+            if "report" in owner or "report" in lower:
+                return "Genera o consulta el reporte con los filtros seleccionados."
+            if "config" in owner:
+                return "Pulse «"+domain+"» para aplicar la configuración de este panel."
+            return "Pulse «"+domain+"» para continuar con la función «"+domain+"» de este panel."
+        if category=="select":
+            if "printer" in lower:
+                return "Seleccione la impresora que recibirá el documento o la comanda."
+            if "platform" in lower:
+                return "Seleccione la plataforma para asignar el pedido y su código de orden."
+            if "user" in lower or "employee" in lower:
+                return "Seleccione el usuario o empleado que quedará asociado al registro."
+            if "customer" in lower:
+                return "Seleccione el cliente que quedará asociado al ticket o movimiento."
+            if "product" in lower:
+                return "Seleccione el producto que se agregará o se consultará."
+            if "date" in lower or "calendar" in lower:
+                return "Seleccione la fecha que delimitará la consulta o el movimiento."
+            return "Seleccione «"+domain+"» para definir el valor que utilizará este panel."
+        if category=="check":
+            if "stock" in lower:
+                return "Active o desactive esta opción para consultar existencias durante la operación."
+            if "tax" in lower:
+                return "Active o desactive esta opción para aplicar impuestos al documento."
+            return "Active o desactive «"+domain+"» para aplicar esta preferencia al proceso."
+        if category=="input":
+            if "barcode" in lower:
+                return "Introduzca o lea el código de barras para localizar el producto."
+            if "filter" in lower or "search" in lower:
+                return "Introduzca el criterio que el panel utilizará para filtrar resultados."
+            return "Introduzca «"+domain+"»; el valor se utilizará al guardar o consultar."
+        if category in ("table","list"):
+            return "Consulte «"+domain+"» y seleccione el registro para continuar con sus acciones."
+        if category=="tab":
+            return "Abra «"+domain+"» para consultar o configurar esa sección del panel."
+        if category=="range":
+            return "Ajuste «"+domain+"» para definir la cantidad o valor que utilizará el proceso."
+    # Other locales retain their locale-specific vocabulary but receive an
+    # operation-oriented sentence instead of the old generic template.
+    if category=="button":
+        return "Activate «"+domain+"» to open or execute its associated operation."
+    if category=="select":
+        return "Choose «"+domain+"» to set the value used by this panel."
+    if category=="check":
+        return "Enable or disable «"+domain+"» to apply this preference."
+    if category=="input":
+        return "Enter «"+domain+"»; the value is used when saving or filtering."
+    if category in ("table","list"):
+        return "Review «"+domain+"» and select a record to continue."
+    if category=="tab":
+        return "Open «"+domain+"» to view or configure this panel section."
+    if category=="range":
+        return "Adjust «"+domain+"» to set the value used by the process."
+    return strings[FORMATS.index(category)].replace("{0}",domain)
 
 def collect_controls():
     out={}
@@ -562,6 +805,8 @@ def write_one(locale, controls, literals):
     out.update(LOCALIZED_NODE_FORM[locale])
     out.update(LOCALIZED_REPORT_CONTROLS[locale])
     out.update(DATABASE_ACCOUNT_HELP[locale])
+    for key,value in MENU_HELP[locale].items():
+        out["tooltip."+key]=value
     for key in TAB_KEYS:
         label=out["text.config.tab."+key]
         out["tooltip.config.tab."+key]=strings[7].replace("{0}",label)
@@ -650,7 +895,7 @@ def write_one(locale, controls, literals):
         }.get(typ,"input")
         # Specific descriptions allow developers to alter one control without
         # changing global UX templates.
-        sentence=strings[FORMATS.index(category)].replace("{0}",domain)
+        sentence=semantic_sentence(locale,typ,name,semantic,domain,category,strings)
         hint=legacy_hints.get(name)
         if hint is not None:
             action,legacy_key=hint
@@ -666,10 +911,13 @@ def write_one(locale, controls, literals):
                     # Expert-written tooltip already localized by legacy POS:
                     # prefer the copy sealed inside the JAR over a generic
                     # caption-derived tooltip, even when a button has text.
-                elif "btn" in name.lower() or typ in ("JButton","JToggleButton","JMenuItem","JLabel"):
-                    sentence=strings[0].replace("{0}",translation)
-                else:
-                    sentence=strings[FORMATS.index(category)].replace("{0}",translation)
+                elif action=="setText":
+                    # A static caption identifies the control but does not
+                    # describe its behavior. Keep the semantic sentence above.
+                    pass
+        action=reviewed_action(name)
+        if action is not None:
+            sentence=reviewed_action_text(locale, action)
         out["control."+name]=sentence
     header=[
         "# Embedded, UTF-8, compiled into kylgispos.jar. Never loaded from user locales.",

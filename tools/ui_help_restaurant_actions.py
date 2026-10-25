@@ -201,4 +201,5 @@ TARGETS={
 "sales.restaurant.JTicketsBagRestaurantMap#m_jbtnRefresh":"table.reload",
 "sales.JPanelTicket#m_jbtnPlatformOrder":"platform.assign",
 "sales.JPanelTicket#m_jbtnTicketPreview":"ticket.preview",
+"sales.JPanelTicket#j_btnRemotePrt":"kitchen.send",
 }
