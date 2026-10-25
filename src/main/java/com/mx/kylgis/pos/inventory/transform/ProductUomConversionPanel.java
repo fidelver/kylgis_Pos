@@ -8,6 +8,7 @@ import com.mx.kylgis.pos.forms.AppView;
 import com.mx.kylgis.pos.forms.JPanelView;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -28,9 +29,11 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.table.AbstractTableModel;
@@ -42,6 +45,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
     private final RecipeUiCatalogService catalogService;
 
     private final JComboBox<RecipeUiCatalogService.ProductChoice> product = new JComboBox<>();
+    private final JButton productChooser = new JButton();
     private final JComboBox<RecipeUiCatalogService.UomChoice> fromUom = new JComboBox<>();
     private final JLabel inventoryUom = new JLabel(" ");
     private final JTextField factor = new JTextField("1", 12);
@@ -99,7 +103,12 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         form.setBorder(BorderFactory.createTitledBorder(
                 AppLocal.getIntString("uomconv.editor")));
         GridBagConstraints c = constraints();
-        addRow(form, c, 0, AppLocal.getIntString("uomconv.product"), product);
+        productChooser.setText(AppLocal.getIntString("recipe.catalog.choose"));
+        productChooser.setToolTipText(AppLocal.getIntString("recipe.catalog.choose.help"));
+        JPanel productSelector = new JPanel(new BorderLayout(4, 0));
+        productSelector.add(product, BorderLayout.CENTER);
+        productSelector.add(productChooser, BorderLayout.EAST);
+        addRow(form, c, 0, AppLocal.getIntString("uomconv.product"), productSelector);
         addRow(form, c, 1, AppLocal.getIntString("uomconv.inventory.uom"), inventoryUom);
         addRow(form, c, 2, AppLocal.getIntString("uomconv.from.uom"), fromUom);
         addRow(form, c, 3, AppLocal.getIntString("uomconv.factor"), factor);
@@ -123,8 +132,6 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         actions.add(save);
         c.gridy = 7;
         form.add(actions, c);
-        add(form, BorderLayout.WEST);
-
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setFillsViewportHeight(true);
         JPanel list = new JPanel(new BorderLayout(4, 4));
@@ -135,7 +142,26 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         toggle.setText(AppLocal.getIntString("uomconv.toggle"));
         tableActions.add(toggle);
         list.add(tableActions, BorderLayout.SOUTH);
-        add(list, BorderLayout.CENTER);
+
+        // Evita que el primer layout o un toque sobre el divisor reduzca la lista
+        // a su ancho preferido de columnas truncadas.
+        form.setMinimumSize(new Dimension(500, 0));
+        list.setMinimumSize(new Dimension(480, 0));
+
+        // El editor y la lista comparten el ancho disponible. La lista necesita
+        // suficiente espacio para mostrar las UOM y el estado sin truncamientos.
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, form, list);
+        split.setContinuousLayout(true);
+        split.setResizeWeight(0.55);
+        split.setBorder(null);
+        add(split, BorderLayout.CENTER);
+        SwingUtilities.invokeLater(() -> {
+            int available = split.getWidth();
+            if (available > 0) {
+                int divider = Math.min(650, available - list.getMinimumSize().width - split.getDividerSize());
+                split.setDividerLocation(Math.max(form.getMinimumSize().width, divider));
+            }
+        });
     }
 
     private void bindActions() {
@@ -143,6 +169,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
             updateInventoryUomLabel();
             loadConversionsForSelection();
         });
+        productChooser.addActionListener(e -> chooseProduct());
         fromUom.addActionListener(e -> updateExplanation());
         invert.addActionListener(e -> updateExplanation());
         factor.getDocument().addDocumentListener(new SimpleDocumentListener(this::updateExplanation));
@@ -150,6 +177,34 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         save.addActionListener(e -> saveAsync());
         toggle.addActionListener(e -> toggleSelectedAsync());
         table.getSelectionModel().addListSelectionListener(this::selectionChanged);
+    }
+
+    private void chooseProduct() {
+        if (busy || product.getItemCount() == 0) return;
+        RecipeUiCatalogService.ProductChoice selected = ProductChoiceSearchDialog.showMessage(
+                this, catalogProducts());
+        if (selected != null) {
+            selectProduct(selected);
+        }
+    }
+
+    private List<RecipeUiCatalogService.ProductChoice> catalogProducts() {
+        List<RecipeUiCatalogService.ProductChoice> values = new ArrayList<>();
+        for (int i = 0; i < product.getItemCount(); i++) {
+            RecipeUiCatalogService.ProductChoice value = product.getItemAt(i);
+            if (value != null) values.add(value);
+        }
+        return values;
+    }
+
+    private void selectProduct(RecipeUiCatalogService.ProductChoice selected) {
+        for (int i = 0; i < product.getItemCount(); i++) {
+            RecipeUiCatalogService.ProductChoice value = product.getItemAt(i);
+            if (value != null && value.id.equals(selected.id)) {
+                product.setSelectedIndex(i);
+                return;
+            }
+        }
     }
 
     private void loadCatalogsAsync() {
@@ -368,6 +423,7 @@ public final class ProductUomConversionPanel extends JPanel implements JPanelVie
         busy = value;
         setCursor(value ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
         product.setEnabled(!value);
+        productChooser.setEnabled(!value);
         fromUom.setEnabled(!value);
         factor.setEnabled(!value);
         invert.setEnabled(!value);

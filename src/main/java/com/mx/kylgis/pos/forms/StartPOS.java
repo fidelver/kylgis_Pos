@@ -102,6 +102,8 @@ public class StartPOS {
         NodeContext nodeContext = NodeContext.from(config);
         logger.log(Level.INFO, "KylGis node context: {0}", nodeContext);
 
+
+
         if (instanceLimitReached(config)) {
             System.exit(1);
             return;

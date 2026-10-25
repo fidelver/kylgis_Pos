@@ -337,6 +337,7 @@ CREATE TABLE products (
 	printto varchar default '1',
 	supplier varchar default NULL,
         uom varchar default '0',
+        isrecipeingredient BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (ID),
     CONSTRAINT PRODUCTS_FK_1 FOREIGN KEY (category) REFERENCES categories(id),
     CONSTRAINT PRODUCTS_TAXCAT_FK FOREIGN KEY (taxcat) REFERENCES taxcategories(id),
@@ -814,6 +815,7 @@ CREATE TABLE recipe_versions (
     product_id VARCHAR NOT NULL,
     version_no INTEGER NOT NULL,
     status VARCHAR(16) NOT NULL,
+    recipe_mode VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION',
     yield_quantity NUMERIC(19,6) NOT NULL,
     yield_uom_id VARCHAR NOT NULL,
     created_at TIMESTAMP NOT NULL,
@@ -908,3 +910,42 @@ CREATE TABLE draweropened (
 );
 
 INSERT INTO applications(id, name, version) VALUES($APP_ID{}, $APP_NAME{}, $APP_VERSION{});
+
+/* KylGis 1.3: recipe consumption linked to finalized sales. */
+CREATE TABLE sale_recipe_consumptions (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    receipt_id VARCHAR NOT NULL UNIQUE,
+    ticket_id INTEGER NOT NULL,
+    transformation_id VARCHAR NOT NULL UNIQUE,
+    location_id VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR NOT NULL,
+    CONSTRAINT sale_recipe_consumptions_transformation_fk
+        FOREIGN KEY (transformation_id) REFERENCES inventory_transformations(id),
+    CONSTRAINT sale_recipe_consumptions_location_fk
+        FOREIGN KEY (location_id) REFERENCES locations(id)
+);
+CREATE INDEX sale_recipe_consumptions_location_date_inx
+    ON sale_recipe_consumptions(location_id, created_at);
+
+CREATE TABLE sale_recipe_consumption_alerts (
+    id VARCHAR NOT NULL PRIMARY KEY,
+    receipt_id VARCHAR NOT NULL,
+    ticket_id INTEGER NOT NULL,
+    location_id VARCHAR NOT NULL,
+    product_id VARCHAR NOT NULL,
+    required_quantity NUMERIC(19,6) NOT NULL,
+    available_quantity NUMERIC(19,6) NOT NULL,
+    uom_id VARCHAR NOT NULL,
+    kind VARCHAR(32) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    resolved_at TIMESTAMP NULL,
+    resolved_by VARCHAR NULL,
+    CONSTRAINT sale_recipe_alert_product_fk FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT sale_recipe_alert_location_fk FOREIGN KEY (location_id) REFERENCES locations(id)
+);
+CREATE INDEX sale_recipe_alert_status_inx
+    ON sale_recipe_consumption_alerts(status, created_at);
+CREATE INDEX sale_recipe_alert_product_inx
+    ON sale_recipe_consumption_alerts(product_id);

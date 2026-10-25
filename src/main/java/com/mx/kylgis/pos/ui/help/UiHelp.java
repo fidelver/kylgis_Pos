@@ -186,21 +186,75 @@ public final class UiHelp {
             String nativeTooltip=locale().getProperty("native."+key);
             if(nativeTooltip!=null && !nativeTooltip.isBlank()) return nativeTooltip;
         }
-        // Otherwise a visible caption or associated JLabel may be more
-        // informative than a generic source field identifier.
-        String subject=subject(c);
-        if(!subject.isBlank()) return describe(kind(c),subject);
+        // Menu actions carry the real destination in their taskname. Resolve
+        // that destination before looking at the visible caption: the caption
+        // may be a person, platform or other runtime value and must never become
+        // the tooltip's subject (for example, "Fidel Arcos Mota").
+        if(c instanceof AbstractButton button) {
+            String menuHelp=menuActionHelp(button);
+            if(menuHelp!=null && !menuHelp.isBlank()) return menuHelp;
+        }
+        // A reviewed control description is more reliable than a visible
+        // caption, which can be dynamic or translated independently.
         if(id instanceof String key) {
             String explicit=locale().getProperty("control."+key);
-            if(explicit!=null) return explicit;
+            if(explicit!=null && !explicit.isBlank()) return explicit;
             String meta=CATALOG.getProperty(key,"");
             int split=meta.indexOf('|');
-            if(split>=0) subject=displayTokens(meta.substring(split+1));
+            if(split>=0) {
+                String catalogSubject=displayTokens(meta.substring(split+1));
+                if(!catalogSubject.isBlank()) return describe(kind(c),catalogSubject);
+            }
         }
+        String subject=subject(c);
+        if(!subject.isBlank()) return describe(kind(c),subject);
         if(subject.isBlank()) subject=displayTokens(c.getName());
         if(subject.isBlank()) subject=locale().getProperty("target."+kind(c),"the selected value");
         return describe(kind(c),subject);
     }
+    private static String menuActionHelp(AbstractButton button) {
+        Action action=button.getAction();
+        if(action==null)return null;
+        Object taskValue=action.getValue("taskname");
+        if(!(taskValue instanceof String task) || task.isBlank())return null;
+        String name=action.getValue(Action.NAME)==null
+                ? "" : strip(String.valueOf(action.getValue(Action.NAME)));
+        String lower=(task+" "+name).toLowerCase(Locale.ROOT);
+        String key;
+        if(task.startsWith("/com/mx/kylgis/pos/reports/")) {
+            key="tooltip.menu.report";
+        } else if(lower.contains("jpanelticketsales") || lower.contains("menu.ticket")) {
+            key="tooltip.menu.sales";
+        } else if(lower.contains("jpanelticketedits") || lower.contains("menu.ticketedit")) {
+            key="tooltip.menu.ticketedit";
+        } else if(lower.contains("customerspayment") || lower.contains("menu.customerspayment")) {
+            key="tooltip.menu.customerspayment";
+        } else if(lower.contains("jpanelpayments") || lower.contains("menu.payments")) {
+            key="tooltip.menu.payments";
+        } else if(lower.contains("jpanelclosemoney") || lower.contains("menu.closetpv")) {
+            key="tooltip.menu.closecash";
+        } else if(lower.contains("recipeproductionpanel") || lower.contains("menu.recipeproduction")) {
+            key="tooltip.menu.recipeproduction";
+        } else if(lower.contains("recipemanagementpanel") || lower.contains("menu.recipes")) {
+            key="tooltip.menu.recipes";
+        } else if(lower.contains("transformationhistorypanel") || lower.contains("menu.transformationhistory")) {
+            key="tooltip.menu.transformhistory";
+        } else if(lower.contains("productuomconversionpanel") || lower.contains("menu.productuomconversions")) {
+            key="tooltip.menu.uomconversion";
+        } else if(lower.contains("productspanel") || lower.contains("menu.products")) {
+            key="tooltip.menu.products";
+        } else if(lower.contains("stockmanagement") || lower.contains("menu.stockmovement")) {
+            key="tooltip.menu.stockmovement";
+        } else if(lower.contains("remoteprint") || lower.contains("sendorder")) {
+            key="tooltip.menu.remoteprint";
+        } else {
+            key="tooltip.menu.panel";
+        }
+        String template=locale().getProperty(key);
+        if(template==null || template.isBlank())return null;
+        return template.replace("{0}",name.isBlank()?displayTokens(task):name);
+    }
+
     private static String describe(String kind,String subject) {
         String pattern=locale().getProperty("format."+kind,
                 locale().getProperty("format.input","Edit {0}."));

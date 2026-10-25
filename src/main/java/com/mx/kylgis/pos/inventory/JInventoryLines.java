@@ -34,6 +34,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
+import javax.swing.table.TableColumnModel;
 
 /**
  *
@@ -55,21 +56,28 @@ public class JInventoryLines extends javax.swing.JPanel {
                 , new DataCellRenderer(javax.swing.SwingConstants.LEFT)
                 , new DefaultCellEditor(new JTextField()));
         c.setHeaderValue(AppLocal.getIntString("label.item"));
+        c.setMinWidth(140);
         columns.addColumn(c);
-        c = new TableColumn(1, 120
+        c = new TableColumn(1, 90
                 , new DataCellRenderer(javax.swing.SwingConstants.RIGHT)
                 , new DefaultCellEditor(new JTextField()));
         c.setHeaderValue(AppLocal.getIntString("label.units2"));
+        c.setMinWidth(70);
+        c.setMaxWidth(90);
         columns.addColumn(c);
-        c = new TableColumn(2, 140
+        c = new TableColumn(2, 100
                 , new DataCellRenderer(javax.swing.SwingConstants.RIGHT)
                 , new DefaultCellEditor(new JTextField()));
         c.setHeaderValue(AppLocal.getIntString("label.price"));
+        c.setMinWidth(80);
+        c.setMaxWidth(100);
         columns.addColumn(c);        
-        c = new TableColumn(3, 140
+        c = new TableColumn(3, 120
                 , new DataCellRenderer(javax.swing.SwingConstants.RIGHT)
                 , new DefaultCellEditor(new JTextField()));
         c.setHeaderValue(AppLocal.getIntString("label.prodvaluebuy"));
+        c.setMinWidth(100);
+        c.setMaxWidth(120);
         columns.addColumn(c);
         
         m_tableinventory.setColumnModel(columns);       
@@ -77,10 +85,19 @@ public class JInventoryLines extends javax.swing.JPanel {
         m_tableinventory.getTableHeader().setReorderingAllowed(false);         
         m_tableinventory.setRowHeight(30);
         m_tableinventory.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION); 
-        m_tableinventory.setIntercellSpacing(new java.awt.Dimension(0, 1));       
+        m_tableinventory.setIntercellSpacing(new java.awt.Dimension(0, 1));
+        m_tableinventory.setSelectionBackground(new java.awt.Color(185, 225, 240));
+        m_tableinventory.setSelectionForeground(new java.awt.Color(25, 45, 55));
+        m_tableinventory.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent event) {
+                updateColumnWidths();
+            }
+        });       
         
         m_inventorylines = new InventoryTableModel();
-        m_tableinventory.setModel(m_inventorylines);      
+        m_tableinventory.setModel(m_inventorylines);
+        javax.swing.SwingUtilities.invokeLater(this::updateColumnWidths);      
  
        
     }
@@ -88,6 +105,35 @@ public class JInventoryLines extends javax.swing.JPanel {
     /**
      *
      */
+    /**
+     * Keeps the description column flexible while preserving readable widths
+     * for quantity, price and purchase value on every POS resolution.
+     */
+    private void updateColumnWidths() {
+        if (m_tableinventory == null || m_tableinventory.getColumnModel().getColumnCount() < 4) {
+            return;
+        }
+        java.awt.Container parent = m_tableinventory.getParent();
+        int availableWidth = parent == null ? m_tableinventory.getWidth() : parent.getWidth();
+        if (availableWidth <= 0) {
+            return;
+        }
+        final int quantityWidth = 90;
+        final int priceWidth = 100;
+        final int purchaseValueWidth = 120;
+        final int descriptionWidth = Math.max(140,
+                availableWidth - quantityWidth - priceWidth - purchaseValueWidth - 2);
+        TableColumnModel columns = m_tableinventory.getColumnModel();
+        columns.getColumn(0).setPreferredWidth(descriptionWidth);
+        columns.getColumn(0).setWidth(descriptionWidth);
+        columns.getColumn(1).setPreferredWidth(quantityWidth);
+        columns.getColumn(1).setWidth(quantityWidth);
+        columns.getColumn(2).setPreferredWidth(priceWidth);
+        columns.getColumn(2).setWidth(priceWidth);
+        columns.getColumn(3).setPreferredWidth(purchaseValueWidth);
+        columns.getColumn(3).setWidth(purchaseValueWidth);
+    }
+
     public void clear() {
         m_inventorylines.clear();
     }

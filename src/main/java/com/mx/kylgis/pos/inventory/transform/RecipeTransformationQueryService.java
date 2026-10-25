@@ -86,12 +86,15 @@ public final class RecipeTransformationQueryService {
 
             List<TransformationLine> lines = new ArrayList<>();
             try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT l.line_no, l.direction, l.product_id, p.reference, p.name, "
+                    "SELECT l.line_no, CASE WHEN l.direction = 'WASTE' THEN l.direction "
+                    + "WHEN sd.units < 0 THEN 'OUTPUT' WHEN sd.units > 0 THEN 'INPUT' "
+                    + "ELSE l.direction END, l.product_id, p.reference, p.name, "
                     + "l.attributesetinstance_id, l.quantity, l.uom_id, u.name, "
                     + "l.base_quantity, l.unit_cost, l.total_cost, l.stockdiary_id "
                     + "FROM inventory_transformation_lines l "
                     + "LEFT JOIN products p ON p.id = l.product_id "
                     + "LEFT JOIN uom u ON u.id = l.uom_id "
+                    + "LEFT JOIN stockdiary sd ON sd.id = l.stockdiary_id "
                     + "WHERE l.transformation_id = ? ORDER BY l.line_no")) {
                 statement.setString(1, transformationId);
                 try (ResultSet rows = statement.executeQuery()) {
@@ -208,7 +211,15 @@ public final class RecipeTransformationQueryService {
         if (isBlank(value)) {
             return "";
         }
-        String key = prefix + value.trim().toLowerCase(Locale.ROOT);
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("transform.type.".equals(prefix)) {
+            // Accept legacy spellings while resolving to the canonical locale key.
+            if ("sales_recipe_consuption".equals(normalized)
+                    || "sale_recipe_consuption".equals(normalized)) {
+                normalized = "sale_recipe_consumption";
+            }
+        }
+        String key = prefix + normalized;
         String translated = AppLocal.getIntString(key);
         return translated.startsWith("** " + key + " **") ? value : translated;
     }

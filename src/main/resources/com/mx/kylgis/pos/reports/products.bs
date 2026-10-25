@@ -40,6 +40,8 @@ report.setSentence("SELECT products.ID, "
             + "ON (products.taxcat = T.id)) "
         + "INNER JOIN categories categories "
             + "ON (products.category = categories.id)) "
+        + "LEFT OUTER JOIN uom uom "
+            + "ON (products.UOM = uom.ID) "
         + "LEFT OUTER JOIN stockcurrent stockcurrent "
             + "ON (stockcurrent.product = products.id) "
     + "WHERE ?(QBF_FILTER) "
@@ -49,11 +51,9 @@ report.setSentence("SELECT products.ID, "
 report.addParameter("stockcurrent.LOCATION");
 report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsLocationWithFirst());
 
-report.addParameter("products.NAME");
+report.addParameter("products.NAME|products.CODE|products.REFERENCE|uom.ID|uom.NAME");
 report.addParameter("products.CATEGORY");
-report.addParameter("products.CODE");
-report.addParameter("stockcurrent.UNITS");
-report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter1());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.WarehouseProductFilter());
 
 report.addField("ID", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("REFERENCE", com.mx.kylgis.pos.data.loader.Datas.STRING);

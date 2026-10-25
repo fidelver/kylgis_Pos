@@ -42,6 +42,8 @@ public final class InventoryTransformationService {
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_POSTED = "POSTED";
+    // Directions describe the warehouse movement, not the recipe role:
+    // INPUT enters stock; OUTPUT leaves stock.
     private static final String DIR_INPUT = "INPUT";
     private static final String DIR_OUTPUT = "OUTPUT";
     private static final String DIR_WASTE = "WASTE";
@@ -125,7 +127,7 @@ public final class InventoryTransformationService {
                         }
                         BigDecimal lineCost = money(product.unitCost.multiply(baseQuantity));
                         totalInputCost = money(totalInputCost.add(lineCost));
-                        inputLines.add(new PreparedLine(lineNo++, DIR_INPUT, component.productId,
+                        inputLines.add(new PreparedLine(lineNo++, DIR_OUTPUT, component.productId,
                                 recipeQuantity, component.uomId, baseQuantity,
                                 money(product.unitCost), lineCost));
                     }
@@ -156,7 +158,7 @@ public final class InventoryTransformationService {
                     String outputDiaryId = insertStockDiary(connection, timestamp,
                             REASON_IN_PRODUCTION, request.locationId, recipe.productId,
                             outputBase, outputUnitCost, request.createdBy);
-                    PreparedLine outputLine = new PreparedLine(lineNo, DIR_OUTPUT,
+                    PreparedLine outputLine = new PreparedLine(lineNo, DIR_INPUT,
                             recipe.productId, actualOutput, recipe.yieldUomId, outputBase,
                             outputUnitCost, totalInputCost);
                     insertTransformationLine(connection, transformationId, outputLine, outputDiaryId);
@@ -230,7 +232,7 @@ public final class InventoryTransformationService {
                         }
                         BigDecimal lineCost = money(product.unitCost.multiply(base));
                         totalInputCost = money(totalInputCost.add(lineCost));
-                        inputLines.add(new PreparedLine(lineNo++, DIR_INPUT, input.productId,
+                        inputLines.add(new PreparedLine(lineNo++, DIR_OUTPUT, input.productId,
                                 requested, input.uomId, base, money(product.unitCost), lineCost));
                     }
 
@@ -269,7 +271,7 @@ public final class InventoryTransformationService {
                     String outputDiaryId = insertStockDiary(connection, timestamp,
                             REASON_IN_CONVERSION, request.locationId, request.output.productId,
                             outputBase, outputUnitCost, request.createdBy);
-                    PreparedLine outputLine = new PreparedLine(lineNo, DIR_OUTPUT,
+                    PreparedLine outputLine = new PreparedLine(lineNo, DIR_INPUT,
                             request.output.productId, requestedOutput, request.output.uomId,
                             outputBase, outputUnitCost, totalInputCost);
                     insertTransformationLine(connection, transformationId, outputLine, outputDiaryId);
@@ -474,7 +476,8 @@ public final class InventoryTransformationService {
             throws SQLException, BasicException {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT id, product_id, yield_quantity, yield_uom_id "
-                + "FROM recipe_versions WHERE id = ? AND UPPER(status) = ? FOR UPDATE")) {
+                + "FROM recipe_versions WHERE id = ? AND UPPER(status) = ? "
+                + "AND UPPER(recipe_mode) = 'PRODUCTION' FOR UPDATE")) {
             statement.setString(1, recipeId);
             statement.setString(2, STATUS_ACTIVE);
             try (ResultSet row = statement.executeQuery()) {
@@ -509,7 +512,7 @@ public final class InventoryTransformationService {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT rv.product_id, rc.component_product_id "
                 + "FROM recipe_versions rv JOIN recipe_components rc ON rc.recipe_version_id = rv.id "
-                + "WHERE UPPER(rv.status) = ?")) {
+                + "WHERE UPPER(rv.status) = ? AND UPPER(rv.recipe_mode) = 'PRODUCTION'")) {
             statement.setString(1, STATUS_ACTIVE);
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
@@ -854,10 +857,13 @@ public final class InventoryTransformationService {
         BigDecimal outputBase = null;
         BigDecimal unitCost = null;
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT product_id, base_quantity, unit_cost FROM inventory_transformation_lines "
-                + "WHERE transformation_id = ? AND direction = ? ORDER BY line_no")) {
+                "SELECT l.product_id, l.base_quantity, l.unit_cost "
+                + "FROM inventory_transformation_lines l "
+                + "LEFT JOIN stockdiary sd ON sd.id = l.stockdiary_id "
+                + "WHERE l.transformation_id = ? "
+                + "AND (sd.units > 0 OR l.direction = ?) ORDER BY l.line_no")) {
             statement.setString(1, id);
-            statement.setString(2, DIR_OUTPUT);
+            statement.setString(2, DIR_INPUT);
             try (ResultSet row = statement.executeQuery()) {
                 if (row.next()) {
                     outputProduct = row.getString(1);
@@ -893,9 +899,13 @@ public final class InventoryTransformationService {
             throws SQLException {
         List<StoredLine> lines = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT direction, product_id, attributesetinstance_id, quantity, uom_id, "
-                + "base_quantity, unit_cost, total_cost FROM inventory_transformation_lines "
-                + "WHERE transformation_id = ? ORDER BY line_no FOR UPDATE")) {
+                "SELECT CASE WHEN sd.units < 0 THEN 'OUTPUT' "
+                + "WHEN sd.units > 0 THEN 'INPUT' ELSE l.direction END, "
+                + "l.product_id, l.attributesetinstance_id, l.quantity, l.uom_id, "
+                + "l.base_quantity, l.unit_cost, l.total_cost "
+                + "FROM inventory_transformation_lines l "
+                + "LEFT JOIN stockdiary sd ON sd.id = l.stockdiary_id "
+                + "WHERE l.transformation_id = ? ORDER BY l.line_no FOR UPDATE")) {
             statement.setString(1, transformationId);
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
@@ -1025,10 +1035,13 @@ public final class InventoryTransformationService {
             throw new BasicException("Existing idempotent conversion is not a POSTED conversion.");
         }
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT product_id, base_quantity, unit_cost FROM inventory_transformation_lines "
-                + "WHERE transformation_id = ? AND direction = ? ORDER BY line_no")) {
+                "SELECT l.product_id, l.base_quantity, l.unit_cost "
+                + "FROM inventory_transformation_lines l "
+                + "LEFT JOIN stockdiary sd ON sd.id = l.stockdiary_id "
+                + "WHERE l.transformation_id = ? "
+                + "AND (sd.units > 0 OR l.direction = ?) ORDER BY l.line_no")) {
             statement.setString(1, id);
-            statement.setString(2, DIR_OUTPUT);
+            statement.setString(2, DIR_INPUT);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
                     throw new BasicException("Stored idempotent conversion has no output line.");

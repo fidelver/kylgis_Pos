@@ -26,8 +26,10 @@ public final class RecipeUiCatalogService {
     }
 
     public List<ProductChoice> listProducts() throws BasicException {
-        String sql = "SELECT id, reference, name, uom FROM products "
-                + "WHERE uom IS NOT NULL AND TRIM(uom) <> '' ORDER BY name, reference";
+        String sql = "SELECT p.id, p.reference, p.code, p.name, p.uom, c.name "
+                + "FROM products p LEFT JOIN categories c ON c.id = p.category "
+                + "WHERE p.uom IS NOT NULL AND TRIM(p.uom) <> '' "
+                + "ORDER BY p.name, p.reference, p.code";
         try {
             Connection connection = session.getConnection();
             List<ProductChoice> result = new ArrayList<>();
@@ -35,12 +37,62 @@ public final class RecipeUiCatalogService {
                     ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
                     result.add(new ProductChoice(rows.getString(1), rows.getString(2),
-                            rows.getString(3), rows.getString(4)));
+                            rows.getString(3), rows.getString(4),
+                            rows.getString(5), rows.getString(6)));
                 }
             }
             return Collections.unmodifiableList(result);
         } catch (SQLException ex) {
             throw new BasicException("Unable to load recipe product catalog.", ex);
+        }
+    }
+
+    /** Products that can actually be produced: one active PRODUCTION recipe. */
+    public List<ProductChoice> listProductionProducts() throws BasicException {
+        String sql = "SELECT p.id, p.reference, p.code, p.name, p.uom, c.name "
+                + "FROM products p LEFT JOIN categories c ON c.id = p.category "
+                + "WHERE p.uom IS NOT NULL AND TRIM(p.uom) <> '' "
+                + "AND EXISTS (SELECT 1 FROM recipe_versions rv "
+                + "WHERE rv.product_id = p.id AND UPPER(rv.status) = 'ACTIVE' "
+                + "AND UPPER(rv.recipe_mode) = 'PRODUCTION') "
+                + "ORDER BY p.name, p.reference, p.code";
+        try {
+            Connection connection = session.getConnection();
+            List<ProductChoice> result = new ArrayList<>();
+            try (PreparedStatement statement = connection.prepareStatement(sql);
+                    ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    result.add(new ProductChoice(rows.getString(1), rows.getString(2),
+                            rows.getString(3), rows.getString(4),
+                            rows.getString(5), rows.getString(6)));
+                }
+            }
+            return Collections.unmodifiableList(result);
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to load production recipe product catalog.", ex);
+        }
+    }
+
+    public List<ProductChoice> listRecipeIngredients() throws BasicException {
+        String sql = "SELECT p.id, p.reference, p.code, p.name, p.uom, c.name "
+                + "FROM products p LEFT JOIN categories c ON c.id = p.category "
+                + "WHERE p.uom IS NOT NULL AND TRIM(p.uom) <> '' "
+                + "AND p.ISRECIPEINGREDIENT = TRUE "
+                + "ORDER BY p.name, p.reference, p.code";
+        try {
+            Connection connection = session.getConnection();
+            List<ProductChoice> result = new ArrayList<>();
+            try (PreparedStatement statement = connection.prepareStatement(sql);
+                    ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    result.add(new ProductChoice(rows.getString(1), rows.getString(2),
+                            rows.getString(3), rows.getString(4),
+                            rows.getString(5), rows.getString(6)));
+                }
+            }
+            return Collections.unmodifiableList(result);
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to load recipe ingredient catalog.", ex);
         }
     }
 
@@ -81,26 +133,59 @@ public final class RecipeUiCatalogService {
     public static final class ProductChoice {
         public final String id;
         public final String reference;
+        public final String code;
         public final String name;
         public final String uomId;
+        public final String categoryName;
 
-        ProductChoice(String id, String reference, String name, String uomId) {
+        ProductChoice(String id, String reference, String code, String name,
+                String uomId, String categoryName) {
             this.id = id;
             this.reference = reference;
+            this.code = code;
             this.name = name;
             this.uomId = uomId;
+            this.categoryName = categoryName;
         }
 
         @Override
         public String toString() {
             String displayName = name == null ? "" : name.trim();
             String displayReference = reference == null ? "" : reference.trim();
-            if (displayName.isEmpty()) {
-                return displayReference.isEmpty()
-                        ? AppLocal.getIntString("recipe.catalog.unknown.product")
-                        : displayReference;
+            String displayCode = code == null ? "" : code.trim();
+            String displayIdentifier = displayCode.isEmpty() ? displayReference : displayCode;
+            if (!displayReference.isEmpty() && !displayCode.isEmpty()
+                    && !displayReference.equalsIgnoreCase(displayCode)) {
+                displayIdentifier = displayReference + " / " + displayCode;
             }
-            return displayReference.isEmpty() ? displayName : displayReference + " - " + displayName;
+            if (displayName.isEmpty()) {
+                return displayIdentifier.isEmpty()
+                        ? AppLocal.getIntString("recipe.catalog.unknown.product")
+                        : displayIdentifier;
+            }
+            String displayCategory = categoryName == null ? "" : categoryName.trim();
+            String label = displayIdentifier.isEmpty() ? displayName
+                    : displayName + " [" + displayIdentifier + "]";
+            return displayCategory.isEmpty() ? label : label + " — " + displayCategory;
+        }
+
+        boolean matchesSearch(String query) {
+            if (query == null || query.trim().isEmpty()) {
+                return true;
+            }
+            String normalized = query.trim().toLowerCase(java.util.Locale.ROOT);
+            String searchable = String.join(" ", safe(reference), safe(code), safe(name), safe(categoryName))
+                    .toLowerCase(java.util.Locale.ROOT);
+            for (String token : normalized.split("\\s+")) {
+                if (!searchable.contains(token)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static String safe(String value) {
+            return value == null ? "" : value.trim();
         }
     }
 

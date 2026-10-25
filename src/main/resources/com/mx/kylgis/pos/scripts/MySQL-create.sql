@@ -339,6 +339,7 @@ CREATE TABLE `products` (
 	`supplier` varchar(255) default NULL,
         `uom` varchar(255) default '0',
 	`memodate` datetime default '2018-01-01 00:00:01',
+	`isrecipeingredient` bit(1) NOT NULL default b'0',
 
 	PRIMARY KEY  ( `id` ),
 	KEY `products_attrset_fx` ( `attributeset_id` ),
@@ -750,6 +751,7 @@ CREATE TABLE `recipe_versions` (
     `product_id` VARCHAR(255) NOT NULL,
     `version_no` INT NOT NULL,
     `status` VARCHAR(16) NOT NULL,
+    `recipe_mode` VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION',
     `yield_quantity` DECIMAL(19,6) NOT NULL,
     `yield_uom_id` VARCHAR(255) NOT NULL,
     `created_at` DATETIME NOT NULL,
@@ -1165,3 +1167,45 @@ INSERT INTO ticketsnum_payment VALUES(1);
 
 -- ADD APPLICATION VERSION
 INSERT INTO applications(id, name, version) VALUES($APP_ID{}, $APP_NAME{}, $APP_VERSION{});
+
+/* KylGis 1.3: recipe consumption linked to finalized sales. */
+CREATE TABLE `sale_recipe_consumptions` (
+    `id` VARCHAR(255) NOT NULL,
+    `receipt_id` VARCHAR(255) NOT NULL,
+    `ticket_id` INT NOT NULL,
+    `transformation_id` VARCHAR(255) NOT NULL,
+    `location_id` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME NOT NULL,
+    `created_by` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `sale_recipe_consumptions_receipt_uq` (`receipt_id`),
+    UNIQUE KEY `sale_recipe_consumptions_transformation_uq` (`transformation_id`),
+    KEY `sale_recipe_consumptions_location_date_inx` (`location_id`, `created_at`),
+    CONSTRAINT `sale_recipe_consumptions_transformation_fk`
+        FOREIGN KEY (`transformation_id`) REFERENCES `inventory_transformations` (`id`),
+    CONSTRAINT `sale_recipe_consumptions_location_fk`
+        FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;
+
+CREATE TABLE `sale_recipe_consumption_alerts` (
+    `id` VARCHAR(255) NOT NULL,
+    `receipt_id` VARCHAR(255) NOT NULL,
+    `ticket_id` INT NOT NULL,
+    `location_id` VARCHAR(255) NOT NULL,
+    `product_id` VARCHAR(255) NOT NULL,
+    `required_quantity` DECIMAL(19,6) NOT NULL,
+    `available_quantity` DECIMAL(19,6) NOT NULL,
+    `uom_id` VARCHAR(255) NOT NULL,
+    `kind` VARCHAR(32) NOT NULL,
+    `status` VARCHAR(16) NOT NULL,
+    `created_at` DATETIME NOT NULL,
+    `resolved_at` DATETIME DEFAULT NULL,
+    `resolved_by` VARCHAR(255) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `sale_recipe_alert_status_inx` (`status`, `created_at`),
+    KEY `sale_recipe_alert_product_inx` (`product_id`),
+    CONSTRAINT `sale_recipe_alert_product_fk`
+        FOREIGN KEY (`product_id`) REFERENCES `products` (`id`),
+    CONSTRAINT `sale_recipe_alert_location_fk`
+        FOREIGN KEY (`location_id`) REFERENCES `locations` (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT = Dynamic;

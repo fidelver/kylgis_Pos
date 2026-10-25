@@ -42,6 +42,7 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
     private final String currentUser;
 
     private final JComboBox<RecipeUiCatalogService.ProductChoice> product = new JComboBox<>();
+    private final JButton productChooser = new JButton();
     private final JComboBox<RecipeUiCatalogService.LocationChoice> location = new JComboBox<>();
     private final JTextField batches = new JTextField("1", 10);
     private final JTextField actualOutput = new JTextField("", 10);
@@ -103,7 +104,12 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
         form.setBorder(BorderFactory.createTitledBorder(
                 AppLocal.getIntString("recipe.production.title")));
         GridBagConstraints c = constraints();
-        addRow(form, c, 0, AppLocal.getIntString("recipe.production.product"), product);
+        productChooser.setText(AppLocal.getIntString("recipe.catalog.choose"));
+        productChooser.setToolTipText(AppLocal.getIntString("recipe.catalog.choose.help"));
+        JPanel productSelector = new JPanel(new BorderLayout(4, 0));
+        productSelector.add(product, BorderLayout.CENTER);
+        productSelector.add(productChooser, BorderLayout.EAST);
+        addRow(form, c, 0, AppLocal.getIntString("recipe.production.product"), productSelector);
         addRow(form, c, 1, AppLocal.getIntString("recipe.production.location"), location);
         addRow(form, c, 2, AppLocal.getIntString("recipe.production.active"), activeRecipe);
         addRow(form, c, 3, AppLocal.getIntString("recipe.production.batches"), batches);
@@ -153,6 +159,7 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
 
     private void bindActions() {
         product.addActionListener(e -> loadActiveRecipeForSelection());
+        productChooser.addActionListener(e -> chooseProduct());
         batches.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { updateExpectedLabel(); }
             @Override public void removeUpdate(DocumentEvent e) { updateExpectedLabel(); }
@@ -168,6 +175,34 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
         post.addActionListener(e -> postProductionAsync());
     }
 
+    private void chooseProduct() {
+        if (busy || product.getItemCount() == 0) return;
+        RecipeUiCatalogService.ProductChoice selected = ProductChoiceSearchDialog.showMessage(
+                this, catalogProducts());
+        if (selected != null) {
+            selectProduct(selected);
+        }
+    }
+
+    private List<RecipeUiCatalogService.ProductChoice> catalogProducts() {
+        List<RecipeUiCatalogService.ProductChoice> values = new java.util.ArrayList<>();
+        for (int i = 0; i < product.getItemCount(); i++) {
+            RecipeUiCatalogService.ProductChoice value = product.getItemAt(i);
+            if (value != null) values.add(value);
+        }
+        return values;
+    }
+
+    private void selectProduct(RecipeUiCatalogService.ProductChoice selected) {
+        for (int i = 0; i < product.getItemCount(); i++) {
+            RecipeUiCatalogService.ProductChoice value = product.getItemAt(i);
+            if (value != null && value.id.equals(selected.id)) {
+                product.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
     private void loadCatalogsAsync() {
         if (busy) {
             return;
@@ -176,7 +211,7 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
         new SwingWorker<CatalogSnapshot, Void>() {
             @Override
             protected CatalogSnapshot doInBackground() throws Exception {
-                return new CatalogSnapshot(catalogService.listProducts(), catalogService.listLocations());
+                return new CatalogSnapshot(catalogService.listProductionProducts(), catalogService.listLocations());
             }
 
             @Override
@@ -356,6 +391,7 @@ public final class RecipeProductionPanel extends JPanel implements JPanelView {
         busy = value;
         setCursor(value ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
         product.setEnabled(!value);
+        productChooser.setEnabled(!value);
         location.setEnabled(!value);
         batches.setEnabled(!value);
         actualOutput.setEnabled(!value);

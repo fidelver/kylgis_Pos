@@ -27,9 +27,14 @@ import com.mx.kylgis.pos.data.model.Row;
 import com.mx.kylgis.pos.data.user.EditorRecord;
 import com.mx.kylgis.pos.data.user.ListProviderCreator;
 import com.mx.kylgis.pos.data.user.SaveProvider;
+import com.mx.kylgis.pos.data.gui.FindInfo;
+import com.mx.kylgis.pos.data.gui.JNavigator;
 import com.mx.kylgis.pos.format.Formats;
 import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.panels.JPanelTable2;
+import com.mx.kylgis.pos.panels.JProductFinder;
+import com.mx.kylgis.pos.ticket.ProductInfoExt;
 import com.mx.kylgis.pos.reports.JParamsLocation;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -44,6 +49,7 @@ public class ProductsWarehousePanel extends JPanelTable2 {
 
     private JParamsLocation m_paramslocation;    
     private ProductsWarehouseEditor jeditor;
+    private DataLogicSales m_dlSales;
     
     /** Creates a new instance of ProductsWarehousePanel */
     public ProductsWarehousePanel() {
@@ -53,7 +59,8 @@ public class ProductsWarehousePanel extends JPanelTable2 {
      *
      */
     @Override
-    protected void init() {   
+    protected void init() {
+        m_dlSales = (DataLogicSales) app.getBean("com.mx.kylgis.pos.forms.DataLogicSales");   
                
         m_paramslocation =  new JParamsLocation();
         m_paramslocation.init(app);
@@ -112,6 +119,22 @@ public class ProductsWarehousePanel extends JPanelTable2 {
      *
      * @return
      */
+    @Override
+    protected void configureNavigator(JNavigator navigator) {
+        navigator.setCustomFindAction(() -> {
+            ProductInfoExt selected = JProductFinder.showMessage(this, m_dlSales,
+                    JProductFinder.PRODUCT_ALL);
+            if (selected == null) return;
+            try {
+                int index = bd.findNext(new FindInfo(getVectorer(), selected.getID(),
+                        1, false, FindInfo.MATCH_WHOLEFIELD));
+                if (index >= 0) bd.moveTo(index);
+            } catch (BasicException error) {
+                new com.mx.kylgis.pos.data.gui.MessageInf(error).show(this);
+            }
+        });
+    }
+
     @Override
     public Component getFilter() {
         return m_paramslocation.getComponent();

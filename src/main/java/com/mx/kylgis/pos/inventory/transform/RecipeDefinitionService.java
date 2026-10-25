@@ -34,6 +34,8 @@ public final class RecipeDefinitionService {
     private static final String STATUS_DRAFT = "DRAFT";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_RETIRED = "RETIRED";
+    public static final String MODE_PRODUCTION = "PRODUCTION";
+    public static final String MODE_SALE_CONSUMPTION = "SALE_CONSUMPTION";
     private static final int MAX_GRAPH_DEPTH = 128;
 
     private final Session session;
@@ -52,8 +54,83 @@ public final class RecipeDefinitionService {
     public String createNextDraft(String id, String productId, BigDecimal yieldQuantity,
             String yieldUomId, String createdBy, String notes,
             List<ComponentDraft> components) throws BasicException {
+        return createNextDraft(id, productId, yieldQuantity, yieldUomId, createdBy, notes,
+                components, MODE_PRODUCTION);
+    }
+
+    public String createNextDraft(String id, String productId, BigDecimal yieldQuantity,
+            String yieldUomId, String createdBy, String notes,
+            List<ComponentDraft> components, String recipeMode) throws BasicException {
         return createDraftInternal(new RecipeDraft(id, productId, 1, yieldQuantity,
-                yieldUomId, createdBy, notes, components), true);
+                yieldUomId, createdBy, notes, components, recipeMode), true);
+    }
+
+    /**
+     * Loads an immutable version into an editable template. Nothing is written
+     * until the caller saves it through createNextDraft, which guarantees a new
+     * version number and leaves the source version intact.
+     */
+    public RecipeDraft loadRevisionTemplate(final String recipeVersionId, final String createdBy)
+            throws BasicException {
+        if (isBlank(recipeVersionId) || isBlank(createdBy)) {
+            throw new BasicException("Recipe version and user are required.");
+        }
+        return new Transaction<RecipeDraft>(session) {
+            @Override
+            protected RecipeDraft transact() throws BasicException {
+                try {
+                    Connection connection = session.getConnection();
+                    String productId;
+                    int versionNo;
+                    String status;
+                    BigDecimal yieldQuantity;
+                    String yieldUomId;
+                    String notes;
+                    String recipeMode;
+                    try (PreparedStatement header = connection.prepareStatement(
+                            "SELECT product_id, version_no, status, yield_quantity, yield_uom_id, "
+                            + "notes, recipe_mode FROM recipe_versions WHERE id = ?")) {
+                        header.setString(1, recipeVersionId);
+                        try (ResultSet row = header.executeQuery()) {
+                            if (!row.next()) {
+                                throw new BasicException("Unknown recipe version.");
+                            }
+                            productId = row.getString(1);
+                            versionNo = row.getInt(2);
+                            status = row.getString(3);
+                            yieldQuantity = row.getBigDecimal(4);
+                            yieldUomId = row.getString(5);
+                            notes = row.getString(6);
+                            recipeMode = row.getString(7);
+                        }
+                    }
+                    if (!STATUS_ACTIVE.equalsIgnoreCase(status)
+                            && !STATUS_DRAFT.equalsIgnoreCase(status)) {
+                        throw new BasicException("Only ACTIVE or DRAFT recipes can be edited as a new version.");
+                    }
+
+                    List<ComponentDraft> components = new ArrayList<>();
+                    try (PreparedStatement lines = connection.prepareStatement(
+                            "SELECT component_product_id, quantity, uom_id, waste_allowance "
+                            + "FROM recipe_components WHERE recipe_version_id = ? ORDER BY line_no")) {
+                        lines.setString(1, recipeVersionId);
+                        try (ResultSet rows = lines.executeQuery()) {
+                            while (rows.next()) {
+                                components.add(new ComponentDraft(rows.getString(1),
+                                        rows.getBigDecimal(2), rows.getString(3), rows.getBigDecimal(4)));
+                            }
+                        }
+                    }
+                    if (components.isEmpty()) {
+                        throw new BasicException("Recipe cannot be edited without components.");
+                    }
+                    return new RecipeDraft(recipeVersionId, productId, versionNo,
+                            yieldQuantity, yieldUomId, createdBy, notes, components, recipeMode);
+                } catch (SQLException ex) {
+                    throw new BasicException("Unable to load recipe for editing.", ex);
+                }
+            }
+        }.execute();
     }
 
     private String createDraftInternal(final RecipeDraft draft, final boolean autoVersion)
@@ -102,17 +179,18 @@ public final class RecipeDefinitionService {
 
                     try (PreparedStatement insert = connection.prepareStatement(
                             "INSERT INTO recipe_versions "
-                            + "(id, product_id, version_no, status, yield_quantity, yield_uom_id, "
-                            + "created_at, created_by, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                            + "(id, product_id, version_no, status, recipe_mode, yield_quantity, yield_uom_id, "
+                            + "created_at, created_by, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                         insert.setString(1, draft.id);
                         insert.setString(2, draft.productId);
                         insert.setInt(3, resolvedVersionNo);
                         insert.setString(4, STATUS_DRAFT);
-                        insert.setBigDecimal(5, draft.yieldQuantity);
-                        insert.setString(6, draft.yieldUomId);
-                        insert.setTimestamp(7, new Timestamp(System.currentTimeMillis()));
-                        insert.setString(8, draft.createdBy);
-                        insert.setString(9, draft.notes);
+                        insert.setString(5, draft.recipeMode);
+                        insert.setBigDecimal(6, draft.yieldQuantity);
+                        insert.setString(7, draft.yieldUomId);
+                        insert.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
+                        insert.setString(9, draft.createdBy);
+                        insert.setString(10, draft.notes);
                         if (insert.executeUpdate() != 1) {
                             throw new SQLException("Recipe header was not inserted exactly once.");
                         }
@@ -170,10 +248,12 @@ public final class RecipeDefinitionService {
                     assertActivationGraphAcyclic(connection, recipe);
 
                     try (PreparedStatement retire = connection.prepareStatement(
-                            "UPDATE recipe_versions SET status = ? WHERE product_id = ? AND UPPER(status) = ?")) {
+                            "UPDATE recipe_versions SET status = ? WHERE product_id = ? AND UPPER(status) = ? "
+                            + "AND UPPER(recipe_mode) = ?")) {
                         retire.setString(1, STATUS_RETIRED);
                         retire.setString(2, recipe.productId);
                         retire.setString(3, STATUS_ACTIVE);
+                        retire.setString(4, recipe.recipeMode);
                         retire.executeUpdate();
                     }
                     try (PreparedStatement activate = connection.prepareStatement(
@@ -184,6 +264,9 @@ public final class RecipeDefinitionService {
                         if (activate.executeUpdate() != 1) {
                             throw new SQLException("Recipe activation lost its expected DRAFT state.");
                         }
+                    }
+                    if (MODE_SALE_CONSUMPTION.equals(recipe.recipeMode)) {
+                        SaleRecipeConsumptionService.refreshActiveRecipeCosts(connection);
                     }
                     return null;
                 } catch (SQLException ex) {
@@ -359,13 +442,13 @@ public final class RecipeDefinitionService {
     private static RecipeHeader loadRecipeForUpdate(Connection connection, String id)
             throws SQLException, BasicException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT id, product_id, status FROM recipe_versions WHERE id = ? FOR UPDATE")) {
+                "SELECT id, product_id, status, recipe_mode FROM recipe_versions WHERE id = ? FOR UPDATE")) {
             statement.setString(1, id);
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next()) {
                     throw new BasicException("Unknown recipe version.");
                 }
-                return new RecipeHeader(row.getString(1), row.getString(2), row.getString(3).toUpperCase());
+                return new RecipeHeader(row.getString(1), row.getString(2), row.getString(3).toUpperCase(), row.getString(4).toUpperCase());
             }
         }
     }
@@ -468,7 +551,9 @@ public final class RecipeDefinitionService {
                 || draft.versionNo <= 0 || draft.yieldQuantity == null
                 || draft.yieldQuantity.signum() <= 0 || isBlank(draft.yieldUomId)
                 || isBlank(draft.createdBy) || draft.components == null
-                || draft.components.isEmpty()) {
+                || draft.components.isEmpty()
+                || (!MODE_PRODUCTION.equals(draft.recipeMode)
+                && !MODE_SALE_CONSUMPTION.equals(draft.recipeMode))) {
             throw new BasicException("Invalid recipe draft.");
         }
         Set<String> components = new HashSet<>();
@@ -501,11 +586,19 @@ public final class RecipeDefinitionService {
         public final String yieldUomId;
         public final String createdBy;
         public final String notes;
+        public final String recipeMode;
         public final List<ComponentDraft> components;
 
         public RecipeDraft(String id, String productId, int versionNo,
                 BigDecimal yieldQuantity, String yieldUomId, String createdBy,
                 String notes, List<ComponentDraft> components) {
+            this(id, productId, versionNo, yieldQuantity, yieldUomId, createdBy,
+                    notes, components, MODE_PRODUCTION);
+        }
+
+        public RecipeDraft(String id, String productId, int versionNo,
+                BigDecimal yieldQuantity, String yieldUomId, String createdBy,
+                String notes, List<ComponentDraft> components, String recipeMode) {
             this.id = id;
             this.productId = productId;
             this.versionNo = versionNo;
@@ -513,6 +606,7 @@ public final class RecipeDefinitionService {
             this.yieldUomId = yieldUomId;
             this.createdBy = createdBy;
             this.notes = notes;
+            this.recipeMode = recipeMode == null ? MODE_PRODUCTION : recipeMode.trim().toUpperCase(java.util.Locale.ROOT);
             this.components = components == null ? null : new ArrayList<>(components);
         }
     }
@@ -536,11 +630,13 @@ public final class RecipeDefinitionService {
         final String id;
         final String productId;
         final String status;
+        final String recipeMode;
 
-        RecipeHeader(String id, String productId, String status) {
+        RecipeHeader(String id, String productId, String status, String recipeMode) {
             this.id = id;
             this.productId = productId;
             this.status = status;
+            this.recipeMode = recipeMode;
         }
     }
 
