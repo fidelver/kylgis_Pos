@@ -186,9 +186,10 @@ public final class DatabaseUpgradeService {
                 throw new SQLException("Fresh recipe schema is missing base table " + table + ".");
             }
         }
+        validateColumns(meta, "products", "id", "reference", "name", "uom", "isrecipeingredient");
 
         validateColumns(meta, "recipe_versions", "id", "product_id", "version_no", "status",
-                "yield_quantity", "yield_uom_id", "created_at", "created_by", "notes");
+                "recipe_mode", "yield_quantity", "yield_uom_id", "created_at", "created_by", "notes");
         validatePrimaryKey(meta, "recipe_versions", "id");
         requireIndex(meta, "recipe_versions", "recipe_versions_product_version_uq");
         requireIndex(meta, "recipe_versions", "recipe_versions_product_status_inx");
@@ -532,6 +533,7 @@ public final class DatabaseUpgradeService {
                         + "product_id VARCHAR NOT NULL, "
                         + "version_no INTEGER NOT NULL, "
                         + "status VARCHAR(16) NOT NULL, "
+                        + "recipe_mode VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION', "
                         + "yield_quantity NUMERIC(19,6) NOT NULL, "
                         + "yield_uom_id VARCHAR NOT NULL, "
                         + "created_at TIMESTAMP NOT NULL, "
@@ -546,6 +548,7 @@ public final class DatabaseUpgradeService {
                         + "product_id VARCHAR(255) NOT NULL, "
                         + "version_no INT NOT NULL, "
                         + "status VARCHAR(16) NOT NULL, "
+                        + "recipe_mode VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION', "
                         + "yield_quantity DECIMAL(19,6) NOT NULL, "
                         + "yield_uom_id VARCHAR(255) NOT NULL, "
                         + "created_at DATETIME NOT NULL, "
@@ -559,8 +562,10 @@ public final class DatabaseUpgradeService {
             }
             meta = connection.getMetaData();
         }
+        ensureRecipeModeColumn(connection, meta);
+        meta = connection.getMetaData();
         validateColumns(meta, "recipe_versions", "id", "product_id", "version_no", "status",
-                "yield_quantity", "yield_uom_id", "created_at", "created_by", "notes");
+                "recipe_mode", "yield_quantity", "yield_uom_id", "created_at", "created_by", "notes");
         validatePrimaryKey(meta, "recipe_versions", "id");
         if (!indexExists(meta, "recipe_versions", "recipe_versions_product_version_uq")) {
             execute(connection, "CREATE UNIQUE INDEX recipe_versions_product_version_uq "
@@ -792,6 +797,54 @@ public final class DatabaseUpgradeService {
 
         validateRecipeUniqueIndexes(meta);
         validateRecipeIntegrity(connection);
+        ensureSaleRecipeConsumptionSchema(connection, connection.getMetaData());
+    }
+
+    private static void ensureSaleRecipeConsumptionSchema(Connection connection, DatabaseMetaData meta) throws SQLException {
+        if (!tableExists(meta, "sale_recipe_consumptions")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE sale_recipe_consumptions ("
+                        + "id VARCHAR NOT NULL PRIMARY KEY, receipt_id VARCHAR NOT NULL UNIQUE, "
+                        + "ticket_id INTEGER NOT NULL, transformation_id VARCHAR NOT NULL UNIQUE, "
+                        + "location_id VARCHAR NOT NULL, created_at TIMESTAMP NOT NULL, created_by VARCHAR NOT NULL, "
+                        + "CONSTRAINT sale_recipe_consumptions_transformation_fk FOREIGN KEY (transformation_id) REFERENCES inventory_transformations(id), "
+                        + "CONSTRAINT sale_recipe_consumptions_location_fk FOREIGN KEY (location_id) REFERENCES locations(id))");
+                execute(connection, "CREATE INDEX sale_recipe_consumptions_location_date_inx ON sale_recipe_consumptions(location_id, created_at)");
+            } else {
+                execute(connection, "CREATE TABLE sale_recipe_consumptions ("
+                        + "id VARCHAR(255) NOT NULL PRIMARY KEY, receipt_id VARCHAR(255) NOT NULL, ticket_id INT NOT NULL, "
+                        + "transformation_id VARCHAR(255) NOT NULL, location_id VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL, created_by VARCHAR(255) NOT NULL, "
+                        + "UNIQUE KEY sale_recipe_consumptions_receipt_uq (receipt_id), UNIQUE KEY sale_recipe_consumptions_transformation_uq (transformation_id), "
+                        + "KEY sale_recipe_consumptions_location_date_inx (location_id, created_at), "
+                        + "CONSTRAINT sale_recipe_consumptions_transformation_fk FOREIGN KEY (transformation_id) REFERENCES inventory_transformations(id), "
+                        + "CONSTRAINT sale_recipe_consumptions_location_fk FOREIGN KEY (location_id) REFERENCES locations(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "sale_recipe_consumptions", "id", "receipt_id", "ticket_id", "transformation_id", "location_id", "created_at", "created_by");
+        if (!tableExists(meta, "sale_recipe_consumption_alerts")) {
+            if (isPostgreSql(meta)) {
+                execute(connection, "CREATE TABLE sale_recipe_consumption_alerts ("
+                        + "id VARCHAR NOT NULL PRIMARY KEY, receipt_id VARCHAR NOT NULL, ticket_id INTEGER NOT NULL, location_id VARCHAR NOT NULL, "
+                        + "product_id VARCHAR NOT NULL, required_quantity NUMERIC(19,6) NOT NULL, available_quantity NUMERIC(19,6) NOT NULL, "
+                        + "uom_id VARCHAR NOT NULL, kind VARCHAR(32) NOT NULL, status VARCHAR(16) NOT NULL, created_at TIMESTAMP NOT NULL, "
+                        + "resolved_at TIMESTAMP NULL, resolved_by VARCHAR NULL, "
+                        + "CONSTRAINT sale_recipe_alert_product_fk FOREIGN KEY (product_id) REFERENCES products(id), "
+                        + "CONSTRAINT sale_recipe_alert_location_fk FOREIGN KEY (location_id) REFERENCES locations(id))");
+                execute(connection, "CREATE INDEX sale_recipe_alert_status_inx ON sale_recipe_consumption_alerts(status, created_at)");
+                execute(connection, "CREATE INDEX sale_recipe_alert_product_inx ON sale_recipe_consumption_alerts(product_id)");
+            } else {
+                execute(connection, "CREATE TABLE sale_recipe_consumption_alerts ("
+                        + "id VARCHAR(255) NOT NULL PRIMARY KEY, receipt_id VARCHAR(255) NOT NULL, ticket_id INT NOT NULL, location_id VARCHAR(255) NOT NULL, "
+                        + "product_id VARCHAR(255) NOT NULL, required_quantity DECIMAL(19,6) NOT NULL, available_quantity DECIMAL(19,6) NOT NULL, "
+                        + "uom_id VARCHAR(255) NOT NULL, kind VARCHAR(32) NOT NULL, status VARCHAR(16) NOT NULL, created_at DATETIME NOT NULL, "
+                        + "resolved_at DATETIME NULL, resolved_by VARCHAR(255) NULL, KEY sale_recipe_alert_status_inx (status, created_at), "
+                        + "KEY sale_recipe_alert_product_inx (product_id), CONSTRAINT sale_recipe_alert_product_fk FOREIGN KEY (product_id) REFERENCES products(id), "
+                        + "CONSTRAINT sale_recipe_alert_location_fk FOREIGN KEY (location_id) REFERENCES locations(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=Dynamic");
+            }
+            meta = connection.getMetaData();
+        }
+        validateColumns(meta, "sale_recipe_consumption_alerts", "id", "receipt_id", "ticket_id", "location_id", "product_id", "required_quantity", "available_quantity", "uom_id", "kind", "status", "created_at", "resolved_at", "resolved_by");
     }
 
     private static void validateRecipeUniqueIndexes(DatabaseMetaData meta) throws SQLException {
@@ -1129,10 +1182,55 @@ public final class DatabaseUpgradeService {
         }
     }
 
-    private static void ensureRecipeUiAccess(Connection connection) throws SQLException {
+    /**
+     * Repairs the additive recipe menu/role entries on every 1.3 startup.
+     * Existing databases may already report version 1.3 while their Menu.Root
+     * resource predates the conversion panel.
+     */
+    public static void ensureRecipeUiAccess(Session session) throws BasicException {
+        if (session == null) {
+            throw new BasicException("Database session is required to repair recipe access.");
+        }
+        try {
+            ensureRecipeUiAccess(session.getConnection());
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to repair recipe menu access.", ex);
+        }
+    }
+
+    public static void ensureRecipeUiAccess(Connection connection) throws SQLException {
         patchMenuRootForRecipes(connection);
         patchStandardRoleForRecipes(connection, "0", "Administrator role");
         patchStandardRoleForRecipes(connection, "1", "Manager role");
+        ensureSaleRecipeConsumptionSchema(connection, connection.getMetaData());
+        ensureRecipeIngredientColumn(connection, connection.getMetaData());
+        ensureRecipeModeColumn(connection, connection.getMetaData());
+    }
+
+    private static void ensureRecipeIngredientColumn(Connection connection, DatabaseMetaData meta)
+            throws SQLException {
+        if (!tableExists(meta, "products")) {
+            throw new SQLException("Required products table is missing.");
+        }
+        if (columnExists(meta, "products", "isrecipeingredient")) {
+            return;
+        }
+        execute(connection, "ALTER TABLE products ADD COLUMN isrecipeingredient "
+                + (isPostgreSql(meta) ? "BOOLEAN NOT NULL DEFAULT FALSE"
+                        : "BIT(1) NOT NULL DEFAULT b'0'"));
+    }
+
+    private static void ensureRecipeModeColumn(Connection connection, DatabaseMetaData meta)
+            throws SQLException {
+        if (!tableExists(meta, "recipe_versions")
+                || columnExists(meta, "recipe_versions", "recipe_mode")) {
+            return;
+        }
+        execute(connection, "ALTER TABLE recipe_versions ADD COLUMN recipe_mode "
+                + (isPostgreSql(meta) ? "VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION'"
+                        : "VARCHAR(24) NOT NULL DEFAULT 'PRODUCTION'"));
+        execute(connection, "UPDATE recipe_versions SET recipe_mode = 'PRODUCTION' "
+                + "WHERE recipe_mode IS NULL OR TRIM(recipe_mode) = ''");
     }
 
     private static void patchMenuRootForRecipes(Connection connection) throws SQLException {
@@ -1176,12 +1274,15 @@ public final class DatabaseUpgradeService {
         final String[] classes = {
             "com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel",
             "com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel",
-            "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel"
+            "com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel",
+            "com.mx.kylgis.pos.inventory.transform.ProductUomConversionPanel",
+            "com.mx.kylgis.pos.inventory.transform.SaleRecipeConsumptionPanel"
         };
         final String[] keys = {
-            "Menu.Recipes", "Menu.RecipeProduction", "Menu.TransformationHistory"
+            "Menu.Recipes", "Menu.RecipeProduction", "Menu.TransformationHistory",
+            "Menu.ProductUomConversions", "Menu.SaleRecipeConsumption"
         };
-        final String[] icons = {"bundle.png", "stockmaint.png", "reports.png"};
+        final String[] icons = {"bundle.png", "stockmaint.png", "reports.png", "products.png", "stockmaint.png"};
         int missing = 0;
         for (int i = 0; i < classes.length; i++) {
             if (!text.contains(classes[i])) {
@@ -1293,6 +1394,8 @@ public final class DatabaseUpgradeService {
         final String recipePermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.RecipeManagementPanel\"/>";
         final String productionPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.RecipeProductionPanel\"/>";
         final String historyPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.TransformationHistoryPanel\"/>";
+        final String uomConversionPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.ProductUomConversionPanel\"/>";
+        final String saleRecipeConsumptionPermission = "<class name=\"com.mx.kylgis.pos.inventory.transform.SaleRecipeConsumptionPanel\"/>";
         String roleName;
         byte[] permissions;
         try (PreparedStatement select = connection.prepareStatement(
@@ -1323,6 +1426,15 @@ public final class DatabaseUpgradeService {
         if (!patched.contains(historyPermission) && patched.contains(productionPermission)) {
             patched = patched.replace(productionPermission,
                     productionPermission + newline + "    " + historyPermission);
+        }
+        if (!patched.contains(uomConversionPermission) && patched.contains(historyPermission)) {
+            patched = patched.replace(historyPermission,
+                    historyPermission + newline + "    " + uomConversionPermission);
+        }
+        if (!patched.contains(saleRecipeConsumptionPermission)
+                && patched.contains(uomConversionPermission)) {
+            patched = patched.replace(uomConversionPermission,
+                    uomConversionPermission + newline + "    " + saleRecipeConsumptionPermission);
         }
         if (patched.equals(text)) {
             return;

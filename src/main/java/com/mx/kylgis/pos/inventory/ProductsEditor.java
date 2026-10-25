@@ -130,6 +130,22 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     /** Creates new form JEditProduct
      * @param app
      * @param dirty */
+    private void installLocalizedProductButtonHelp() {
+        // Corrects legacy bold/italic tooltip duplication without editing
+        // NetBeans generated form code; all strings are embedded in the JAR.
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jService,"product.service");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnBreak,"product.editor.break");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnColour,"product.editor.color");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnLarge,"product.editor.large");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnSmall,"product.editor.small");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnBold,"product.editor.bold");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnItalic,"product.editor.italic");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnImage,"product.editor.image");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnStyle,"product.editor.style");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jBtnReset,"product.editor.reset");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(colourChooser,"product.editor.chooser");
+    }
+
     public ProductsEditor(AppView app, DirtyManager dirty) {
 
         setAppView(app);
@@ -138,6 +154,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
             m_dlSuppliers = (DataLogicSuppliers) app.getBean("com.mx.kylgis.pos.suppliers.DataLogicSuppliers");
             
         initComponents();
+        installLocalizedProductButtonHelp();
         jLabel17.setText(AppLocal.getIntString("label.productsupplier.preferredfield"));
         jBtnSupplier.setToolTipText(AppLocal.getIntString("menu.productsuppliers.manage"));
         
@@ -183,6 +200,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         m_jService.addActionListener(dirty);
         m_jCheckWarrantyReceipt.addActionListener(dirty);       
         m_jComment.addActionListener(dirty);
+        m_jRecipeIngredient.addActionListener(dirty);
         m_jScale.addActionListener(dirty);
         m_jVprice.addActionListener(dirty);
         m_jstockcost.getDocument().addDocumentListener(dirty);
@@ -333,6 +351,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
 	m_jService.setEnabled(false);
         m_jCheckWarrantyReceipt.setEnabled(false);        
         m_jComment.setEnabled(false);
+        m_jRecipeIngredient.setEnabled(false);
         m_jScale.setEnabled(false);
         m_jVprice.setEnabled(false);
         m_jstockcost.setEnabled(false);
@@ -390,6 +409,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         m_jService.setSelected(false);
         m_jCheckWarrantyReceipt.setSelected(false); 
         m_jComment.setSelected(false);
+        m_jRecipeIngredient.setSelected(false);
         m_jScale.setSelected(false);
         m_jVprice.setSelected(false);
         m_jstockcost.setText("0");
@@ -433,6 +453,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         m_jService.setEnabled(true);
         m_jCheckWarrantyReceipt.setEnabled(true);
         m_jComment.setEnabled(true);
+        m_jRecipeIngredient.setEnabled(true);
         m_jScale.setEnabled(true);
         m_jVprice.setEnabled(true);
         m_jstockcost.setEnabled(true);
@@ -465,7 +486,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     @Override
     public Object createValue() throws BasicException {
 
-        Object[] myprod = new Object[32];        
+        Object[] myprod = new Object[33];        
 
         myprod[0] = m_oId == null ? UUID.randomUUID().toString() : m_oId;        
         myprod[1] = m_jRef.getText();
@@ -500,6 +521,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
 
         myprod[30] = m_jInCatalog.isSelected();
         myprod[31] = Formats.INT.parseValue(m_jCatalogOrder.getText());
+        myprod[32] = m_jRecipeIngredient.isSelected();
         
         if (m_jName.getText().contains("&")) {
             JOptionPane.showMessageDialog(null, 
@@ -537,6 +559,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
 //  JG 3 feb 16 speedup   m_jImage.setImage((BufferedImage) myprod[12]); 
         m_jImage.setImage(findImage(m_oId));       
         m_jComment.setSelected(((Boolean)myprod[13]));
+        m_jRecipeIngredient.setSelected(((Boolean)myprod[32]));
         m_jScale.setSelected(((Boolean)myprod[14]));
 	m_jConstant.setSelected(((Boolean)myprod[15]));
         m_jPrintKB.setSelected(((Boolean)myprod[16]));
@@ -557,6 +580,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         
         m_jInCatalog.setSelected(((Boolean)myprod[30]));
         m_jCatalogOrder.setText(Formats.INT.formatValue(myprod[31]));
+        m_jRecipeIngredient.setSelected(((Boolean)myprod[32]));
         
         txtAttributes.setCaretPosition(0);
         reportlock = false;
@@ -585,6 +609,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
 	m_jService.setEnabled(true);
         m_jCheckWarrantyReceipt.setEnabled(true);         
         m_jComment.setEnabled(true);
+        m_jRecipeIngredient.setEnabled(true);
         m_jScale.setEnabled(true);
         m_jVprice.setEnabled(true);
         m_jstockcost.setEnabled(true);
@@ -642,6 +667,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
 // JG 3 feb 16 speed test        m_jImage.setImage((BufferedImage) myprod[12]);
         m_jImage.setImage(findImage(m_oId));
         m_jComment.setSelected(((Boolean)myprod[13]));
+        m_jRecipeIngredient.setSelected(((Boolean)myprod[32]));
         m_jScale.setSelected(((Boolean)myprod[14]));
 	m_jConstant.setSelected(((Boolean)myprod[15]));
         m_jPrintKB.setSelected(((Boolean)myprod[16]));
@@ -661,6 +687,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         
         m_jInCatalog.setSelected(((Boolean)myprod[30]));
         m_jCatalogOrder.setText(Formats.INT.formatValue(myprod[31]));
+        m_jRecipeIngredient.setSelected(((Boolean)myprod[32]));
 
         txtAttributes.setCaretPosition(0);
         
@@ -690,6 +717,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
 	m_jService.setEnabled(false);
         m_jCheckWarrantyReceipt.setEnabled(false);
         m_jComment.setEnabled(false);
+        m_jRecipeIngredient.setEnabled(false);
         m_jScale.setEnabled(false);
         m_jVprice.setEnabled(false);        
         m_jstockcost.setEnabled(false);
@@ -1188,6 +1216,8 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         m_jService = new javax.swing.JCheckBox();
         jLabel11 = new javax.swing.JLabel();
         m_jComment = new javax.swing.JCheckBox();
+        jLabel35 = new javax.swing.JLabel();
+        m_jRecipeIngredient = new javax.swing.JCheckBox();
         jLabel12 = new javax.swing.JLabel();
         m_jScale = new javax.swing.JCheckBox();
         m_jConstant = new javax.swing.JCheckBox();
@@ -1606,6 +1636,13 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
         m_jComment.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         m_jComment.setPreferredSize(new java.awt.Dimension(30, 30));
 
+        jLabel35.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel35.setText(AppLocal.getIntString("label.prodrecipeingredient")); // NOI18N
+        jLabel35.setPreferredSize(new java.awt.Dimension(130, 30));
+
+        m_jRecipeIngredient.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        m_jRecipeIngredient.setPreferredSize(new java.awt.Dimension(30, 30));
+
         jLabel12.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel12.setText(AppLocal.getIntString("label.prodscale")); // NOI18N
         jLabel12.setPreferredSize(new java.awt.Dimension(130, 30));
@@ -1752,6 +1789,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
                                     .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                         .addComponent(jLabel33, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel35, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                                     .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
@@ -1759,6 +1797,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
                                         .addComponent(m_jService, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(m_jCheckWarrantyReceipt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(m_jComment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(m_jRecipeIngredient, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(m_jScale, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(m_jVprice, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addGroup(jPanel2Layout.createSequentialGroup()
@@ -1832,6 +1871,10 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jComment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel35, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jRecipeIngredient, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -2391,6 +2434,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel33;
     private javax.swing.JLabel jLabel34;
+    private javax.swing.JLabel jLabel35;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
@@ -2415,6 +2459,7 @@ public final class ProductsEditor extends javax.swing.JPanel implements EditorRe
     private javax.swing.JTextField m_jCode;
     private javax.swing.JComboBox m_jCodetype;
     private javax.swing.JCheckBox m_jComment;
+    private javax.swing.JCheckBox m_jRecipeIngredient;
     private javax.swing.JCheckBox m_jConstant;
     private com.alee.laf.text.WebTextArea m_jDisplay;
     private javax.swing.JTextField m_jGrossProfit;

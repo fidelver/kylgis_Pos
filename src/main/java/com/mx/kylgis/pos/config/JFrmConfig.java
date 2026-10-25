@@ -27,6 +27,7 @@ import com.mx.kylgis.pos.forms.ApplicationIdentity;
 import com.mx.kylgis.pos.forms.AppProperties;
 import com.mx.kylgis.pos.forms.JRootFrame;
 import com.mx.kylgis.pos.ui.KylGisLookAndFeel;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -47,6 +48,7 @@ public class JFrmConfig extends javax.swing.JFrame {
     public JFrmConfig(AppProperties props) {
       
         initComponents();
+        UiHelp.install();
         
         try {
             this.setIconImage(ImageIO.read(JRootFrame.class.getResourceAsStream("/com/mx/kylgis/pos/images/favicon.png")));

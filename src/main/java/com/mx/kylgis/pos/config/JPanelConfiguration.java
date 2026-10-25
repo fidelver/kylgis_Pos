@@ -24,6 +24,7 @@ import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.gui.JMessageDialog;
 import com.mx.kylgis.pos.data.gui.MessageInf;
 import com.mx.kylgis.pos.forms.*;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,6 +112,19 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jTabbedPane1.addTab("Nodos", panel.getConfigComponent());
 
+        // Runs after NetBeans initComponents() and all optional tabs are
+        // attached. Never edit generated .form tab titles for localization.
+        localizeConfigurationTabTitles();
+    }
+
+    private void localizeConfigurationTabTitles() {
+        String[] keys={"general","locale","payment","peripherals","system",
+                "ticket","company","database","sales_buttons","platforms","nodes"};
+        for(int i=0;i<Math.min(keys.length,jTabbedPane1.getTabCount());i++) {
+            String localeKey="config.tab."+keys[i];
+            jTabbedPane1.setTitleAt(i,UiHelp.text(localeKey));
+            jTabbedPane1.setToolTipTextAt(i,UiHelp.tooltip(localeKey));
+        }
     }
         
     private void restoreProperties() {
@@ -146,7 +160,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         } catch (IllegalStateException ex) {
             JMessageDialog.showMessage(this,
                 new MessageInf(MessageInf.SGN_WARNING,
-                        "No se pudo guardar la configuración", ex));
+                        UiHelp.text("config.error.save"), ex));
             return false;
         }
 
@@ -168,13 +182,12 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     }
 
     private void configureActionBar() {
-        jbtnApplyPeripherals = new JButton("Aplicar periféricos");
+        jbtnApplyPeripherals = new JButton(UiHelp.text("peripheral.apply"));
         jbtnApplyPeripherals.setFont(new java.awt.Font("Arial", 0, 12));
         jbtnApplyPeripherals.setPreferredSize(new java.awt.Dimension(150, 45));
         jbtnApplyPeripherals.setFocusable(false);
         jbtnApplyPeripherals.setVisible(false);
-        jbtnApplyPeripherals.setToolTipText(
-                "Guardar y recargar impresoras, display, báscula, escáner e iButton sin reiniciar");
+        UiHelp.set(jbtnApplyPeripherals, "peripheral.apply");
         jbtnApplyPeripherals.addActionListener(evt -> applyPeripheralChanges());
 
         jPanel1.removeAll();

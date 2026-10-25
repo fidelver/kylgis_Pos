@@ -28,26 +28,26 @@
         <line></line>
         <line></line>
         <line size="1">
-            <text align ="center" bold="true" length="31">Arqueo de Caja KylGis</text>
+            <text align ="center" bold="true" length="31">${labels.text("Arqueo de Caja KylGis")}</text>
         </line>
         <line></line>
-        <line><text length="12" bold="true">Impreso el:</text></line>
+        <line><text length="12" bold="true">${labels.text("Impreso el:")}</text></line>
         <line><text align="right">${payments.printDate()}</text></line>
 
-        <line><text length="18" bold="true">Impreso por:</text></line>
+        <line><text length="18" bold="true">${labels.text("Impreso por:")}</text></line>
         <line><text align="right">${payments.printUser()}</text></line>
 
-        <line><text length="18" bold="true">Terminal:</text><text aling="right">${payments.printHost()}</text></line>
-        <line><text length="18" bold="true">Fólio:</text><text aling="right">${payments.printSequence()}</text></line>
+        <line><text length="18" bold="true">${labels.text("Terminal:")}</text><text aling="right">${payments.printHost()}</text></line>
+        <line><text length="18" bold="true">${labels.text("Fólio:")}</text><text aling="right">${payments.printSequence()}</text></line>
         
-        <line><text length="18" bold="true">Último Cierre el:</text></line>
+        <line><text length="18" bold="true">${labels.text("Último Cierre el:")}</text></line>
         <line><text align="right">${payments.printDateStart()}</text></line>
         
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         <line></line>
         <line>
-           <text align ="left" bold="true" length="15">Movimientos</text>
-           <text align ="right" bold="true" length="16">Importe</text>
+           <text align ="left" bold="true" length="15">${labels.text("Movimientos")}</text>
+           <text align ="right" bold="true" length="16">${labels.text("Importe")}</text>
         </line>
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         #foreach ($line in $payments.getPaymentLines())
@@ -60,17 +60,17 @@
         #end
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         <line>
-            <text align ="left" length="21" bold="true">En Caja</text>
+            <text align ="left" length="21" bold="true">${labels.text("En Caja")}</text>
             <text align ="right" length="10" bold="true">${payments.printPaymentsTotal()}</text>
         </line>
         <line>
-            <text align ="left" length="21">Movimientos:</text>
+            <text align ="left" length="21">${labels.text("Movimientos:")}</text>
             <text align ="right" length="10">${payments.printPayments()}</text>
         </line>
         <line></line>
         <line>
-            <text align ="left" bold="true" length="22">Detalle de Impuestos</text>
-            <text align ="right" bold="true" length="9">Monto</text>
+            <text align ="left" bold="true" length="22">${labels.text("Detalle de Impuestos")}</text>
+            <text align ="right" bold="true" length="9">${labels.text("Monto")}</text>
         </line>
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         #foreach ($line in $payments.getSaleLines())
@@ -120,20 +120,20 @@
 <!-- END OF NO SALES -->
         
         <line>
-            <text align ="left" length="21">Ventas:</text>
+            <text align ="left" length="21">${labels.text("Ventas:")}</text>
             <text align ="right" length="10">${payments.printSales()}</text>
         </line>
         <line></line>
         <line size="1">
-            <text align ="left" length="21" bold="true">SubTotal</text>
+            <text align ="left" length="21" bold="true">${labels.text("SubTotal")}</text>
             <text align ="right" length="10" bold="true">${payments.printSalesBase()}</text>
         </line>
         <line size="1">
-            <text align ="left" length="21" bold="true">Impuestos</text>
+            <text align ="left" length="21" bold="true">${labels.text("Impuestos")}</text>
             <text align ="right" length="10" bold="true">${payments.printSalesTaxes()}</text>
         </line>
         <line size="1">
-            <text align ="left" length="21" bold="true">Total</text>
+            <text align ="left" length="21" bold="true">${labels.text("Total")}</text>
             <text align ="right" length="10" bold="true">${payments.printSalesTotal()}</text>
         </line>
 
@@ -148,26 +148,26 @@
         <line></line>
         <line></line>
         <line size="1">
-            <text align ="center" bold="true" length="31">Arqueo de Caja</text>
+            <text align ="center" bold="true" length="31">${labels.text("Arqueo de Caja")}</text>
         </line>
         <line></line>
-        <line><text length="12" bold="true">Impreso el:</text></line>
+        <line><text length="12" bold="true">${labels.text("Impreso el:")}</text></line>
         <line><text align="right">${payments.printDate()}</text></line>
 
-        <line><text length="18" bold="true">Impreso por:</text></line>
+        <line><text length="18" bold="true">${labels.text("Impreso por:")}</text></line>
         <line><text align="right">${payments.printUser()}</text></line>
 
-        <line><text length="18" bold="true">Terminal:</text><text aling="right">${payments.printHost()}</text></line>
-        <line><text length="18" bold="true">Fólio:</text><text aling="right">${payments.printSequence()}</text></line>
+        <line><text length="18" bold="true">${labels.text("Terminal:")}</text><text aling="right">${payments.printHost()}</text></line>
+        <line><text length="18" bold="true">${labels.text("Fólio:")}</text><text aling="right">${payments.printSequence()}</text></line>
         
-        <line><text length="18" bold="true">Último Cierre el:</text></line>
+        <line><text length="18" bold="true">${labels.text("Último Cierre el:")}</text></line>
         <line><text align="right">${payments.printDateStart()}</text></line>
         
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         <line></line>
         <line>
-           <text align ="left" bold="true" length="15">Movimientos</text>
-           <text align ="right" bold="true" length="16">Importe</text>
+           <text align ="left" bold="true" length="15">${labels.text("Movimientos")}</text>
+           <text align ="right" bold="true" length="16">${labels.text("Importe")}</text>
         </line>
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         #foreach ($line in $payments.getPaymentLines())
@@ -180,17 +180,17 @@
         #end
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         <line>
-            <text align ="left" length="21" bold="true">En Caja</text>
+            <text align ="left" length="21" bold="true">${labels.text("En Caja")}</text>
             <text align ="right" length="10" bold="true">${payments.printPaymentsTotal()}</text>
         </line>
         <line>
-            <text align ="left" length="21">Movimientos:</text>
+            <text align ="left" length="21">${labels.text("Movimientos:")}</text>
             <text align ="right" length="10">${payments.printPayments()}</text>
         </line>
         <line></line>
         <line>
-            <text align ="left" bold="true" length="22">Detalle de Impuestos</text>
-            <text align ="right" bold="true" length="9">Monto</text>
+            <text align ="left" bold="true" length="22">${labels.text("Detalle de Impuestos")}</text>
+            <text align ="right" bold="true" length="9">${labels.text("Monto")}</text>
         </line>
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         #foreach ($line in $payments.getSaleLines())
@@ -242,14 +242,14 @@
 
 
 <!-- START OF SALES -->
-        <line size="1"><text align="center" length="31" bold="true">Artículos Vendidos</text></line>
+        <line size="1"><text align="center" length="31" bold="true">${labels.text("Artículos Vendidos")}</text></line>
         <line>
-            <text align ="left" length="31" bold="true">Nombre</text>
+            <text align ="left" length="31" bold="true">${labels.text("Nombre")}</text>
         </line>
         <line>    
-            <text align ="right" length="9" bold="true">Vendido</text>
-            <text align ="right" length="11" bold="true">Neto</text>
-            <text align ="right" length="11" bold="true">Total</text>
+            <text align ="right" length="9" bold="true">${labels.text("Vendido")}</text>
+            <text align ="right" length="11" bold="true">${labels.text("Neto")}</text>
+            <text align ="right" length="11" bold="true">${labels.text("Total")}</text>
         </line>
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
             #foreach ($line in $payments.getProductSalesLines())
@@ -264,7 +264,7 @@
             #end
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
         <line>
-                    <text align ="left" length="9" bold="true">Total</text>
+                    <text align ="left" length="9" bold="true">${labels.text("Total")}</text>
         </line>
         <line>            
                     <text align ="left" length="5" bold="true">${payments.printProductSalesTotalUnits()}</text>
@@ -275,14 +275,14 @@
 <!-- END OF SALES SUMMARY -->
 
 <!-- START OF CATEGORIES SUMMARY -->
-        <line size="1"><text align="center" length="31" bold="true">Ventas por Categorías</text></line>
+        <line size="1"><text align="center" length="31" bold="true">${labels.text("Ventas por Categorías")}</text></line>
         <line>
-            <text align ="left" length="31" bold="true">Nombre</text>
+            <text align ="left" length="31" bold="true">${labels.text("Nombre")}</text>
         </line>
         <line>
-            <text align ="right" length="15" bold="true">Vendido</text>
+            <text align ="right" length="15" bold="true">${labels.text("Vendido")}</text>
             <!-- <text align ="right" length="7" bold="true"></text> -->
-            <text align ="right" length="16" bold="true">Total</text>
+            <text align ="right" length="16" bold="true">${labels.text("Total")}</text>
         </line>
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
             #foreach ($line in $payments.getCategorySalesLines())
@@ -296,7 +296,7 @@
                 </line>
             #end
         <line><text align="center" length="31" bold="true">------------------------------------------</text></line>
-        <line><text align ="left" length="9" bold="true">Total</text>
+        <line><text align ="left" length="9" bold="true">${labels.text("Total")}</text>
         </line>
         <line>
             <text align ="right" length="15" bold="true">${payments.printCategorySalesTotalUnits()}</text>
@@ -308,20 +308,20 @@
 
         
         <line>
-            <text align ="left" length="21">Ventas:</text>
+            <text align ="left" length="21">${labels.text("Ventas:")}</text>
             <text align ="right" length="10">${payments.printSales()}</text>
         </line>
         <line></line>
         <line size="1">
-            <text align ="left" length="21" bold="true">SubTotal</text>
+            <text align ="left" length="21" bold="true">${labels.text("SubTotal")}</text>
             <text align ="right" length="10" bold="true">${payments.printSalesBase()}</text>
         </line>
         <line size="1">
-            <text align ="left" length="21" bold="true">Impuestos</text>
+            <text align ="left" length="21" bold="true">${labels.text("Impuestos")}</text>
             <text align ="right" length="10" bold="true">${payments.printSalesTaxes()}</text>
         </line>
         <line size="1">
-            <text align ="left" length="21" bold="true">Total</text>
+            <text align ="left" length="21" bold="true">${labels.text("Total")}</text>
             <text align ="right" length="10" bold="true">${payments.printSalesTotal()}</text>
         </line>
 

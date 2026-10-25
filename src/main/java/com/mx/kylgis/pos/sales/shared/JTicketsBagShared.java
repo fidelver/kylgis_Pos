@@ -48,12 +48,21 @@ import javax.swing.SwingUtilities;
 public class JTicketsBagShared extends JTicketsBag {
     
     private String m_sCurrentTicket = null;
+    private final String m_recoveryOwner = newRecoveryOwner();
+    private boolean m_recoveryStored;
     private DataLogicReceipts dlReceipts = null;
     private DataLogicSales dlSales = null;  
     private final DataLogicSystem dlSystem;    
     private Boolean showList;
    
     
+    private static String newRecoveryOwner() {
+        // Existing sharedtickets.LOCKED schemas have VARCHAR(20); no migration is needed.
+        byte[] token = new byte[10];
+        new java.security.SecureRandom().nextBytes(token);
+        return java.util.HexFormat.of().formatHex(token);
+    }
+
     /** Creates new form JTicketsBagShared
      * @param app
      * @param panelticket */
@@ -77,6 +86,10 @@ public class JTicketsBagShared extends JTicketsBag {
     @Override
     public void activate() {
         
+        if (m_sCurrentTicket != null) {
+            updateCount();
+            return;
+        }
         m_sCurrentTicket = null;
         selectValidTicket();     
         
@@ -92,7 +105,9 @@ public class JTicketsBagShared extends JTicketsBag {
     @Override
     public boolean deactivate() {
         
-        saveCurrentTicket();
+        if (!saveCurrentTicket()) {
+            return false;
+        }
         
         m_sCurrentTicket = null;
         m_panelticket.setActiveTicket(null, null);       
@@ -104,7 +119,15 @@ public class JTicketsBagShared extends JTicketsBag {
      *
     */
     @Override
-    public void deleteTicket() {   
+    public void deleteTicket() {
+        TicketInfo active = m_panelticket.getActiveTicket();
+        if (m_recoveryStored || (active != null && active.requiresPaymentReconciliation())) {
+            JOptionPane.showMessageDialog(this,
+                    "La venta requiere conciliación y no se puede descartar.\n"
+                    + "Identificador de recibo: " + active.getId(),
+                    "Venta pendiente de conciliación", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         
         dlSystem.execTicketRemoved(
             new Object[] {
@@ -153,44 +176,73 @@ public class JTicketsBagShared extends JTicketsBag {
         return new JPanel();
     }
    
-    private void saveCurrentTicket() {
+    private boolean saveCurrentTicket() {
+        if (m_sCurrentTicket == null) {
+            return true;
+        }
+        TicketInfo ticket = m_panelticket.getActiveTicket();
+        try {
+            if (ticket == null) {
+                throw new BasicException("No active ticket; recovery identity retained.");
+            }
+            if (m_recoveryStored) {
+                if (!dlReceipts.suspendSharedTicketIfOwned(
+                        m_sCurrentTicket, ticket, ticket.getPickupId(), m_recoveryOwner)) {
+                    throw new BasicException("Recovery ownership is not confirmed; reconcile before leaving.");
+                }
+            } else if (ticket.getLinesCount() > 0 || ticket.requiresPaymentReconciliation()
+                    || !ticket.getPayments().isEmpty() || !ticket.getVoucherDiscounts().isEmpty()
+                    || ticket.getProperty("kylgis.qa.durableLedger.operationUuid") != null) {
+                dlReceipts.insertSharedTicket(m_sCurrentTicket, ticket, ticket.getPickupId());
+            }
+            // Clear the working identity only after a confirmed durable save.
+            m_sCurrentTicket = null;
+            m_recoveryStored = false;
+            return true;
+        } catch (BasicException | RuntimeException e) {
+            if (ticket != null && (!ticket.getPayments().isEmpty()
+                    || !ticket.getVoucherDiscounts().isEmpty()
+                    || ticket.getProperty("kylgis.qa.durableLedger.operationUuid") != null)) {
+                ticket.setProperty(TicketInfo.PAYMENT_RECONCILIATION_PROPERTY, "true");
+            }
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo confirmar la suspensión. La venta permanece abierta.\n"
+                    + "No cierre el programa ni vuelva a cobrar; conserve el identificador para revisión.\n"
+                    + "Identificador de recibo: " + (ticket == null ? m_sCurrentTicket : ticket.getId()),
+                    "No se pudo suspender la venta", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
 
-        if (m_sCurrentTicket != null) {
-            try {
-                dlReceipts.insertSharedTicket(m_sCurrentTicket, 
-                    m_panelticket.getActiveTicket(),
-                    m_panelticket.getActiveTicket().getPickupId());
-                    m_jListTickets.setText("*");
-                TicketInfo l = dlReceipts.getSharedTicket(m_sCurrentTicket);
-                    if(l.getLinesCount() == 0) {
-                        dlReceipts.deleteSharedTicket(m_sCurrentTicket);
-                    }             
-            } catch (BasicException e) {
-                new MessageInf(e).show(this);
-            }  
-        }    
-
+    private void setActiveTicket(String id) throws BasicException {
+        // Claim first, then read. Competing selectors cannot both remove or open the same row.
+        if (!dlReceipts.tryLockSharedTicket(id, m_recoveryOwner)) {
+            throw new BasicException("La venta está abierta en otra caja o requiere revisión de recuperación.");
+        }
+        boolean assigned = false;
+        try {
+            TicketInfo ticket = dlReceipts.getSharedTicket(id);
+            if (ticket == null) {
+                throw new BasicException(AppLocal.getIntString("message.noticket"));
+            }
+            Integer pickUp = dlReceipts.getPickupId(id);
+            boolean recovery = ticket.requiresPaymentReconciliation();
+            if (!recovery && !dlReceipts.deleteSharedTicketIfOwned(id, m_recoveryOwner)) {
+                throw new BasicException("La propiedad del ticket cambió; no se puede recuperar.");
+            }
+            m_sCurrentTicket = id;
+            m_recoveryStored = recovery;
+            assigned = true;
+            ticket.setPickupId(pickUp);
+            m_panelticket.setActiveTicket(ticket, null);
+        } finally {
+            if (!assigned) {
+                dlReceipts.unlockSharedTicketIfOwned(id, m_recoveryOwner);
+            }
+        }
         updateCount();
     }
-    
-    private void setActiveTicket(String id) throws BasicException{
-          
-        TicketInfo ticket = dlReceipts.getSharedTicket(id);
-        if (ticket == null)  {
-            m_jListTickets.setText("");
-            throw new BasicException(AppLocal.getIntString("message.noticket"));
-        } else {
-            dlReceipts.getPickupId(id);
-            Integer pickUp = dlReceipts.getPickupId(id);
-            dlReceipts.deleteSharedTicket(id);
-            m_sCurrentTicket = id;
-            m_panelticket.setActiveTicket(ticket, null);
-            ticket.setPickupId(pickUp);         
-        } 
 
-        updateCount();        
-    }
-    
     private void setActiveReprintTicket(String id) throws BasicException{
           
 
@@ -222,7 +274,9 @@ public class JTicketsBagShared extends JTicketsBag {
     
     private void newTicket() {      
         
-        saveCurrentTicket();
+        if (!saveCurrentTicket()) {
+            return;
+        }
 
         TicketInfo ticket = new TicketInfo();    
         m_sCurrentTicket = UUID.randomUUID().toString();
@@ -368,7 +422,7 @@ public class JTicketsBagShared extends JTicketsBag {
                         String id = listDialog.showTicketsList(l, dlReceipts);
 
                         if (id != null) {
-                            saveCurrentTicket();
+                            if (!saveCurrentTicket()) { return; }
                             setActiveTicket(id); 
                         }
                     }else{
@@ -382,7 +436,7 @@ public class JTicketsBagShared extends JTicketsBag {
                         String id = listDialog.showTicketsList(l, dlReceipts);
                         
                         if (id != null) {
-                            saveCurrentTicket();
+                            if (!saveCurrentTicket()) { return; }
                             setActiveTicket(id); 
                         }
                     }
@@ -402,7 +456,9 @@ public class JTicketsBagShared extends JTicketsBag {
     }//GEN-LAST:event_m_jNewTicketActionPerformed
 
     private void m_jHoldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jHoldActionPerformed
-        deactivate();
+        if (!deactivate()) {
+            return;
+        }
         ((JRootApp)m_App).closeAppView();
     }//GEN-LAST:event_m_jHoldActionPerformed
 
@@ -438,7 +494,7 @@ public class JTicketsBagShared extends JTicketsBag {
                             String id = listDialog.showTicketsList(l, dlSales);
 
                             if (id != null) {
-                                saveCurrentTicket();
+                                if (!saveCurrentTicket()) { return; }
                                 setActiveReprintTicket(id);
                             }
                         }

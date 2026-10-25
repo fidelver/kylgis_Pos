@@ -48,6 +48,8 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     private static final long serialVersionUID = 2765650092387265178L;
 
+    public static final String PAYMENT_RECONCILIATION_PROPERTY = "kylgis.payment.context.requiresReconciliation";
+
     public static final int RECEIPT_NORMAL = 0;
     public static final int RECEIPT_REFUND = 1;
     public static final int RECEIPT_PAYMENT = 2;
@@ -131,6 +133,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         out.writeObject(m_aLines);
 
         out.writeInt(ticketstatus);
+        TicketPaymentContext.write(out, this, m_isProcessed);
     }
 
     @Override
@@ -149,6 +152,17 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         taxes = null;
 
         ticketstatus = in.readInt();
+        TicketPaymentContext.read(in, this);
+        // A pre-AUTH operation may not have payment components yet. Keep its identity held.
+        if (getProperty("kylgis.qa.durableLedger.operationUuid") != null
+                || "true".equalsIgnoreCase(getProperty("kylgis.commit.outcome.unknown"))) {
+            setProperty(PAYMENT_RECONCILIATION_PROPERTY, "true");
+        }
+    }
+
+    public boolean requiresPaymentReconciliation() {
+        return "true".equalsIgnoreCase(getProperty(PAYMENT_RECONCILIATION_PROPERTY))
+                || "true".equalsIgnoreCase(getProperty("kylgis.commit.outcome.unknown"));
     }
 
     /**
@@ -210,6 +224,12 @@ public final class TicketInfo implements SerializableRead, Externalizable {
             t.voucherDiscounts.add((VoucherDiscountInfo) discount.copyPayment());
         });
         t.oldTicket=oldTicket;
+        if (getProperty("kylgis.qa.durableLedger.operationUuid") != null
+                || requiresPaymentReconciliation()) {
+            // A new receipt must not silently reuse another receipt's operation.
+            t.setProperty(PAYMENT_RECONCILIATION_PROPERTY, "true");
+            t.setProperty("kylgis.payment.context.sourceReceiptId", m_sId);
+        }
         // taxes are not copied, must be calculated again.
 
         t.ticketstatus = ticketstatus;

@@ -25,10 +25,14 @@ import com.mx.kylgis.pos.data.user.EditorListener;
 import com.mx.kylgis.pos.data.user.EditorRecord;
 import com.mx.kylgis.pos.data.user.ListProviderCreator;
 import com.mx.kylgis.pos.data.user.SaveProvider;
+import com.mx.kylgis.pos.data.gui.FindInfo;
+import com.mx.kylgis.pos.data.gui.JNavigator;
 import com.mx.kylgis.pos.forms.AppLocal;
 import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.panels.JPanelTable2;
 import com.mx.kylgis.pos.ticket.ProductFilter;
+import com.mx.kylgis.pos.ticket.ProductInfoExt;
+import com.mx.kylgis.pos.panels.JProductFinder;
 
 import java.awt.Component;
 import javax.swing.JButton;
@@ -57,6 +61,8 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
         
         jproductfilter = new ProductFilter();     
         jproductfilter.init(app);
+        jproductfilter.setListAction(this::reloadProducts);
+        jproductfilter.setClearAction(this::reloadProducts);
 
         row = m_dlSales.getProductsRow();
 
@@ -86,6 +92,35 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
     @Override
     public Component getFilter() {
         return jproductfilter.getComponent();
+    }
+
+    private void reloadProducts() {
+        if (bd == null) {
+            return;
+        }
+        try {
+            bd.actionLoad();
+        } catch (BasicException error) {
+            new com.mx.kylgis.pos.data.gui.MessageInf(error).show(this);
+        }
+    }
+
+    @Override
+    protected void configureNavigator(JNavigator navigator) {
+        navigator.hideRefreshButton();
+        navigator.hideReloadButton();
+        navigator.setCustomFindAction(() -> {
+            ProductInfoExt selected = JProductFinder.showMessage(this, m_dlSales,
+                    JProductFinder.PRODUCT_ALL);
+            if (selected == null) return;
+            try {
+                int index = bd.findNext(new FindInfo(getVectorer(), selected.getID(),
+                        0, false, FindInfo.MATCH_WHOLEFIELD));
+                if (index >= 0) bd.moveTo(index);
+            } catch (BasicException error) {
+                new com.mx.kylgis.pos.data.gui.MessageInf(error).show(this);
+            }
+        });
     }
 
     /**

@@ -2,7 +2,10 @@
 //    Copyright (c) 2026 KylGis POS
 package com.mx.kylgis.pos.scale.config;
 
+import com.mx.kylgis.pos.forms.AppLocal;
+import com.mx.kylgis.pos.scale.ScaleRequestCatalog;
 import com.mx.kylgis.pos.scale.ScaleRequestCommand;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
@@ -12,34 +15,36 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentListener;
 
-/** Compact editable selector for the scale weight-request command. */
+/** Selector editable y localizado para el comando de solicitud de báscula. */
 public final class ScaleRequestSelectorPanel extends JPanel {
 
     private final JComboBox<String> command = new JComboBox<>();
+    private final JLabel nativeRequest = new JLabel();
 
     public ScaleRequestSelectorPanel() {
         super(new FlowLayout(FlowLayout.LEFT, 4, 0));
         setOpaque(false);
-        add(new JLabel("Solicitud:"));
+
+        add(new JLabel(AppLocal.getIntString("label.scalerequestcommand")));
 
         command.setEditable(true);
         command.setFont(new java.awt.Font("Arial", 0, 12));
         command.setPreferredSize(new Dimension(145, 28));
-        command.addItem(ScaleRequestCommand.AUTO);
-        command.addItem("ASCII:P");
-        command.addItem("ASCII:W");
-        command.addItem("HEX:57 0D");
-        command.addItem("ASCII:S");
-        command.addItem("ASCII:SI");
-        command.addItem("ASCII:$");
-        command.addItem("HEX:05");
-        command.setToolTipText("AUTO conserva el driver; ejemplos: Torrey P, CAS W/W+CR, Mettler S/SI, Samsung $, ENQ HEX:05");
+        for (String preset : ScaleRequestCatalog.presets()) {
+            command.addItem(preset);
+        }
+        UiHelp.set(command, "scale.request");
         add(command);
-        setPreferredSize(new Dimension(220, 30));
+
+        nativeRequest.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        add(nativeRequest);
+        setPreferredSize(new Dimension(400, 30));
+        setScaleType(null);
     }
 
     public String getConfiguredCommand() {
-        return ScaleRequestCommand.normalize(String.valueOf(command.getEditor().getItem()));
+        Object value = command.getEditor().getItem();
+        return ScaleRequestCommand.normalize(value == null ? "" : value.toString());
     }
 
     public void setConfiguredCommand(String value) {
@@ -52,6 +57,24 @@ public final class ScaleRequestSelectorPanel extends JPanel {
                     ? ScaleRequestCommand.AUTO : value.trim();
         }
         command.setSelectedItem(normalized);
+    }
+
+    /**
+     * Actualiza la capacidad y la referencia nativa según el driver elegido.
+     * El valor guardado se conserva aunque el driver actual no lo aplique.
+     */
+    public void setScaleType(String scaleType) {
+        boolean supported = ScaleRequestCatalog.supportsCustomRequest(scaleType);
+        command.setEnabled(supported);
+        nativeRequest.setEnabled(supported);
+        nativeRequest.setText(AppLocal.getIntString("label.scalerequestnative")
+                + " " + ScaleRequestCatalog.nativeRequest(scaleType));
+        String tooltipKey = supported
+                ? "tooltip.scalerequestcommand"
+                : "tooltip.scalerequestunsupported";
+        String tooltip = AppLocal.getIntString(tooltipKey);
+        command.setToolTipText(tooltip);
+        nativeRequest.setToolTipText(tooltip);
     }
 
     public void addActionListener(ActionListener listener) {

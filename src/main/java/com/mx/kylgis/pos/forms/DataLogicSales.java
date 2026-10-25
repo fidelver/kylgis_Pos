@@ -29,6 +29,7 @@ import com.mx.kylgis.pos.catalog.CategoryStock;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
 import com.mx.kylgis.pos.customers.CustomerTransaction;
 import com.mx.kylgis.pos.inventory.*;
+import com.mx.kylgis.pos.inventory.transform.SaleRecipeConsumptionService;
 import com.mx.kylgis.pos.mant.FloorsInfo;
 import com.mx.kylgis.pos.payment.PaymentInfo;
 import com.mx.kylgis.pos.payment.PaymentInfoTicket;
@@ -48,6 +49,7 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -154,7 +156,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 new Field("MEMODATE", Datas.TIMESTAMP, Formats.DATE),
                 
                 new Field("ISCATALOG", Datas.BOOLEAN, Formats.BOOLEAN),
-                new Field("CATORDER", Datas.INT, Formats.INT)
+                new Field("CATORDER", Datas.INT, Formats.INT),
+                new Field("ISRECIPEINGREDIENT", Datas.BOOLEAN, Formats.BOOLEAN)
         );
         
 // creating customers object here for now for future global reuse
@@ -1741,14 +1744,47 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 }).list(receiptId);
     }
 
+    /**
+     * QA-only bridge used by the payment dialog. The regular POS path is a no-op
+     * unless the isolated durable-ledger flag is explicitly enabled.
+     */
+    public void prepareDurableOperation(TicketInfo ticket) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareOperation(s, ticket);
+        }
+    }
+
+    public void prepareDurableCardIntent(TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareExternalIntent(s, ticket, component, payment);
+        }
+    }
+
+    public void finishDurableCardIntent(TicketInfo ticket, int component,
+            com.mx.kylgis.pos.payment.PaymentInfoMagcard payment) throws BasicException {
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.finishExternalIntent(s, ticket, component, payment);
+        }
+    }
+
+    /**
+     * Returns whether a refund ticket has already been recorded for the source sale.
+     * The check is deliberately scoped to completed refund rows so a second refund
+     * cannot be created after the original sale has been marked as refunded.
+     */
     public final boolean hasRecordedRefund(final int saleTicketId) throws BasicException {
         Integer count = (Integer) new PreparedSentence(s,
                 "SELECT COUNT(*) FROM tickets WHERE TICKETTYPE = 1 AND STATUS = ?",
-                SerializerWriteInteger.INSTANCE, SerializerReadInteger.INSTANCE).find(saleTicketId);
+                SerializerWriteInteger.INSTANCE,
+                SerializerReadInteger.INSTANCE).find(saleTicketId);
         return count != null && count > 0;
     }
 
     public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
+        if (ticket.requiresPaymentReconciliation()) {
+            throw new BasicException("Payment recovery preparation is not confirmed; reconcile before saving or charging.");
+        }
 
     Transaction t;
     t = new Transaction(s) {
@@ -1760,10 +1796,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             if (sourceTicketId <= 0) {
                 throw new BasicException("La devolución no tiene una venta original válida.");
             }
-            // Lock the source sale until commit so another cashier cannot refund it concurrently.
             Integer sourceStatus = (Integer) new PreparedSentence(s,
                     "SELECT STATUS FROM tickets WHERE TICKETTYPE = 0 AND TICKETID = ? FOR UPDATE",
-                    SerializerWriteInteger.INSTANCE, SerializerReadInteger.INSTANCE).find(sourceTicketId);
+                    SerializerWriteInteger.INSTANCE,
+                    SerializerReadInteger.INSTANCE).find(sourceTicketId);
             if (sourceStatus == null || sourceStatus != 0 || hasRecordedRefund(sourceTicketId)) {
                 throw new BasicException("Esta venta ya tiene una devolución o no está disponible para devolver.");
             }
@@ -1925,7 +1961,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         for (TicketLineInfo l : ticket.getLines()) {
             ticketlineinsert.exec(l);
 
-            if (l.getProductID() != null && l.isProductService() != true)  {
+            if (l.getProductID() != null && l.isProductService() != true
+                    && !hasActiveSaleRecipe(l.getProductID()))  {
                 getStockDiaryInsert().exec(new Object[] {
                 UUID.randomUUID().toString(),
                 ticket.getDate(),
@@ -1945,11 +1982,15 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "TENDERED, CARDNAME, VOUCHER) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 , SerializerWriteParams.INSTANCE);
 
-        for (final PaymentInfo payment : ticket.getPayments()) {
+        for (int component = 0; component < ticket.getPayments().size(); component++) {
+            final PaymentInfo payment = ticket.getPayments().get(component);
+            final String paymentRowId = SaleOperationLedgerQA.enabled()
+                    ? SaleOperationLedgerQA.paymentRowId(s, ticket, component)
+                    : UUID.randomUUID().toString();
             paymentinsert.exec(new DataParams() {
                 @Override
                 public void writeValues() throws BasicException {
-                    setString(1, UUID.randomUUID().toString());
+                    setString(1, paymentRowId);
                     setString(2, ticket.getId());
                     setString(3, payment.getName());
                     setDouble(4, payment.getTotal());
@@ -1999,11 +2040,48 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         });
                     }
                 }
+
+                // Recipe consumption is part of this same ticket transaction. It never
+                // rejects a sale for shortage/negative stock; it records an admin alert.
+                SaleRecipeConsumptionService recipeConsumption =
+                        new SaleRecipeConsumptionService(s);
+                if (ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
+                        && !ticket.getOldTicket()) {
+                    List<SaleRecipeConsumptionService.SaleLine> recipeLines = new ArrayList<>();
+                    for (int i = 0; i < ticket.getLinesCount(); i++) {
+                        TicketLineInfo line = ticket.getLine(i);
+                        recipeLines.add(new SaleRecipeConsumptionService.SaleLine(
+                                i + 1, line.getProductID(),
+                                java.math.BigDecimal.valueOf(line.getMultiply()),
+                                line.isProductService()));
+                    }
+                    recipeConsumption.consume(
+                            new SaleRecipeConsumptionService.SaleConsumptionRequest(
+                                    "SALE-RECIPE:" + ticket.getId(), ticket.getId(),
+                                    ticket.getTicketId(), location, recipeLines,
+                                    ticket.getUser().getName()));
+                } else if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+                    recipeConsumption.reverseForRefund(
+                            new SaleRecipeConsumptionService.RefundRequest(
+                                    "SALE-RECIPE-REFUND:" + ticket.getId(),
+                                    ticket.getTicketStatus(), ticket.getUser().getName()));
+                }
             return null;
         }
     };
 
-        t.execute();
+        if (SaleOperationLedgerQA.enabled()) {
+            SaleOperationLedgerQA.prepareAndClaim(s, ticket);
+            try {
+                t.execute();
+            } catch (BasicException uncertainty) {
+                SaleOperationLedgerQA.holdUnknown(s, ticket);
+                throw uncertainty;
+            }
+            SaleOperationLedgerQA.commitConfirmed(s, ticket);
+        } else {
+            t.execute();
+        }
 }
 
     /**
@@ -2186,7 +2264,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 // update the inventory
                 Date d = new Date();
                 for (int i = 0; i < ticket.getLinesCount(); i++) {
-                    if (ticket.getLine(i).getProductID() != null)  {
+                    if (ticket.getLine(i).getProductID() != null
+                            && !hasActiveSaleRecipe(ticket.getLine(i).getProductID()))  {
                         // Hay que actualizar el stock si el hay producto
                         getStockDiaryInsert().exec( new Object[] {
                             UUID.randomUUID().toString(),
@@ -2374,7 +2453,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             + "THEN " + s.DB.FALSE() 
                             + " ELSE " + s.DB.TRUE() 
                         + " END, "
-                    + "C.CATORDER "
+                    + "C.CATORDER, "
+                    + "P.ISRECIPEINGREDIENT "
                     + "FROM products P LEFT OUTER JOIN products_cat C "
                     + "ON P.ID = C.PRODUCT "
                     + "WHERE ?(QBF_FILTER) "
@@ -2467,20 +2547,21 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     + "PRINTTO, "
                     + "SUPPLIER, "
                     + "UOM, "
-                    + "MEMODATE ) "                        
+                    + "MEMODATE, "
+                    + "ISRECIPEINGREDIENT ) "
                     + "VALUES ("
                     + "?, ?, ?, ?, ?, ?, "
                     + "?, ?, ?, ?, ?, ?, "
                     + "?, ?, ?, ?, ?, ?, "
                     + "?, ?, ?, ?, ?, ?, "
-                    + "?, ?, ?, ?, ?, ?)"
+                    + "?, ?, ?, ?, ?, ?, ?)"
 		, new SerializerWriteBasicExt(productsRow.getDatas(), 
                 new int[]{0, 
                     1, 2, 3, 4, 5, 6, 
                     7, 8, 9, 10, 11, 12, 
                     13, 14, 15, 16, 17, 18,
                     19, 20, 21, 22, 23, 24, 
-                    25, 26, 27, 28, 29}))
+                    25, 26, 27, 28, 29, 32}))
                     
                     .exec(params);
 
@@ -2541,7 +2622,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         + "PRINTTO = ?, "
                         + "SUPPLIER = ?, "
                         + "UOM = ?, "
-                        + "MEMODATE = ? "
+                        + "MEMODATE = ?, "
+                        + "ISRECIPEINGREDIENT = ? "
                     + "WHERE ID = ?"
 		, new SerializerWriteBasicExt(productsRow.getDatas(), 
                         new int[]{0, 
@@ -2550,7 +2632,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             11, 12, 13, 14, 15,
                             16, 17, 18, 19, 20, 
                             21, 22, 23, 24, 25, 
-                            26, 27, 28, 29, 0}))
+                            26, 27, 28, 29, 32, 0}))
                         .exec(params);
             	if (i > 0) {
                     syncPreferredProductSupplier(params);
@@ -2603,6 +2685,23 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 , SerializerWriteParams.INSTANCE);
     }
 
+    private boolean hasActiveSaleRecipe(String productId) throws BasicException {
+        if (productId == null || productId.trim().isEmpty()) {
+            return false;
+        }
+        try (PreparedStatement statement = s.getConnection().prepareStatement(
+                "SELECT 1 FROM recipe_versions "
+                + "WHERE product_id = ? AND UPPER(status) = 'ACTIVE' "
+                + "AND UPPER(recipe_mode) = 'SALE_CONSUMPTION' LIMIT 1")) {
+            statement.setString(1, productId);
+            try (ResultSet row = statement.executeQuery()) {
+                return row.next();
+            }
+        } catch (SQLException ex) {
+            throw new BasicException("Unable to determine whether the product has a sale recipe.", ex);
+        }
+    }
+
     /**
      * ProductBundle version
      * @return
@@ -2652,7 +2751,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         @Override
         public int execInTransaction(Object params) throws BasicException {
         
-            int updateresult = ((Object[]) params)[5] == null 
+            Object[] paramsArray = (Object[]) params;
+            int updateresult = paramsArray[5] == null 
             ? new PreparedSentence(s
                 , "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
                         + "WHERE LOCATION = ? AND PRODUCT = ? "
@@ -2672,6 +2772,14 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     , new SerializerWriteBasicExt(stockdiaryDatas, new int[] {3, 4, 5, 6})).exec(params);
                 }
                 learnSupplierFromPurchase((Object[]) params);
+                if (paramsArray[2] instanceof Number
+                        && ((Number) paramsArray[2]).intValue() == ((Number) MovementReason.IN_PURCHASE.getKey()).intValue()) {
+                    try {
+                        SaleRecipeConsumptionService.refreshActiveRecipeCosts(s.getConnection());
+                    } catch (SQLException ex) {
+                        throw new BasicException("Unable to refresh active sale recipe costs after purchase.", ex);
+                    }
+                }
                 return new PreparedSentence(s
                     , "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, "
                             + "ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, "

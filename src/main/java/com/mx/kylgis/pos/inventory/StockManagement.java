@@ -103,6 +103,7 @@ public class StockManagement extends JPanel implements JPanelView {
        
     
     private final JInventoryLines m_invlines;
+    private javax.swing.JButton m_jSupplierDocSearch;
     
     private int NUMBER_STATE = 0;
     private int MULTIPLY = 0;
@@ -143,6 +144,10 @@ public class StockManagement extends JPanel implements JPanelView {
         m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
 
         initComponents();
+        installSupplierDocumentSearch();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jBtnDelete,"stock.clear");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jLabel9,"stock.supplierDocument");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jSupplierDoc,"stock.supplierDocument");
         installSupplierRenderer();
         installResponsiveInventoryLayout();
         
@@ -241,6 +246,22 @@ public class StockManagement extends JPanel implements JPanelView {
      * off-screen. Re-assigning the AbsoluteConstraints preserves the generated
      * form while making only the right-hand working area responsive.
      */
+    /**
+     * Adds a direct product finder below the supplier document field so
+     * products can be selected without reaching the secondary toolbar.
+     */
+    private void installSupplierDocumentSearch() {
+        m_jSupplierDocSearch = new javax.swing.JButton();
+        m_jSupplierDocSearch.setIcon(new javax.swing.ImageIcon(
+                getClass().getResource("/com/mx/kylgis/pos/images/search32.png")));
+        m_jSupplierDocSearch.setToolTipText(AppLocal.getIntString("tooltip.saleproductfind"));
+        m_jSupplierDocSearch.setFocusable(false);
+        m_jSupplierDocSearch.setRequestFocusEnabled(false);
+        m_jSupplierDocSearch.addActionListener(this::m_jListActionPerformed);
+        jPanel8.add(m_jSupplierDocSearch,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 215, 60, 30));
+    }
+
     private void installResponsiveInventoryLayout() {
         jPanel8.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
@@ -271,7 +292,7 @@ public class StockManagement extends JPanel implements JPanelView {
             layout.addLayoutComponent(jPanel1,
                     new org.netbeans.lib.awtextra.AbsoluteConstraints(1330, 0, 210, 290));
             layout.addLayoutComponent(m_jBtnShowStock,
-                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 310, 60, 50));
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 354, 60, 32));
             layout.addLayoutComponent(m_jcodebar,
                     new org.netbeans.lib.awtextra.AbsoluteConstraints(1340, 310, -1, 30));
             layout.addLayoutComponent(m_jEnter,
@@ -294,7 +315,7 @@ public class StockManagement extends JPanel implements JPanelView {
             layout.addLayoutComponent(jPanel1,
                     new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX, 0, keypadWidth, 290));
             layout.addLayoutComponent(m_jBtnShowStock,
-                    new org.netbeans.lib.awtextra.AbsoluteConstraints(Math.max(470, toolsX - 70), 310, 60, 50));
+                    new org.netbeans.lib.awtextra.AbsoluteConstraints(Math.max(470, toolsX - 70), 354, 60, 32));
             layout.addLayoutComponent(m_jcodebar,
                     new org.netbeans.lib.awtextra.AbsoluteConstraints(keypadX + 10, 310, 130, 30));
             layout.addLayoutComponent(m_jEnter,
@@ -303,6 +324,9 @@ public class StockManagement extends JPanel implements JPanelView {
                     new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 282, stockWidth, 70));
         }
 
+        // Keep the stock refresh action in front of the stock area when the
+        // AbsoluteLayout is recalculated on different screen widths.
+        jPanel8.setComponentZOrder(m_jBtnShowStock, 0);
         jPanel8.revalidate();
         jPanel8.repaint();
     }
@@ -1108,8 +1132,8 @@ public class StockManagement extends JPanel implements JPanelView {
         setLayout(new java.awt.BorderLayout());
 
         jPanel8.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jPanel8.setMinimumSize(new java.awt.Dimension(0, 370));
-        jPanel8.setPreferredSize(new java.awt.Dimension(0, 380));
+        jPanel8.setMinimumSize(new java.awt.Dimension(0, 390));
+        jPanel8.setPreferredSize(new java.awt.Dimension(0, 390));
         jPanel8.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -1201,14 +1225,14 @@ public class StockManagement extends JPanel implements JPanelView {
 
         jLabel9.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel9.setText(AppLocal.getIntString("label.supplierdocment")); // NOI18N
-        jLabel9.setToolTipText("null");
+        // Localized tooltip is installed after initComponents().
         jLabel9.setMaximumSize(new java.awt.Dimension(40, 25));
         jLabel9.setMinimumSize(new java.awt.Dimension(40, 25));
         jLabel9.setPreferredSize(new java.awt.Dimension(70, 30));
         jPanel8.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(5, 180, 160, -1));
 
         m_jSupplierDoc.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jSupplierDoc.setToolTipText(AppLocal.getIntString("button.exit")); // NOI18N
+        // This field describes the supplier document, not the Exit button.
         m_jSupplierDoc.setPreferredSize(new java.awt.Dimension(160, 30));
         jPanel8.add(m_jSupplierDoc, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 180, 270, -1));
 
@@ -1388,7 +1412,7 @@ public class StockManagement extends JPanel implements JPanelView {
                 m_jBtnShowStockActionPerformed(evt);
             }
         });
-        jPanel8.add(m_jBtnShowStock, new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 310, 60, 50));
+        jPanel8.add(m_jBtnShowStock, new org.netbeans.lib.awtextra.AbsoluteConstraints(1190, 354, 60, 32));
 
         lblTotalQtyValue.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         lblTotalQtyValue.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);

@@ -215,6 +215,19 @@ public class JTicketsBagTicket extends JTicketsBag {
         return this;
     }
       
+    private boolean isRefundAvailable() {
+        if (m_ticket == null
+                || m_ticket.getTicketType() != TicketInfo.RECEIPT_NORMAL
+                || m_ticket.getTicketStatus() != 0) {
+            return false;
+        }
+        try {
+            return !m_dlSales.hasRecordedRefund(m_ticket.getTicketId());
+        } catch (BasicException ex) {
+            return false;
+        }
+    }
+
     private void readTicket(int iTicketid, int iTickettype) {
         Integer findTicket=0;    
         try {
@@ -273,18 +286,6 @@ public class JTicketsBagTicket extends JTicketsBag {
         m_jTicketEditor.activate();
     }
     
-    private boolean isRefundAvailable() {
-        if (m_ticket == null || m_ticket.getTicketType() != TicketInfo.RECEIPT_NORMAL
-                || m_ticket.getTicketStatus() != 0) {
-            return false;
-        }
-        try {
-            return !m_dlSales.hasRecordedRefund(m_ticket.getTicketId());
-        } catch (BasicException ex) {
-            return false;
-        }
-    }
-
     private void printTicket() {
         
         try {
@@ -609,8 +610,9 @@ public class JTicketsBagTicket extends JTicketsBag {
             m_ticket = currentSale;
             taxeslogic.calculateTaxes(m_ticket);
         } catch (BasicException | TaxesException ex) {
+            m_jRefund.setEnabled(false);
             JMessageDialog.showMessage(this, new MessageInf(MessageInf.SGN_WARNING,
-                    "No se pudo comprobar el estado actual de la venta.", ex));
+                    "No se pudo validar el estado actual de la venta.", ex));
             return;
         }
 

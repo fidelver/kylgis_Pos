@@ -520,7 +520,7 @@
             </Property>
           </Properties>
         </Component>
-        <Component class="com.alee.laf.label.WebLabel" name="lblIP_Address">
+        <Component class="javax.swing.JLabel" name="lblIP_Address">
           <Properties>
             <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
               <Color blue="f0" green="f0" red="f0" type="rgb"/>
@@ -541,7 +541,7 @@
             </Property>
           </Properties>
         </Component>
-        <Component class="com.alee.laf.label.WebLabel" name="webLabel1">
+        <Component class="javax.swing.JLabel" name="webLabel1">
           <Properties>
             <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
               <Color blue="f0" green="f0" red="f0" type="rgb"/>

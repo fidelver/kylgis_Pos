@@ -24,11 +24,11 @@
 <output>
     <display>
         <line>
-            <text align="left" length="10">Total pagado</text>
+            <text align="left" length="10">${labels.text("Total pagado")}</text>
             <text align="right" length="10">${ticket.printTotalPaid()}</text>
         </line>
         <line>
-            <text align="center" length="20">Gracias por su preferencia</text>
+            <text align="center" length="20">${labels.text("Gracias por su preferencia")}</text>
         </line>
     </display>
 </output>

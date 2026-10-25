@@ -2,10 +2,7 @@
 
 <Form version="1.8" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
   <NonVisualComponents>
-    <Container class="com.alee.extended.window.WebPopOver" name="webPopOver1">
 
-      <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout"/>
-    </Container>
   </NonVisualComponents>
   <Properties>
     <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
@@ -412,7 +409,7 @@
         </Property>
       </Properties>
     </Component>
-    <Component class="com.alee.laf.label.WebLabel" name="LblMultiDB">
+    <Component class="javax.swing.JLabel" name="LblMultiDB">
       <Properties>
         <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
           <ResourceString bundle="pos_messages.properties" key="label.multidb" replaceFormat="AppLocal.getIntString(&quot;label.multidb&quot;)"/>
@@ -425,7 +422,7 @@
         </Property>
       </Properties>
     </Component>
-    <Component class="com.alee.extended.button.WebSwitch" name="multiDB">
+    <Component class="javax.swing.JCheckBox" name="multiDB">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
           <Font name="Arial" size="14" style="0"/>

@@ -44,6 +44,7 @@ report.setSentence("SELECT DISTINCT " +
                     "LEFT OUTER JOIN stocklevel ON stockcurrent.LOCATION = stocklevel.LOCATION AND stockcurrent.PRODUCT = stocklevel.PRODUCT " +
             	    "LEFT OUTER JOIN attributesetinstance ON stockcurrent.ATTRIBUTESETINSTANCE_ID = attributesetinstance.ID " +
                     "LEFT OUTER JOIN suppliers suppliers ON (suppliers.ID = products.SUPPLIER) " +
+                    "LEFT OUTER JOIN uom uom ON uom.ID = products.UOM " +
             "WHERE ?(QBF_FILTER) " +
             "ORDER BY categories.NAME, products.NAME, stockcurrent.LOCATION, attributesetinstance.DESCRIPTION");
 
@@ -55,11 +56,9 @@ report.addParameter("suppliers.NAME");
 report.addQBFFilter(new com.mx.kylgis.pos.reports.JParamsSuppliers());
 
 
-report.addParameter("products.NAME");
+report.addParameter("products.NAME|products.CODE|products.REFERENCE|uom.ID|uom.NAME");
 report.addParameter("products.CATEGORY");
-report.addParameter("products.CODE");
-report.addParameter("stockcurrent.UNITS");
-report.addQBFFilter(new com.mx.kylgis.pos.ticket.ProductFilter1());
+report.addQBFFilter(new com.mx.kylgis.pos.ticket.WarehouseProductFilter());
 
 report.addField("LOCATIONID", com.mx.kylgis.pos.data.loader.Datas.STRING);
 report.addField("LOCATIONNAME", com.mx.kylgis.pos.data.loader.Datas.STRING);

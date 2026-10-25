@@ -25,15 +25,20 @@ public final class RecipeTransformationSelfTest {
         testDepthGuardRejected();
         testUpgradeTransitions();
         testWeightedCostAddition();
+        testWeightedCostAdditionAfterNegativeStock();
         testWeightedCostRemoval();
         testWeightedCostRemovalToZero();
         testInvalidWeightedCostRemovalRejected();
         testUomFactorNormalization();
+        testInverseUomFactor();
         testZeroUomFactorRejected();
         testRoundedZeroUomFactorRejected();
         testWasteHashOrderIndependent();
         testDuplicateWasteProductRejected();
         testZeroWasteQuantityRejected();
+        testRecipeComponentLabels();
+        testProductCatalogSearch();
+        testTransformationLabels();
         testHistoryLimitBounds();
         System.out.println("KYLGIS_RECIPE_SELFTEST_OK tests=" + tests);
     }
@@ -100,6 +105,15 @@ public final class RecipeTransformationSelfTest {
         pass();
     }
 
+    private static void testWeightedCostAdditionAfterNegativeStock() throws Exception {
+        BigDecimal result = InventoryTransformationService.weightedCostAfterAdd(
+                new BigDecimal("-2"), new BigDecimal("4"),
+                new BigDecimal("3"), new BigDecimal("9"));
+        require(result.compareTo(new BigDecimal("3.000000")) == 0,
+                "negative stock replenishment must use incoming unit cost");
+        pass();
+    }
+
     private static void testWeightedCostRemoval() throws Exception {
         BigDecimal result = InventoryTransformationService.weightedCostAfterRemove(
                 new BigDecimal("10"), new BigDecimal("3"),
@@ -128,6 +142,20 @@ public final class RecipeTransformationSelfTest {
         BigDecimal result = ProductUomConversionService.normalizeFactor(new BigDecimal("2"));
         require(result.compareTo(new BigDecimal("2.000000000")) == 0,
                 "UOM factor must normalize to 9 decimals");
+        pass();
+    }
+
+    private static void testInverseUomFactor() throws Exception {
+        BigDecimal stored = ProductUomConversionService.toInventoryFactor(
+                new BigDecimal("2"), true);
+        require(stored.compareTo(new BigDecimal("0.500000000")) == 0,
+                "inverse UOM factor must store the reciprocal");
+        BigDecimal direct = ProductUomConversionService.toInventoryFactor(
+                new BigDecimal("0.92"), false);
+        BigDecimal inverse = ProductUomConversionService.toInventoryFactor(
+                new BigDecimal("1.0869565217"), true);
+        require(direct.subtract(inverse).abs().compareTo(new BigDecimal("0.000000001")) <= 0,
+                "direct and inverse UOM factors must be equivalent");
         pass();
     }
 
@@ -183,6 +211,59 @@ public final class RecipeTransformationSelfTest {
                         List.of(zero), "USER", null);
         expectBasicException(() -> InventoryTransformationService.validateWasteRequest(request),
                 "zero waste quantity");
+        pass();
+    }
+
+    private static void testRecipeComponentLabels() {
+        RecipeTransformationQueryService.RecipeComponent named =
+                new RecipeTransformationQueryService.RecipeComponent(
+                        1, "product-id", "ARZ-001", "Arroz", new BigDecimal("2"),
+                        "uom-id", "Kilogramo", BigDecimal.ZERO);
+        require("ARZ-001 - Arroz".equals(named.productLabel()),
+                "recipe component must display product reference and name");
+        require("Kilogramo".equals(named.uomLabel()),
+                "recipe component must display UOM name");
+
+        RecipeTransformationQueryService.RecipeComponent fallback =
+                new RecipeTransformationQueryService.RecipeComponent(
+                        2, "product-fallback", null, null, BigDecimal.ONE,
+                        "uom-fallback", null, BigDecimal.ZERO);
+        require("Producto sin nombre".equals(fallback.productLabel()),
+                "missing product catalog label must not expose product id");
+        require("Unidad sin nombre".equals(fallback.uomLabel()),
+                "missing UOM catalog label must not expose UOM id");
+        pass();
+    }
+
+    private static void testProductCatalogSearch() {
+        RecipeUiCatalogService.ProductChoice product =
+                new RecipeUiCatalogService.ProductChoice(
+                        "id", "REF-001", "750123", "Mozzarella", "KG", "Quesos");
+        require(product.matchesSearch("mozz"), "catalog search must match product name");
+        require(product.matchesSearch("750123"), "catalog search must match article code");
+        require(product.matchesSearch("ques"), "catalog search must match category");
+        require(product.matchesSearch("REF-001 queso"), "catalog search must combine terms");
+        require(!product.matchesSearch("pepperoni"), "catalog search must reject unrelated terms");
+        pass();
+    }
+
+    private static void testTransformationLabels() {
+        RecipeTransformationQueryService.TransformationLine line =
+                new RecipeTransformationQueryService.TransformationLine(
+                        1, "INPUT", "product-id", "REF-001", "Producto",
+                        null, new BigDecimal("2"), "uom-id", "Kilogramo",
+                        new BigDecimal("2"), new BigDecimal("1"), new BigDecimal("2"), "diary");
+        require("REF-001 - Producto".equals(line.productLabel()),
+                "history line must display product reference and name");
+        require("Kilogramo".equals(line.uomLabel()),
+                "history line must display UOM name");
+
+        RecipeTransformationQueryService.RecipeVersionSummary version =
+                new RecipeTransformationQueryService.RecipeVersionSummary(
+                        "version", "product", 1, "ACTIVE", BigDecimal.ONE,
+                        "uom-id", "Kilogramo", null, "user", null);
+        require("Kilogramo".equals(version.yieldUomLabel()),
+                "recipe version must display yield UOM name");
         pass();
     }
 

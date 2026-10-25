@@ -342,6 +342,10 @@
                   <targetPath>${basedir}/target/reports/com</targetPath>  
                   <directory>${basedir}/src/main/resources/com</directory>  
                   <filtering>false</filtering> 
+                  <excludes>
+                    <!-- Help catalog remains sealed in kylgispos.jar only. -->
+                    <exclude>mx/kylgis/pos/ui/help/**</exclude>
+                  </excludes>
                 </resource>  
                 <resource> 
                   <targetPath>${basedir}/target/locales</targetPath>  

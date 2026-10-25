@@ -68,7 +68,9 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
     private javax.swing.JButton jbtnNext = null;
     private javax.swing.JButton jbtnPrev = null;
     private javax.swing.JButton jbtnRefresh = null;
-    private javax.swing.JButton jbtnReload = null;    
+    private javax.swing.JButton jbtnReload = null;
+    private Runnable customFindAction;
+    private Runnable customReloadAction;    
     
     /** Creates new form JNavigator
      * @param bd
@@ -342,20 +344,47 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
         }  
     }
     
-    private void jbtnFindActionPerformed(java.awt.event.ActionEvent evt) {                                         
+    public void setCustomFindAction(Runnable action) {
+        customFindAction = action;
+    }
+
+    public void setCustomReloadAction(Runnable action) {
+        customReloadAction = action;
+    }
+
+    /** Hides only the current-record refresh control; the full-list reload remains available. */
+    public void hideRefreshButton() {
+        if (jbtnRefresh != null) {
+            remove(jbtnRefresh);
+        }
+        revalidate();
+        repaint();
+    }
+
+    /** Removes the full-list reload button when that action is moved to the filter panel. */
+    public void hideReloadButton() {
+        if (jbtnReload != null) {
+            remove(jbtnReload);
+        }
+        for (int index = getComponentCount() - 1; index >= 0; index--) {
+            if (getComponent(index) instanceof javax.swing.JSeparator) {
+                remove(index);
+            }
+        }
+        revalidate();
+        repaint();
+    }
+
+    private void jbtnFindActionPerformed(java.awt.event.ActionEvent evt) {
+        if (customFindAction != null) {
+            customFindAction.run();
+            return;
+        }                                         
         
         try {
-            FindInfo newFindInfo = JFind.showMessage(this, m_LastFindInfo);
-            if (newFindInfo != null) {
-                m_LastFindInfo = newFindInfo;
-                
-                int index = m_bd.findNext(newFindInfo);
-                if (index < 0) {
-                    MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, LocalRes.getIntString("message.norecord"));
-                    msg.show(this);
-                } else {
-                    m_bd.moveTo(index);
-                }
+            Integer selectedIndex = StandardSearchDialog.showMessage(this, m_bd.getListModel(), m_LastFindInfo.getVectorer());
+            if (selectedIndex != null) {
+                m_bd.moveTo(selectedIndex);
             }
         } catch (BasicException eD) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, LocalRes.getIntString("message.nolistdata"), eD);
@@ -371,6 +400,10 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
     private void jbtnReloadActionPerformed(java.awt.event.ActionEvent evt) {                                           
 
         try {
+            if (customReloadAction != null) {
+                customReloadAction.run();
+                return;
+            }
             m_bd.actionLoad();
         } catch (BasicException eD) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, LocalRes.getIntString("message.noreload"), eD);

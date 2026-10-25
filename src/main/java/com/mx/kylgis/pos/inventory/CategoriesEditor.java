@@ -58,6 +58,8 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
 
     private Object m_oId;       
     private Object m_id;
+    // Suppress actions triggered by programmatic WebSwitch.setSelected().
+    private boolean syncingCatalogSelection;
     public String cId;
     
     private final SentenceList m_sentcat;
@@ -139,7 +141,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         m_jName.setEnabled(false);
         m_jCategory.setEnabled(false);
         m_jImage.setEnabled(false);
-        webSwtch_InCatalog.setSelected(false);
+        setCatalogSwitchSelected(false);
         jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
         m_jTextTip.setText(null);        
         m_jTextTip.setEnabled(false);
@@ -271,9 +273,19 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         return this;
     }
     
+    private void setCatalogSwitchSelected(boolean selected) {
+        boolean previous = syncingCatalogSelection;
+        syncingCatalogSelection = true;
+        try {
+            webSwtch_InCatalog.setSelected(selected);
+        } finally {
+            syncingCatalogSelection = previous;
+        }
+    }
+
     private void refreshCatalogMembershipState() {
         if (m_id == null) {
-            webSwtch_InCatalog.setSelected(false);
+            setCatalogSwitchSelected(false);
             jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
             return;
         }
@@ -282,7 +294,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
             int total = counts[0];
             int inCatalog = counts[1];
             boolean allIncluded = total > 0 && total == inCatalog;
-            webSwtch_InCatalog.setSelected(allIncluded);
+            setCatalogSwitchSelected(allIncluded);
             if (inCatalog == 0) {
                 jLblInCat.setText(AppLocal.getIntString("label.CatalogueStatusNo"));
             } else if (allIncluded) {
@@ -293,7 +305,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         } catch (BasicException ex) {
             Logger.getLogger(CategoriesEditor.class.getName()).log(Level.WARNING,
                     "Cannot refresh category sales catalog membership", ex);
-            webSwtch_InCatalog.setSelected(false);
+            setCatalogSwitchSelected(false);
         }
     }
 
@@ -618,6 +630,10 @@ public void resetTranxTable() {
     }// </editor-fold>//GEN-END:initComponents
 
     private void webSwtch_InCatalogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_webSwtch_InCatalogActionPerformed
+        if (syncingCatalogSelection || m_id == null) {
+            return;
+        }
+
         if (webSwtch_InCatalog.isSelected()) {
 
             try {
