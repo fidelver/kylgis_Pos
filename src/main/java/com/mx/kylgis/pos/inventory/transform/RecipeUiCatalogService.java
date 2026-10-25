@@ -4,6 +4,7 @@ package com.mx.kylgis.pos.inventory.transform;
 
 import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.data.loader.Session;
+import com.mx.kylgis.pos.forms.AppLocal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -92,8 +93,14 @@ public final class RecipeUiCatalogService {
 
         @Override
         public String toString() {
-            String ref = reference == null || reference.isBlank() ? "" : reference + " - ";
-            return ref + (name == null ? id : name);
+            String displayName = name == null ? "" : name.trim();
+            String displayReference = reference == null ? "" : reference.trim();
+            if (displayName.isEmpty()) {
+                return displayReference.isEmpty()
+                        ? AppLocal.getIntString("recipe.catalog.unknown.product")
+                        : displayReference;
+            }
+            return displayReference.isEmpty() ? displayName : displayReference + " - " + displayName;
         }
     }
 
@@ -108,7 +115,10 @@ public final class RecipeUiCatalogService {
 
         @Override
         public String toString() {
-            return name == null || name.isBlank() ? id : name;
+            String displayName = name == null ? "" : name.trim();
+            return displayName.isEmpty()
+                    ? AppLocal.getIntString("recipe.catalog.unknown.uom")
+                    : displayName;
         }
     }
 
@@ -123,7 +133,10 @@ public final class RecipeUiCatalogService {
 
         @Override
         public String toString() {
-            return name == null || name.isBlank() ? id : name;
+            String displayName = name == null ? "" : name.trim();
+            return displayName.isEmpty()
+                    ? AppLocal.getIntString("recipe.catalog.unknown.location")
+                    : displayName;
         }
     }
 }
