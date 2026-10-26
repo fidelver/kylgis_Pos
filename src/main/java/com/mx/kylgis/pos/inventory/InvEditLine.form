@@ -73,7 +73,7 @@
     </Component>
     <Component class="com.alee.laf.text.WebTextField" name="webTxtPriceBuy">
       <Properties>
-        <Property name="text" type="java.lang.String" value="webTextField1"/>
+        <Property name="text" type="java.lang.String" value=""/>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
           <Font name="Arial" size="14" style="0"/>
         </Property>

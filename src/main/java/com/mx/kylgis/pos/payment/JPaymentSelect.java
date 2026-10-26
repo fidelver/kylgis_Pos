@@ -21,6 +21,7 @@
 package com.mx.kylgis.pos.payment;
 
 import com.mx.kylgis.pos.format.Formats;
+import com.mx.kylgis.pos.basic.BasicException;
 import com.mx.kylgis.pos.customers.CustomerInfoExt;
 import com.mx.kylgis.pos.customers.DataLogicCustomers;
 import com.mx.kylgis.pos.forms.AppLocal;
@@ -29,6 +30,7 @@ import com.mx.kylgis.pos.forms.DataLogicSales;
 import com.mx.kylgis.pos.forms.DataLogicSystem;
 import com.mx.kylgis.pos.util.RoundUtils;
 import com.mx.kylgis.pos.voucher.VoucherDiscountInfo;
+import com.mx.kylgis.pos.ticket.TicketInfo;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -49,7 +51,7 @@ import javax.swing.SwingWorker;
  * @author adrianromero
  */
 public abstract class JPaymentSelect extends javax.swing.JDialog 
-                            implements JPaymentNotifier {
+                            implements JPaymentNotifier, PaymentAuthorizationCoordinator {
     
     private PaymentInfoList m_aPaymentInfo;
     private List<VoucherDiscountInfo> m_voucherDiscounts;
@@ -70,6 +72,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     private String m_sTransactionID;
     private boolean paymentInProgress;
     private String voucherEditSourceReceiptId;
+    private TicketInfo durableTicketContext;
+    private int durableComponentIndex;
+    private BasicException durablePreparationFailure;
      
 
     /**
@@ -137,6 +142,59 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
         return voucherEditSourceReceiptId;
     }
 
+    /**
+     * Installs the ticket context before the modal payment dialog opens. In QA
+     * mode this is the durable operation reservation point.
+     */
+    public void setDurableOperationContext(TicketInfo ticket) {
+        durableTicketContext = ticket;
+        durablePreparationFailure = null;
+        durableComponentIndex = 0;
+        if (ticket != null && dlSales != null) {
+            try {
+                dlSales.prepareDurableOperation(ticket);
+            } catch (BasicException failure) {
+                durablePreparationFailure = failure;
+            }
+        }
+    }
+
+    public void clearDurableOperationContext() {
+        durableTicketContext = null;
+        durablePreparationFailure = null;
+        durableComponentIndex = 0;
+    }
+
+    @Override
+    public void beforeCardAuthorization(PaymentInfoMagcard payment) throws BasicException {
+        if (durablePreparationFailure != null) {
+            throw durablePreparationFailure;
+        }
+        if (durableTicketContext == null || dlSales == null) {
+            return;
+        }
+        durableComponentIndex = m_aPaymentInfo == null
+                ? 0 : m_aPaymentInfo.getPayments().size();
+        dlSales.prepareDurableCardIntent(durableTicketContext, durableComponentIndex, payment);
+    }
+
+    @Override
+    public void afterCardAuthorization(PaymentInfoMagcard payment) throws BasicException {
+        if (durableTicketContext != null && dlSales != null) {
+            dlSales.finishDurableCardIntent(durableTicketContext, durableComponentIndex, payment);
+        }
+    }
+
+    @Override
+    public void markDurableCoordinationFailure(String message) {
+        if (durableTicketContext != null) {
+            durableTicketContext.setProperty(TicketInfo.PAYMENT_RECONCILIATION_PROPERTY, "true");
+        }
+        durablePreparationFailure = new BasicException(
+                message == null || message.isBlank()
+                        ? "Durable payment coordination failed" : message);
+    }
+
     private void applyReceiptPrintPolicy() {
         boolean printingDisabled = Boolean.parseBoolean(
                 app.getProperties().getProperty("till.receiptprintoff"));
@@ -157,6 +215,11 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
     }
             
       public boolean showDialog(double total, CustomerInfoExt customerext,double deposit) {
+        if (durablePreparationFailure != null) {
+            JOptionPane.showMessageDialog(this, durablePreparationFailure.getMessage(),
+                    AppLocal.getIntString("message.payment.processingerror.title"), JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
         m_aPaymentInfo = new PaymentInfoList();
         m_voucherDiscounts = new ArrayList<>();
         m_selectionOrder = new LinkedList<>();
@@ -184,6 +247,11 @@ public abstract class JPaymentSelect extends javax.swing.JDialog
       }
   
     public boolean showDialog(double total, CustomerInfoExt customerext) {
+        if (durablePreparationFailure != null) {
+            JOptionPane.showMessageDialog(this, durablePreparationFailure.getMessage(),
+                    AppLocal.getIntString("message.payment.processingerror.title"), JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
         
         m_aPaymentInfo = new PaymentInfoList();
         m_voucherDiscounts = new ArrayList<>();

@@ -51,6 +51,14 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
     public JPanelConfigDatabase() {
         
         initComponents();
+        // NetBeans generated code accidentally fills the username with its
+        // help description. Always start empty until loadProperties() runs.
+        jtxtDbUser.setText("");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jtxtDbUser,"database.account.user");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jtxtDbUser1,"database.account.user");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jtxtDbPassword,"database.account.password");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(jtxtDbPassword1,"database.account.password");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(multiDB,"database.account.multidb");
         
         jtxtDbDriverLib.getDocument().addDocumentListener(dirty);
         jtxtDbDriver.getDocument().addDocumentListener(dirty);
@@ -334,7 +342,6 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        webPopOver1 = new com.alee.extended.window.WebPopOver();
         jLabel6 = new javax.swing.JLabel();
         jcboDBDriver = new javax.swing.JComboBox();
         jLabel18 = new javax.swing.JLabel();
@@ -352,8 +359,8 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jLabel5 = new javax.swing.JLabel();
         jLblDBName = new javax.swing.JLabel();
         jtxtDbName = new javax.swing.JTextField();
-        LblMultiDB = new com.alee.laf.label.WebLabel();
-        multiDB = new com.alee.extended.button.WebSwitch();
+        LblMultiDB = new javax.swing.JLabel();
+        multiDB = new javax.swing.JCheckBox();
         jLblAlert = new javax.swing.JLabel();
         jPanelDB2 = new javax.swing.JPanel();
         jLblDbName1 = new javax.swing.JLabel();
@@ -1239,7 +1246,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private com.alee.laf.label.WebLabel LblMultiDB;
+    private javax.swing.JLabel LblMultiDB;
     private javax.swing.JComboBox<String> jCBSchema;
     private javax.swing.JComboBox<String> jCBSchema1;
     private javax.swing.JLabel jLabel1;
@@ -1288,8 +1295,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
     private javax.swing.JTextField jtxtDbURL1;
     private javax.swing.JTextField jtxtDbUser;
     private javax.swing.JTextField jtxtDbUser1;
-    private com.alee.extended.button.WebSwitch multiDB;
-    private com.alee.extended.window.WebPopOver webPopOver1;
+    private javax.swing.JCheckBox multiDB;
     // End of variables declaration//GEN-END:variables
    
 }

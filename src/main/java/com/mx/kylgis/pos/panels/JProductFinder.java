@@ -144,16 +144,8 @@ public class JProductFinder extends javax.swing.JDialog {
      * @return
      */
     public static ProductInfoExt showMessage(Component parent, DataLogicSales dlSales, int productsType) {
-
-        Window window = getWindow(parent);
-
-        JProductFinder myMsg;
-        if (window instanceof Frame) {
-            myMsg = new JProductFinder((Frame) window, true);
-        } else {
-            myMsg = new JProductFinder((Dialog) window, true);
-        }
-        return myMsg.init(dlSales, productsType);
+        // All inventory product finders use the standard one-line, explicit-selection dialog.
+        return ProductSearchDialog.showMessage(parent, dlSales, productsType);
     }
     
     private void configureKeyboardActions() {

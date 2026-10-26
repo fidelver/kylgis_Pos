@@ -34,7 +34,7 @@ report.setSentence("SELECT "
                 + "FROM (suppliers suppliers "
                         + "INNER JOIN products products "
                         + "ON (suppliers.id = products.SUPPLIER)) "
-                + "WHERE ?(QBF_FILTER)" 
+                + "WHERE ?(QBF_FILTER) " 
                 + "ORDER BY SUPPLIERNAME, PRODUCTNAME");
 
 report.addParameter("SUPPLIERS.ID");

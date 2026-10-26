@@ -48,6 +48,7 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/mx/kylgis/pos/images/attributes.png", "Menu.AttributeSets", "com.mx.kylgis.pos.inventory.AttributeSetsPanel");
         submenu.addPanel("/com/mx/kylgis/pos/images/attributes.png", "Menu.AttributeUse", "com.mx.kylgis.pos.inventory.AttributeUsePanel");
         submenu.addPanel("/com/mx/kylgis/pos/images/products.png", "Menu.Uom", "com.mx.kylgis.pos.inventory.UomPanel");
+        submenu.addPanel("/com/mx/kylgis/pos/images/products.png", "Menu.ProductUomConversions", "com.mx.kylgis.pos.inventory.transform.ProductUomConversionPanel");
 
     submenu.addTitle("Menu.Panel.Stock.Reports");
         submenu.addPanel("/com/mx/kylgis/pos/images/reports.png", "Menu.Inventory", "/com/mx/kylgis/pos/reports/inventory.bs");

@@ -61,6 +61,18 @@ class StrictReportQuality(unittest.TestCase):
             self.assertIn("TICKETLINES.PRODUCT = PRODUCTS.ID", statement)
             self.assertIn("GROUP BY", statement)
 
+    def test_estimated_profit_includes_nonproduct_discounts_and_adjustments(self):
+        # LAB .18 had a real discount row without PRODUCT. Its value must
+        # reduce the estimated profit instead of disappearing as SQL NULL.
+        for name in ("sales_productsalesprofit", "sales_productsalesprofit_1"):
+            with self.subTest(report=name):
+                query = sql(name).upper()
+                self.assertIn("AJUSTES SIN PRODUCTO", query)
+                self.assertIn("COALESCE(SUM(TICKETLINES.UNITS * PRODUCTS.PRICEBUY), 0)", query)
+                self.assertIn("AS ACTUAL_PROFIT", query)
+                self.assertIn("SUM(CASE WHEN PRODUCTS.ID IS NULL THEN 0 ELSE TICKETLINES.UNITS END)", query)
+                self.assertIn("GROUP BY TICKETLINES.PRODUCT", query)
+
     def test_profit_is_labelled_estimated(self):
         statements = "".join(root("sales_productsalesprofit").itertext()).upper()
         self.assertIn("ESTIMADO", statements)
@@ -116,6 +128,57 @@ class StrictReportQuality(unittest.TestCase):
         source = viewer.read_text(encoding="utf-8")
         self.assertIn("KYL-JASPER fill_completed", source)
         self.assertIn("rowsRead == 0 || pages == 0", source)
+
+    def test_product_sales_chart_uses_fifteen_row_group_pages(self):
+        ns = "{http://jasperreports.sourceforge.net/jasperreports}"
+        xml = root("sales_chart_productsales")
+        group = xml.find(ns + "group")
+        self.assertIsNotNone(group)
+        self.assertEqual(group.get("name"), "PAGINA_PRODUCTOS")
+        self.assertEqual(group.get("isStartNewPage"), "true")
+        expression = group.find(ns + "groupExpression")
+        self.assertIn("$V{REPORT_COUNT}", expression.text)
+        self.assertIn("/ 15", expression.text)
+        dataset = group.find(".//" + ns + "categoryDataset/" + ns + "dataset")
+        self.assertIsNotNone(dataset)
+        self.assertEqual(dataset.get("resetType"), "Group")
+        self.assertEqual(dataset.get("resetGroup"), "PAGINA_PRODUCTOS")
+        self.assertIsNotNone(group.find(".//" + ns + "bar3DChart"))
+        self.assertIsNone(xml.find(ns + "summary"))
+        self.assertIsNotNone(xml.find(ns + "pageHeader"))
+        self.assertIsNotNone(xml.find(ns + "pageFooter"))
+        self.assertTrue((audit.ROOT / "tools/test_product_sales_pagination.sh").is_file())
+
+    def test_report_viewer_deferred_refresh_is_generation_guarded(self):
+        viewer = audit.ROOT / "src/main/java/com/mx/kylgis/pos/reports/JPanelReport.java"
+        source = viewer.read_text(encoding="utf-8")
+        self.assertIn("private long viewerGeneration = 0;", source)
+        self.assertIn("final long generation = ++viewerGeneration;", source)
+        self.assertIn("generation != viewerGeneration || !reportviewer.isShowing()", source)
+        self.assertIn("public boolean deactivate() {\n        ++viewerGeneration;", source)
+
+    def test_jasper_viewer_clear_preserves_toolbar_and_page_canvas(self):
+        source = (audit.ROOT / 'src/main/java/com/mx/kylgis/pos/util/JRViewer400.java').read_text()
+        self.assertIn('viewerContext.loadReport(jrPrint)', source)
+        self.assertNotIn('            clear();', source)
+        self.assertTrue((audit.ROOT / 'tools/ReportViewerLifecycleSmoke.java').is_file())
+
+    def test_supplier_table_name_matches_case_sensitive_linux_mariadb(self):
+        # Linux MariaDB distinguishes table names by case; LAB defines suppliers.
+        for name in ("suppliers_creditors", "suppliers_export"):
+            statement = sql(name)
+            self.assertIn("FROM suppliers ", statement, name)
+            self.assertNotIn("FROM SUPPLIERS ", statement, name)
+
+    def test_qbf_filter_is_separated_from_sql_grouping_and_sorting(self):
+        # QBF_FILTER is dynamically expanded. ORDER/GROUP must not touch its
+        # last token when a filter is empty (the neutral expression is 1=1).
+        for path in sorted(R.glob("*.bs")):
+            with self.subTest(report=path.stem):
+                query=sql(path.stem)
+                self.assertNotRegex(
+                    query, r"(?i)\?\(QBF_FILTER\)(?:ORDER|GROUP|HAVING|LIMIT|UNION)\b",
+                    "Dynamic filter glued to an SQL clause")
 
     def test_sql_source_present_for_all_scripts(self):
         for name in (file.stem for file in R.glob("*.bs")):

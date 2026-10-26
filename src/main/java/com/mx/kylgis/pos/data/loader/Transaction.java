@@ -31,41 +31,58 @@ import java.sql.SQLException;
  *
  */
 public abstract class Transaction<T> {
-    
+
     private Session s;
-    
+
     /** Creates a new instance of Transaction
      * @param s */
     public Transaction(Session s) {
         this.s = s;
     }
-    
+
     /**
      *
      * @return
      * @throws BasicException
      */
     public final T execute() throws BasicException {
-        
+
         if (s.isTransaction()) {
             return transact();
-        } else {
-            try {
-                try {    
-                    s.begin();
-                    T result = transact();
-                    s.commit();
-                    return result;
-                } catch (BasicException e) {
-                    s.rollback();
-                    throw e;
-                }
-            } catch (SQLException eSQL) {
-                throw new BasicException("Transaction error", eSQL);
-            }
         }
+
+        try {
+            s.begin();
+        } catch (SQLException beginError) {
+            throw new BasicException("Transaction begin failed", beginError);
+        }
+
+        final T result;
+        try {
+            result = transact();
+        } catch (BasicException preCommitFailure) {
+            try {
+                s.rollback();
+            } catch (SQLException rollbackError) {
+                TransactionOutcomeUnknownException uncertain =
+                    new TransactionOutcomeUnknownException(
+                        TransactionOutcomeUnknownException.Phase.ROLLBACK, rollbackError);
+                uncertain.addSuppressed(preCommitFailure);
+                throw uncertain;
+            }
+            throw preCommitFailure;
+        }
+
+        // A COMMIT exception does not prove the transaction rolled back.
+        try {
+            s.commit();
+        } catch (SQLException commitError) {
+            throw new TransactionOutcomeUnknownException(
+                TransactionOutcomeUnknownException.Phase.COMMIT, commitError);
+        }
+        return result;
     }
-    
+
     /**
      *
      * @return

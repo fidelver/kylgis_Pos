@@ -37,6 +37,8 @@ public class JTicketsBagTicketBag extends javax.swing.JPanel {
     public JTicketsBagTicketBag(JTicketsBagTicket ticketsbagticket) {
         m_ticketsbagticket = ticketsbagticket;
         initComponents();
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jBtnDelete,"ticketbag.delete");
+        com.mx.kylgis.pos.ui.help.UiHelp.set(m_jBtnCancel,"ticketbag.cancel");
     }
     
     /**

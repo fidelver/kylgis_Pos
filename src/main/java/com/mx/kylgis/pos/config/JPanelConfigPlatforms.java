@@ -20,6 +20,7 @@
 package com.mx.kylgis.pos.config;
 
 import com.mx.kylgis.pos.data.user.DirtyManager;
+import com.mx.kylgis.pos.ui.help.UiHelp;
 import com.mx.kylgis.pos.forms.AppConfig;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -56,7 +57,7 @@ public class JPanelConfigPlatforms extends JPanel implements PanelConfig {
 
         JPanel included = new JPanel(new GridLayout(0, 1, 2, 2));
         included.setOpaque(false);
-        included.setBorder(javax.swing.BorderFactory.createTitledBorder("Plataformas incluidas (fijas)"));
+        included.setBorder(javax.swing.BorderFactory.createTitledBorder(UiHelp.text("platforms.included")));
         for (String builtIn : BUILT_INS) {
             included.add(new JLabel("\u2713  " + builtIn));
         }
@@ -64,24 +65,28 @@ public class JPanelConfigPlatforms extends JPanel implements PanelConfig {
         JPanel top = new JPanel(new BorderLayout(4, 4));
         top.setOpaque(false);
         top.add(included, BorderLayout.CENTER);
-        top.add(new JLabel("Las plataformas incluidas siempre estarán disponibles y no se pueden eliminar."),
+        top.add(new JLabel(UiHelp.text("platforms.note")),
                 BorderLayout.SOUTH);
         add(top, BorderLayout.NORTH);
 
         JScrollPane customScroll = new JScrollPane(customPlatforms);
-        customScroll.setBorder(javax.swing.BorderFactory.createTitledBorder("Plataformas adicionales"));
+        customScroll.setBorder(javax.swing.BorderFactory.createTitledBorder(UiHelp.text("platforms.custom")));
         add(customScroll, BorderLayout.CENTER);
 
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controls.setOpaque(false);
-        JButton add = new JButton("Agregar");
-        JButton remove = new JButton("Eliminar seleccionada");
-        controls.add(new JLabel("Nueva plataforma:"));
+        JButton add = new JButton(UiHelp.text("platforms.add"));
+        JButton remove = new JButton(UiHelp.text("platforms.remove"));
+        controls.add(new JLabel(UiHelp.text("platforms.newlabel")));
         controls.add(newPlatform);
         controls.add(add);
         controls.add(remove);
         add(controls, BorderLayout.SOUTH);
 
+        UiHelp.set(newPlatform, "platforms.new");
+        UiHelp.set(add, "platforms.add");
+        UiHelp.set(remove, "platforms.remove");
+        UiHelp.set(customPlatforms, "platforms.list");
         add.addActionListener(e -> addPlatform());
         remove.addActionListener(e -> removePlatform());
     }
@@ -89,18 +94,18 @@ public class JPanelConfigPlatforms extends JPanel implements PanelConfig {
     private void addPlatform() {
         String name = normalize(newPlatform.getText());
         if (name.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El nombre de la plataforma es obligatorio.",
-                    "Plataformas", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiHelp.text("platforms.error.required"),
+                    UiHelp.text("platforms.title"), JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (name.indexOf('|') >= 0) {
-            JOptionPane.showMessageDialog(this, "El nombre de la plataforma no puede contener el carácter |.",
-                    "Plataformas", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiHelp.text("platforms.error.separator"),
+                    UiHelp.text("platforms.title"), JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (isBuiltIn(name) || contains(name)) {
-            JOptionPane.showMessageDialog(this, "La plataforma ya existe.",
-                    "Plataformas", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, UiHelp.text("platforms.error.duplicate"),
+                    UiHelp.text("platforms.title"), JOptionPane.WARNING_MESSAGE);
             return;
         }
         model.addElement(name);

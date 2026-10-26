@@ -132,9 +132,10 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             c = new JCounter(bd);
             c.applyComponentOrientation(getComponentOrientation());
             toolbar.add(c);
-            c = new JNavigator(bd, getVectorer(), getComparatorCreator());
-            c.applyComponentOrientation(getComponentOrientation());
-            toolbar.add(c);
+            JNavigator navigator = new JNavigator(bd, getVectorer(), getComparatorCreator());
+            configureNavigator(navigator);
+            navigator.applyComponentOrientation(getComponentOrientation());
+            toolbar.add(navigator);
             c = new JSaver(bd);
             c.applyComponentOrientation(getComponentOrientation());
             toolbar.add(c);
@@ -145,6 +146,10 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
      *
      * @return
      */
+    /** Allows a panel to replace the generic find action with a domain-specific search. */
+    protected void configureNavigator(JNavigator navigator) {
+    }
+
     public Component getToolbarExtras() {
         return null;
     }

@@ -79,11 +79,16 @@ public final class JRViewer400 extends JRViewer {
      * A null report means clear the current preview.
      */
     public void loadJasperPrint(JasperPrint jrPrint) {
+        // JRViewer.clear() recursively removes every Swing child, including its
+        // toolbar and page canvas. A later report then has data but no UI to draw it.
+        // Always use the controller: loading null resets the report while preserving
+        // the viewer structure for the next execution.
+        viewerContext.loadReport(jrPrint);
         if (jrPrint == null) {
-            clear();
+            revalidate();
+            repaint();
             return;
         }
-        viewerContext.loadReport(jrPrint);
         setZoomRatio(1.0f);
         viewerContext.refreshPage();
         revalidate();

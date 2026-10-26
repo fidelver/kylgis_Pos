@@ -224,8 +224,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jbtnTextClear = new javax.swing.JButton();
         jLabel6 = new javax.swing.JLabel();
         jtxtMachineDepartment = new javax.swing.JTextField();
-        lblIP_Address = new com.alee.laf.label.WebLabel();
-        webLabel1 = new com.alee.laf.label.WebLabel();
+        lblIP_Address = new javax.swing.JLabel();
+        webLabel1 = new javax.swing.JLabel();
         jLblURL = new javax.swing.JLabel();
         jtxtStartupHTML = new javax.swing.JTextField();
         jbtnHTML = new javax.swing.JButton();
@@ -637,7 +637,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     private javax.swing.JTextField jtxtStartupHTML;
     private javax.swing.JTextField jtxtStartupLogo;
     private javax.swing.JTextField jtxtStartupText;
-    private com.alee.laf.label.WebLabel lblIP_Address;
-    private com.alee.laf.label.WebLabel webLabel1;
+    private javax.swing.JLabel lblIP_Address;
+    private javax.swing.JLabel webLabel1;
     // End of variables declaration//GEN-END:variables
 }
