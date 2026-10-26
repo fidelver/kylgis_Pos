@@ -216,9 +216,20 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
         m_jCategory.setPreferredSize(new java.awt.Dimension(230, 30));
         m_jBarcode.setPreferredSize(new java.awt.Dimension(420, 30));
         m_jBarcode.setToolTipText(AppLocal.getIntString("tooltip.warehouse.search"));
-        jBtnReset.setToolTipText(AppLocal.getIntString("tooltip.search.execute"));
-        jBtnReset.setIcon(new ListResultsIcon());
-        jBtnReset.setPreferredSize(new java.awt.Dimension(60, 30));
+        jBtnClear.setToolTipText(AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/com/mx/kylgis/pos/images/reload.png")));
+        jBtnClear.setPreferredSize(new java.awt.Dimension(60, 30));
+        jBtnClear.addActionListener(event -> {
+            clearFilters();
+            if (clearAction != null) {
+                clearAction.run();
+            }
+        });
 
         GridBagConstraints c = new GridBagConstraints();
         c.gridy = 0;
@@ -241,7 +252,7 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
         c.gridx = 4;
         c.weightx = 0;
         c.fill = GridBagConstraints.NONE;
-        add(jBtnReset, c);
+        add(jBtnClear, c);
     }
 
     private void configureModernLayout() {
