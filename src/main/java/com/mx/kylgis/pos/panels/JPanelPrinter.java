@@ -43,8 +43,22 @@ public class JPanelPrinter extends JPanel implements JPanelView {
         initComponents();
 
         
-        if (oApp.getDeviceTicket().getDeviceDisplay().getDisplayComponent() != null) {
-            m_jDisplay.add(oApp.getDeviceTicket().getDeviceDisplay().getDisplayComponent());
+        JComponent displayComponent = oApp.getDeviceTicket().getDeviceDisplay().getDisplayComponent();
+        if (displayComponent != null) {
+            // Mantiene estable el visor superior aunque cambie la longitud del texto.
+            // El componente del visor se expande dentro de un marco fijo y centrado.
+            final java.awt.Dimension displaySize = new java.awt.Dimension(240, 80);
+            javax.swing.JPanel displayFrame = new javax.swing.JPanel(new java.awt.BorderLayout());
+            displayFrame.setPreferredSize(displaySize);
+            displayFrame.setMinimumSize(displaySize);
+            displayFrame.setMaximumSize(displaySize);
+            displayFrame.add(displayComponent, java.awt.BorderLayout.CENTER);
+
+            m_jDisplay.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
+            m_jDisplay.setPreferredSize(displaySize);
+            m_jDisplay.setMinimumSize(displaySize);
+            m_jDisplay.setMaximumSize(displaySize);
+            m_jDisplay.add(displayFrame);
         }     
         
         List<DevicePrinter> aprinters = oApp.getDeviceTicket().getDevicePrinterAll();
