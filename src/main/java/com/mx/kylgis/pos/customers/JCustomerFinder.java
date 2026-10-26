@@ -62,14 +62,8 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
 
     public void resetKey() {
         jbtnReset.setMnemonic(KeyEvent.VK_R); // Jack
-        m_jtxtTaxID.reset();
-        m_jtxtSearchKey.reset();
         m_jtxtName.reset();
-        m_jtxtPostal.reset();
-        m_jtxtPhone.reset();
-        m_jtxtName2.reset();
-
-        m_jtxtTaxID.activate();
+        m_jtxtName.activate();
 
         cleanSearch();
 
@@ -123,24 +117,19 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
     private void init(DataLogicCustomers dlCustomers) {
 
         initComponents();
+        configureGeneralCustomerSearch();
 
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
 
-        m_jtxtTaxID.addEditorKeys(m_jKeys);
-        m_jtxtSearchKey.addEditorKeys(m_jKeys);
         m_jtxtName.addEditorKeys(m_jKeys);
-        m_jtxtPostal.addEditorKeys(m_jKeys);
-        m_jtxtPhone.addEditorKeys(m_jKeys);
-        m_jtxtName2.addEditorKeys(m_jKeys);
-
-        m_jtxtTaxID.reset();
-        m_jtxtSearchKey.reset();
+        m_jKeys.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jbtnExecuteActionPerformed(evt);
+            }
+        });
         m_jtxtName.reset();
-        m_jtxtPostal.reset();
-        m_jtxtPhone.reset();
-        m_jtxtName2.reset();
-
-        m_jtxtTaxID.activate();
+        m_jtxtName.activate();
 
         lpr = new ListProviderCreator(dlCustomers.getCustomerList(), this);
 
@@ -161,40 +150,26 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
 
         if (customer == null || customer.getName() == null || customer.getName().equals("")) {
 
-            m_jtxtTaxID.reset();
-            m_jtxtSearchKey.reset();
             m_jtxtName.reset();
-            m_jtxtPostal.reset();
-            m_jtxtPhone.reset();
-            m_jtxtName2.reset();
-
-            m_jtxtTaxID.activate();
-
+            m_jtxtName.activate();
             cleanSearch();
         } else {
-
-            m_jtxtTaxID.setText(customer.getTaxid());
-            m_jtxtSearchKey.setText(customer.getSearchkey());
             m_jtxtName.setText(customer.getName());
-            m_jtxtPostal.setText(customer.getPcode());
-            m_jtxtPhone.setText(customer.getPhone1());
-            m_jtxtName2.setText(customer.getCemail());
-
-            m_jtxtTaxID.activate();
-
+            m_jtxtName.activate();
             executeSearch();
         }
     }
 
     private void cleanSearch() {
-            m_jtxtTaxID.setText("");
-            m_jtxtSearchKey.setText("");
-            m_jtxtName.setText("");
-            m_jtxtPostal.setText("");
-            m_jtxtPhone.setText("");
-            m_jtxtName2.setText("");
+        m_jtxtName.setText("");
+
+
+
             
         jListCustomers.setModel(new MyListData(new ArrayList()));
+        jListCustomers.clearSelection();
+        m_ReturnCustomer = null;
+        jcmdOK.setEnabled(false);
     }
 
     /**
@@ -203,9 +178,21 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
     public void executeSearch() {
         
         try {
-            jListCustomers.setModel(new MyListData(lpr.loadData()));
+            String query = m_jtxtName.getText();
+            m_jtxtName.setText("");
+            java.util.List<CustomerInfo> matches = new ArrayList<>();
+            for (Object value : lpr.loadData()) {
+                CustomerInfo customer = (CustomerInfo) value;
+                if (matchesGeneralSearch(customer, query)) {
+                    matches.add(customer);
+                }
+            }
+            m_jtxtName.setText(query);
+            jListCustomers.setModel(new MyListData(matches));
             if (jListCustomers.getModel().getSize() > 0) {
-                jListCustomers.setSelectedIndex(0);
+                jListCustomers.clearSelection();
+                m_ReturnCustomer = null;
+                jcmdOK.setEnabled(false);
             } else {
                 if(!m_jtxtName.getText().equals("")) {
                     
@@ -215,14 +202,12 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
                         AppLocal.getIntString("title.editor"),
                         JOptionPane.YES_NO_OPTION);
 
-                    if (n != 1) {
-                        CustomerInfoGlobal customerInfoGlobal = CustomerInfoGlobal.getInstance();
-                        CustomerInfoExt customerInfoExt = customerInfoGlobal.getCustomerInfoExt();
+                    if (n == JOptionPane.YES_OPTION && appView != null) {
                         this.setVisible(false);
                         appView.getAppUserView().showTask("com.mx.kylgis.pos.customers.CustomersPanel");
                         JOptionPane.showMessageDialog(null, 
-                            "You must complete Account and Search Key Then Save to add to Ticket",
-                            "Create Customer",JOptionPane.OK_OPTION);
+                            AppLocal.getIntString("customer.search.create.help"),
+                            AppLocal.getIntString("customer.search.create.title"), JOptionPane.OK_OPTION);
                     }
                 }
             }
@@ -298,6 +283,55 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
         }
 
         return afilter;
+    }
+
+    private void configureGeneralCustomerSearch() {
+        jPanel7.removeAll();
+        jPanel7.setLayout(new BorderLayout(8, 0));
+        jPanel7.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        jLblName.setText(AppLocal.getIntString("customer.search"));
+        jLblName.setPreferredSize(new Dimension(150, 30));
+        m_jtxtName.setPreferredSize(new Dimension(300, 30));
+        m_jtxtName.setToolTipText(AppLocal.getIntString("customer.search.help"));
+        jPanel7.add(jLblName, BorderLayout.WEST);
+        jPanel7.add(m_jtxtName, BorderLayout.CENTER);
+        jPanel7.revalidate();
+        jPanel7.repaint();
+    }
+
+    private boolean matchesGeneralSearch(CustomerInfo customer, String query) {
+        String normalizedQuery = normalizeSearch(query);
+        if (normalizedQuery.isEmpty()) {
+            return false;
+        }
+        String searchable = normalizeSearch(String.join(" ",
+                safe(customer.getId()),
+                safe(customer.getTaxid()),
+                safe(customer.getSearchkey()),
+                safe(customer.getName()),
+                safe(customer.getPcode()),
+                safe(customer.getPhone1()),
+                safe(customer.getCemail())));
+        for (String token : normalizedQuery.split("\\s+")) {
+            if (!searchable.contains(token)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String normalizeSearch(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}", "")
+                .toLowerCase(java.util.Locale.ROOT)
+                .trim();
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private static Window getWindow(Component parent) {
@@ -549,8 +583,8 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
         jScrollPane1.setPreferredSize(new java.awt.Dimension(400, 147));
 
         jListCustomers.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jListCustomers.setFocusable(false);
-        jListCustomers.setRequestFocusEnabled(false);
+        jListCustomers.setFocusable(true);
+        jListCustomers.setRequestFocusEnabled(true);
         jListCustomers.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 jListCustomersMouseClicked(evt);
@@ -568,7 +602,7 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
         jbtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/reload.png"))); // NOI18N
         jbtnReset.setText(bundle.getString("button.reset")); // NOI18N
-        jbtnReset.setToolTipText("Clear Filter");
+        jbtnReset.setToolTipText(AppLocal.getIntString("customer.search.reset.help"));
         jbtnReset.setActionCommand("Reset ");
         jbtnReset.setFocusable(false);
         jbtnReset.setPreferredSize(new java.awt.Dimension(110, 45));
@@ -583,7 +617,7 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
         jbtnExecute.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jbtnExecute.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/mx/kylgis/pos/images/ok.png"))); // NOI18N
         jbtnExecute.setText(AppLocal.getIntString("button.executefilter")); // NOI18N
-        jbtnExecute.setToolTipText("Execute Filter");
+        jbtnExecute.setToolTipText(AppLocal.getIntString("customer.search.execute.help"));
         jbtnExecute.setFocusPainted(false);
         jbtnExecute.setPreferredSize(new java.awt.Dimension(110, 45));
         jbtnExecute.addActionListener(new java.awt.event.ActionListener() {
@@ -655,14 +689,8 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
 
 private void jbtnResetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnResetActionPerformed
  
-        m_jtxtTaxID.reset();
-        m_jtxtSearchKey.reset();
         m_jtxtName.reset();
-        m_jtxtPostal.reset();
-        m_jtxtPhone.reset();
-        m_jtxtName2.reset();
-
-        m_jtxtTaxID.activate(); 
+        m_jtxtName.activate(); 
         
         cleanSearch();
 }//GEN-LAST:event_jbtnResetActionPerformed

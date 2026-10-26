@@ -3522,7 +3522,11 @@ System.out.println("PanelContainer : Focus Lost");
         if (listener  != null) {
             listener.stop();
         }
-        Object[] options = {"Create", "Find","Cancel"};
+        Object[] options = {
+            AppLocal.getIntString("customer.search.create.button"),
+            AppLocal.getIntString("label.search"),
+            AppLocal.getIntString("button.cancel")
+        };
         
         int n = JOptionPane.showOptionDialog(null,
             AppLocal.getIntString("message.customeradd"),

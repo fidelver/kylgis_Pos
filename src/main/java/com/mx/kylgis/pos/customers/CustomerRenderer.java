@@ -20,6 +20,7 @@
 //    along with KylGis POS.  If not, see <http://www.gnu.org/licenses/>.
 package com.mx.kylgis.pos.customers;
 
+import com.mx.kylgis.pos.forms.AppLocal;
 import java.awt.Component;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
@@ -47,7 +48,19 @@ public class CustomerRenderer extends DefaultListCellRenderer {
         super.getListCellRendererComponent(list, null, index, isSelected, cellHasFocus);
 
         setIcon(icocustomer);
-        setText(value.toString());
+
+        String customerName = value instanceof CustomerInfo
+                ? ((CustomerInfo) value).getName()
+                : String.valueOf(value);
+        String phone = value instanceof CustomerInfo
+                ? ((CustomerInfo) value).getPhone1()
+                : null;
+        if (phone != null && !phone.trim().isEmpty()) {
+            String phoneLabel = AppLocal.getIntString("label.companytelephone");
+            setText(customerName + "  |  " + phoneLabel + ": " + phone.trim());
+        } else {
+            setText(customerName);
+        }
        
         return this;
     }      
