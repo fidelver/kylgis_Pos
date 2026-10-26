@@ -101,6 +101,16 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         editor = getEditorCreator();
         if (editor instanceof ReportEditorCreator) {
             jPanelFilter.add(((ReportEditorCreator) editor).getComponent(), BorderLayout.CENTER);
+            jPanelFilter.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
+                    javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0),
+                    "executeReportFromFilter");
+            jPanelFilter.getActionMap().put("executeReportFromFilter",
+                    new javax.swing.AbstractAction() {
+                        @Override
+                        public void actionPerformed(java.awt.event.ActionEvent event) {
+                            jButton1.doClick();
+                        }
+                    });
         }
                   
         reportviewer = new JRViewer400(null);                                                       

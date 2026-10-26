@@ -189,7 +189,7 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         return new StaticSentence(s
             , new QBFBuilder("SELECT "
                     + "ID, TAXID, SEARCHKEY, NAME, "
-                    + "POSTAL, EMAIL, PHONE, IMAGE "
+                    + "POSTAL, PHONE, EMAIL, IMAGE "
                     + "FROM customers "
                     + "WHERE VISIBLE = " + s.DB.TRUE() + " AND ?(QBF_FILTER) ORDER BY NAME"
                 , new String[] {"TAXID", "SEARCHKEY", "NAME", "POSTAL", "PHONE", "EMAIL"})

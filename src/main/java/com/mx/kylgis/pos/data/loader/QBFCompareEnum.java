@@ -51,12 +51,30 @@ public abstract class QBFCompareEnum {
     };
 
     /**
-     *
+     * Text search with case- and accent-insensitive matching.
      */
     public final static QBFCompareEnum COMP_RE = new QBFCompareEnum(3, "qbf.re") {
         @Override
-        public String getExpression(String sField, String sSQLValue) { return sField + " LIKE " + sSQLValue; }
+        public String getExpression(String sField, String sSQLValue) {
+            return removeCommonAccents(sField) + " LIKE " + removeCommonAccents(sSQLValue);
+        }
     };
+
+    private static String removeCommonAccents(String field) {
+        String result = "LOWER(" + field + ")";
+        String[] accented = new String[] {
+            "á", "é", "í", "ó", "ú", "ü", "ñ", "à", "è", "ì", "ò", "ù",
+            "ä", "ë", "ï", "ö", "â", "ê", "î", "ô", "û", "ç", "ý"
+        };
+        String[] plain = new String[] {
+            "a", "e", "i", "o", "u", "u", "n", "a", "e", "i", "o", "u",
+            "a", "e", "i", "o", "a", "e", "i", "o", "u", "c", "y"
+        };
+        for (int i = 0; i < accented.length; i++) {
+            result = "REPLACE(" + result + ", '" + accented[i] + "', '" + plain[i] + "')";
+        }
+        return result;
+    }
 
     /**
      *
