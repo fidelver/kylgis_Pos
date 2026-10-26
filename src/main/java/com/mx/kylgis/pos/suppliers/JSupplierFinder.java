@@ -129,6 +129,12 @@ public class JSupplierFinder extends javax.swing.JDialog implements EditorCreato
         m_jtxtPostal.addEditorKeys(m_jKeys);
         m_jtxtPhone.addEditorKeys(m_jKeys);
         m_jtxtName2.addEditorKeys(m_jKeys);
+        m_jKeys.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                executeSearch();
+            }
+        });
 
         m_jtxtTaxID.reset();
         m_jtxtSearchKey.reset();
