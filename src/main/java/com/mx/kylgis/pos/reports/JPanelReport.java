@@ -218,6 +218,39 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
         jToggleFilterActionPerformed(null);
     }
     
+    /**
+     * Refreshes the report viewer after the filter panel changes visibility.
+     *
+     * <p>The report action can finish while the navigator is still completing
+     * its layout transition. In that window {@code isShowing()} may be false,
+     * so the refresh must not be discarded. The immediate pass handles the
+     * current event and the deferred pass lets Swing lay out the new hierarchy
+     * before repainting it.</p>
+     */
+    private void refreshReportViewer(final long generation) {
+        Runnable refresh = () -> {
+            if (generation != viewerGeneration || reportviewer == null) {
+                return;
+            }
+
+            revalidate();
+            doLayout();
+            reportviewer.setVisible(true);
+            reportviewer.revalidate();
+            reportviewer.repaint();
+
+            java.awt.Container parent = getParent();
+            if (parent != null) {
+                parent.revalidate();
+                parent.repaint();
+            }
+            repaint();
+        };
+
+        refresh.run();
+        SwingUtilities.invokeLater(refresh);
+    }
+
     private void launchreport() {
         final long generation = ++viewerGeneration;     
         
@@ -275,14 +308,7 @@ public abstract class JPanelReport extends JPanel implements JPanelView, BeanFac
                     REPORT_LOG.info(() -> "KYL-JASPER viewer_loaded report=" + getReport()
                             + " pages=" + pages + " showing=" + reportviewer.isShowing()
                             + " size=" + reportviewer.getWidth() + "x" + reportviewer.getHeight());
-                    SwingUtilities.invokeLater(() -> {
-                        if (generation != viewerGeneration || !reportviewer.isShowing()) {
-                            return;
-                        }
-                        revalidate();
-                        reportviewer.revalidate();
-                        reportviewer.repaint();
-                    });
+                    refreshReportViewer(generation);
                 }
                 
             } catch (MissingResourceException e) {
