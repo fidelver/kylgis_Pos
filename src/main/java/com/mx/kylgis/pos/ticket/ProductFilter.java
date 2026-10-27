@@ -48,6 +48,7 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     private SentenceList m_sentcat;
     private ComboBoxValModel m_CategoryModel;
     private DataLogicSales m_dlSales;
+    private boolean m_unified;
     private ProductInfoExt selectedProduct;
     private Runnable listAction;
     private Runnable clearAction;
@@ -57,15 +58,25 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
 
     /** Creates new form JQBFProduct */
     public ProductFilter() {
+        this(false);
+    }
 
+    /** Creates the product filter, optionally using the unified report search. */
+    public ProductFilter(boolean unified) {
+        m_unified = unified;
         initComponents();
-        jLabel5.setText(AppLocal.getIntString("label.prodcodeorref"));
+        jLabel5.setText(AppLocal.getIntString(
+                unified ? "label.prodsearch" : "label.prodcodeorref"));
         jBtnReset.setToolTipText(AppLocal.getIntString("tooltip.search.execute"));
         jBtnReset.getAccessibleContext().setAccessibleName(
                 AppLocal.getIntString("tooltip.search.execute"));
         jBtnReset.getAccessibleContext().setAccessibleDescription(
                 AppLocal.getIntString("tooltip.search.execute"));
-        configureModernLayout();
+        if (unified) {
+            configureUnifiedLayout();
+        } else {
+            configureModernLayout();
+        }
         getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
                 javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L,
                         java.awt.event.InputEvent.ALT_DOWN_MASK),
@@ -115,6 +126,12 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
      */
     @Override
     public SerializerWrite getSerializerWrite() {
+        if (m_unified) {
+            return new SerializerWriteBasic(new Datas[] {
+                Datas.OBJECT, Datas.STRING,
+                Datas.OBJECT, Datas.STRING
+            });
+        }
         return new SerializerWriteBasic(
             new Datas[] {
                 Datas.OBJECT, Datas.STRING, 
@@ -140,6 +157,20 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
      */
     @Override
     public Object createValue() throws BasicException {
+        if (m_unified) {
+            String search = m_jBarcode.getText() == null
+                    ? "" : m_jBarcode.getText().trim();
+            Object categoryKey = m_CategoryModel == null
+                    ? null : m_CategoryModel.getSelectedKey();
+            return new Object[] {
+                search.isEmpty()
+                        ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_RE,
+                search.isEmpty() ? null : "%" + search + "%",
+                categoryKey == null
+                        ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS,
+                categoryKey
+            };
+        }
         
         Object categoryKey = m_CategoryModel == null ? null : m_CategoryModel.getSelectedKey();
         Object categoryOperator = categoryKey == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS;
@@ -173,6 +204,55 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
             categoryOperator, categoryKey,
             QBFCompareEnum.COMP_NONE, null
         };
+    }
+
+    private void configureUnifiedLayout() {
+        removeAll();
+        setLayout(new GridBagLayout());
+        setPreferredSize(new java.awt.Dimension(976, 70));
+
+        jLabel1.setText(AppLocal.getIntString("label.prodcategory"));
+        jLabel5.setText(AppLocal.getIntString("label.prodsearch"));
+        m_jCategory.setPreferredSize(new java.awt.Dimension(230, 30));
+        m_jBarcode.setPreferredSize(new java.awt.Dimension(420, 30));
+        m_jBarcode.setToolTipText(AppLocal.getIntString("tooltip.warehouse.search"));
+        jBtnClear.setToolTipText(AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.getAccessibleContext().setAccessibleName(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.getAccessibleContext().setAccessibleDescription(
+                AppLocal.getIntString("tooltip.search.reset"));
+        jBtnClear.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/com/mx/kylgis/pos/images/reload.png")));
+        jBtnClear.setPreferredSize(new java.awt.Dimension(60, 30));
+        jBtnClear.addActionListener(event -> {
+            clearFilters();
+            if (clearAction != null) {
+                clearAction.run();
+            }
+        });
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridy = 0;
+        c.anchor = GridBagConstraints.CENTER;
+        c.insets = new Insets(8, 8, 8, 4);
+        c.gridx = 0;
+        c.weightx = 0;
+        add(jLabel1, c);
+        c.gridx = 1;
+        c.weightx = 0;
+        add(m_jCategory, c);
+        c.gridx = 2;
+        c.weightx = 0;
+        add(jLabel5, c);
+        c.gridx = 3;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(8, 0, 8, 8);
+        add(m_jBarcode, c);
+        c.gridx = 4;
+        c.weightx = 0;
+        c.fill = GridBagConstraints.NONE;
+        add(jBtnClear, c);
     }
 
     private void configureModernLayout() {
