@@ -19,7 +19,7 @@ JAR="$(find target -maxdepth 1 -type f -name '*.jar' -print -quit)"
 [[ -n "$JAR" ]] || { echo "ERROR: main JAR not found" >&2; exit 6; }
 VERSION="1.3"
 SAFE_VERSION="$(printf '%s' "$VERSION" | tr -cd '0-9.')"
-OUT="${PORTABLE_OUT:-target/portable}"
+OUT="${PORTABLE_OUT:-portable-out}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 APP_NAME="${APP_NAME:-KylGisPOS}"
 INPUT="$(dirname "$JAR")"; MAIN_JAR="$(basename "$JAR")"
