@@ -39,14 +39,15 @@ public final class NodeContext {
 
     public static NodeContext from(AppProperties properties) {
         String configuredId = NodeIdentity.optional(properties.getProperty("node.id"));
-        String legacyHostname = trimToNull(properties.getProperty("machine.hostname"));
+        String legacyHostname = NodeIdentity.optional(
+                properties.getProperty("machine.hostname"));
         boolean hasExplicitId = configuredId != null;
         String resolvedId = hasExplicitId ? configuredId : legacyHostname;
 
         if (resolvedId == null) {
             resolvedId = "local";
             LOGGER.log(Level.WARNING,
-                    "No node.id or machine.hostname configured; using legacy fallback: {0}",
+                    "No valid node.id or machine.hostname configured; using portable fallback: {0}",
                     resolvedId);
         }
 
