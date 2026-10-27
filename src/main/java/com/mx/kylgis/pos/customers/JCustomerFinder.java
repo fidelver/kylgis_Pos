@@ -119,6 +119,20 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
         initComponents();
         configureGeneralCustomerSearch();
 
+        // Mantener visible y contrastada el area de resultados en todas las instancias.
+        jPanel4.setVisible(true);
+        jPanel4.setOpaque(true);
+        jPanel4.setBackground(java.awt.Color.WHITE);
+        jScrollPane1.setVisible(true);
+        jScrollPane1.setOpaque(true);
+        jScrollPane1.getViewport().setOpaque(true);
+        jScrollPane1.getViewport().setBackground(java.awt.Color.WHITE);
+        jListCustomers.setVisible(true);
+        jListCustomers.setOpaque(true);
+        jListCustomers.setBackground(java.awt.Color.WHITE);
+        jPanel3.revalidate();
+        jPanel3.repaint();
+
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
 
         m_jtxtName.addEditorKeys(m_jKeys);
