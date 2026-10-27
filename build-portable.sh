@@ -23,7 +23,9 @@ OUT="${PORTABLE_OUT:-target/portable}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 APP_NAME="${APP_NAME:-KylGisPOS}"
 INPUT="$(dirname "$JAR")"; MAIN_JAR="$(basename "$JAR")"
-"$JPACKAGE" --type app-image --name "$APP_NAME" --app-version "$SAFE_VERSION" --input "$INPUT" --main-jar "$MAIN_JAR" --dest "$OUT" --runtime-image "$JAVA_HOME" --java-options "-Dfile.encoding=UTF-8" --java-options "--enable-native-access=ALL-UNNAMED"
+RUNTIME="$OUT/runtime"
+"$JAVA_HOME/bin/jlink" --add-modules java.base,java.desktop,java.logging,java.sql,java.naming,java.management,java.net.http,jdk.crypto.ec --output "$RUNTIME" --strip-debug --no-header-files --no-man-pages --compress=2
+"$JPACKAGE" --type app-image --name "$APP_NAME" --app-version "$SAFE_VERSION" --input "$INPUT" --main-jar "$MAIN_JAR" --dest "$OUT" --runtime-image "$RUNTIME" --java-options "-Dfile.encoding=UTF-8" --java-options "--enable-native-access=ALL-UNNAMED"
 (cd "$OUT"; sha256sum "$APP_NAME"/* "$APP_NAME"/lib/* 2>/dev/null) > "$OUT/$APP_NAME.sha256"
 printf 'PORTABLE_PACKAGE=%s/%s
 ' "$OUT" "$APP_NAME"
