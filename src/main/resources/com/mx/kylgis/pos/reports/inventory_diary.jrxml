@@ -61,7 +61,7 @@
 					<textElement verticalAlignment="Middle">
 						<font fontName="SansSerif" size="10" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[str("reason." + $F{REASON}.toString( $F{REASON} ))]]></textFieldExpression>
+					<textFieldExpression><![CDATA[str("reason." + $F{REASON}.toString())]]></textFieldExpression>
 				</textField>
 				<textField isBlankWhenNull="false">
 					<reportElement key="textField-6" x="0" y="22" width="70" height="15" uuid="b5c9a757-6edf-40e0-8dce-4dc58ec2dfad"/>

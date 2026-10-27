@@ -80,6 +80,12 @@ public class JEmployeeFinder extends javax.swing.JDialog implements EditorCreato
         initComponents();
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         m_jtxtName.addEditorKeys(m_jKeys);
+        m_jKeys.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                executeSearch();
+            }
+        });
         m_jtxtName.reset();
         lpr = new ListProviderCreator(dlPresenceManagement.getEmployeeList(), this);
         jListEmployees.setCellRenderer(new EmployeeRenderer());

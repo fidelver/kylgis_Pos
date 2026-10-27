@@ -167,7 +167,7 @@
 					<textElement>
 						<font fontName="SansSerif" size="10" isBold="true"/>
 					</textElement>
-					<textFieldExpression><![CDATA[str("reason." + $F{REASON}.toString( $F{REASON} ))]]></textFieldExpression>
+					<textFieldExpression><![CDATA[str("reason." + $F{REASON}.toString())]]></textFieldExpression>
 				</textField>
 			</band>
 		</groupHeader>

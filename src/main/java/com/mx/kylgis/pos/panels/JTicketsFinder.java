@@ -743,6 +743,7 @@ private void btnCustomerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-F
 }//GEN-LAST:event_btnCustomerActionPerformed
 
     private void m_jKeysActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jKeysActionPerformed
+        jbtnExecute.doClick();
 
     }//GEN-LAST:event_m_jKeysActionPerformed
 

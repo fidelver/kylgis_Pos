@@ -1932,9 +1932,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
             }
         });
         
-    if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
-    // update status of existing ticket
-        new PreparedSentence(s
+    // Complete the locked sale only when saving a refund.
+        if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+        int updated = new PreparedSentence(s
             , "UPDATE tickets SET STATUS = ? "
                 + "WHERE TICKETTYPE = 0 AND TICKETID = ? AND STATUS = 0"
             , SerializerWriteParams.INSTANCE )
@@ -1942,11 +1942,13 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
             @Override
             public void writeValues() throws BasicException {
-                setInt(1, ticket.getTicketStatus());
-                setInt(2, ticket.getTicketId());                
+                setInt(1, ticket.getTicketId());
+                setInt(2, ticket.getTicketStatus());                
             }
         });
-
+        if (updated != 1) {
+            throw new BasicException("La venta original cambió; se canceló la devolución sin generar un egreso.");
+        }
         }
 
         SentenceExec ticketlineinsert = new PreparedSentence(s

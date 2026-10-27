@@ -85,6 +85,12 @@ public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator 
 
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         m_jtxtName.addEditorKeys(m_jKeys);
+        m_jKeys.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                executeSearch();
+            }
+        });
         m_jtxtName.reset();
         lpr = new ListProviderCreator(dlPeople.getPeopleList(), this);
         jListPeople.setCellRenderer(new PeopleRenderer());
