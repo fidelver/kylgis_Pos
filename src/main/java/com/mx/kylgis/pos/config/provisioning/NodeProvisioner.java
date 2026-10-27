@@ -10,6 +10,7 @@ import com.mx.kylgis.pos.config.remote.RemoteConfigClient;
 import com.mx.kylgis.pos.config.remote.RemoteConfigCache;
 import com.mx.kylgis.pos.config.remote.RemoteConfigException;
 import com.mx.kylgis.pos.forms.AppProperties;
+import com.mx.kylgis.pos.node.NodeIdentity;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -81,10 +82,12 @@ public final class NodeProvisioner {
                     + localFile.getAbsolutePath());
         }
 
-        String nodeId = trimToNull(local.getProperty(NODE_ID_KEY));
-        if (nodeId == null) {
-            throw new IOException("Provisioned node requires explicit " + NODE_ID_KEY
-                    + " in " + localFile.getAbsolutePath());
+        String nodeId;
+        try {
+            nodeId = NodeIdentity.require(local.getProperty(NODE_ID_KEY));
+        } catch (IllegalArgumentException ex) {
+            throw new IOException("Provisioned node requires a portable " + NODE_ID_KEY
+                    + " in " + localFile.getAbsolutePath(), ex);
         }
 
         File masterFile = resolveRelative(localFile.getParentFile(), masterReference);
@@ -135,10 +138,12 @@ public final class NodeProvisioner {
             throw new IOException("Remote node bootstrap does not exist: "
                     + localFile.getAbsolutePath());
         }
-        String nodeId = trimToNull(local.getProperty(NODE_ID_KEY));
-        if (nodeId == null) {
-            throw new IOException("Remote node requires explicit " + NODE_ID_KEY
-                    + " in " + localFile.getAbsolutePath());
+        String nodeId;
+        try {
+            nodeId = NodeIdentity.require(local.getProperty(NODE_ID_KEY));
+        } catch (IllegalArgumentException ex) {
+            throw new IOException("Remote node requires a portable " + NODE_ID_KEY
+                    + " in " + localFile.getAbsolutePath(), ex);
         }
 
         BootstrapProperties bootstrap = new BootstrapProperties(local, localFile);
@@ -208,10 +213,7 @@ public final class NodeProvisioner {
         if (masterFile == null) {
             throw new IllegalArgumentException("masterFile is required");
         }
-        String normalizedNodeId = trimToNull(nodeId);
-        if (normalizedNodeId == null) {
-            throw new IllegalArgumentException("nodeId is required");
-        }
+        String normalizedNodeId = NodeIdentity.require(nodeId);
 
         Properties master = loadRequired(masterFile, "MASTER");
         List<String> moduleReferences = nodeModuleReferences(master, normalizedNodeId);
@@ -346,10 +348,7 @@ public final class NodeProvisioner {
         if (localFile == null || masterFile == null) {
             throw new IllegalArgumentException("localFile and masterFile are required");
         }
-        String normalizedNodeId = trimToNull(nodeId);
-        if (normalizedNodeId == null) {
-            throw new IllegalArgumentException("nodeId is required");
-        }
+        String normalizedNodeId = NodeIdentity.require(nodeId);
         if (localFile.exists() && !overwrite) {
             throw new IOException("Bootstrap already exists: " + localFile.getAbsolutePath());
         }

@@ -38,7 +38,7 @@ public final class NodeContext {
     }
 
     public static NodeContext from(AppProperties properties) {
-        String configuredId = trimToNull(properties.getProperty("node.id"));
+        String configuredId = NodeIdentity.optional(properties.getProperty("node.id"));
         String legacyHostname = trimToNull(properties.getProperty("machine.hostname"));
         boolean hasExplicitId = configuredId != null;
         String resolvedId = hasExplicitId ? configuredId : legacyHostname;

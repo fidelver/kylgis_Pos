@@ -3,6 +3,7 @@
 package com.mx.kylgis.pos.config.provisioning;
 
 import com.mx.kylgis.pos.forms.AppConfig;
+import com.mx.kylgis.pos.node.NodeIdentity;
 import com.mx.kylgis.pos.node.NodeRole;
 import com.mx.kylgis.pos.node.NodeRolePolicy;
 import java.io.File;
@@ -86,7 +87,11 @@ public final class NodeConfigurationStore {
                 String id = key.substring(NodeProvisioner.NODE_MODULE_PREFIX.length(),
                         key.length() - suffix.length());
                 if (!id.trim().isEmpty()) {
-                    ids.add(id);
+                    try {
+                        ids.add(NodeIdentity.require(id));
+                    } catch (IllegalArgumentException ex) {
+                        throw new IOException("MASTER contains an invalid node id: " + id, ex);
+                    }
                 }
             }
         }
@@ -435,11 +440,7 @@ public final class NodeConfigurationStore {
     }
 
     private static String normalizeNodeId(String nodeId) {
-        String value = trimToNull(nodeId);
-        if (value == null) {
-            throw new IllegalArgumentException("nodeId is required");
-        }
-        return value;
+        return NodeIdentity.require(nodeId);
     }
 
     private static String trimToNull(String value) {
