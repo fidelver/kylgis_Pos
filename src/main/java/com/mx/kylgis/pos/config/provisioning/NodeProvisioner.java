@@ -113,6 +113,7 @@ public final class NodeProvisioner {
             rawEffective.putAll(nodeModule);
         }
         rawEffective.putAll(local);
+        discardInheritedLegacyAliases(defaults, rawEffective, master, nodeModules, local);
         stripRestrictedServiceCredentials(rawEffective);
         DatabaseSettings.applyLegacyCompatibility(rawEffective);
         File secretsFile = null;
@@ -246,6 +247,69 @@ public final class NodeProvisioner {
         sanitized.putAll(effective);
         sanitizeRemotePayload(sanitized);
         return sanitized;
+    }
+
+    /**
+     * Removes legacy aliases inherited from AppConfig defaults when a
+     * provisioned MASTER uses the modern database.* namespace. Explicit legacy
+     * aliases in MASTER, node module or bootstrap are retained so the
+     * consistency guard can reject a real conflicting endpoint.
+     */
+    private static void discardInheritedLegacyAliases(Properties defaults,
+            Properties effective, Properties master, List<Properties> modules,
+            Properties local) {
+        discardInheritedLegacyAliases(defaults, effective, "database", "db",
+                master, modules, local);
+        discardInheritedLegacyAliases(defaults, effective, "database.secondary", "db1",
+                master, modules, local);
+    }
+
+    private static void discardInheritedLegacyAliases(Properties defaults,
+            Properties effective, String modernPrefix, String legacyPrefix,
+            Properties master, List<Properties> modules, Properties local) {
+        if (!hasModernDatabaseSettings(effective, modernPrefix)
+                || hasExplicitLegacyAliases(legacyPrefix, master, modules, local)) {
+            return;
+        }
+        String[] suffixes = {".URL", ".schema", ".options", ".engine",
+            ".name", ".user", ".password", ".driver", ".driverlib"};
+        for (String suffix : suffixes) {
+            String key = legacyPrefix + suffix;
+            String inherited = defaults.getProperty(key);
+            if (inherited != null && inherited.equals(effective.getProperty(key))) {
+                effective.remove(key);
+            }
+        }
+    }
+
+    private static boolean hasModernDatabaseSettings(Properties properties,
+            String modernPrefix) {
+        return trimToNull(properties.getProperty(modernPrefix + ".server")) != null
+                || trimToNull(properties.getProperty(modernPrefix + ".name")) != null;
+    }
+
+    private static boolean hasExplicitLegacyAliases(String legacyPrefix,
+            Properties master, List<Properties> modules, Properties local) {
+        String[] suffixes = {".URL", ".schema", ".options", ".engine",
+            ".name", ".user", ".password", ".driver", ".driverlib"};
+        for (String suffix : suffixes) {
+            String key = legacyPrefix + suffix;
+            if (hasProperty(master, key) || hasProperty(local, key)) {
+                return true;
+            }
+            if (modules != null) {
+                for (Properties module : modules) {
+                    if (hasProperty(module, key)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasProperty(Properties properties, String key) {
+        return properties != null && properties.getProperty(key) != null;
     }
 
     /**

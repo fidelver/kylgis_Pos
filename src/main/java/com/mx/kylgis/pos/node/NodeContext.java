@@ -39,8 +39,8 @@ public final class NodeContext {
 
     public static NodeContext from(AppProperties properties) {
         String configuredId = NodeIdentity.optional(properties.getProperty("node.id"));
-        String legacyHostname = NodeIdentity.optional(
-                properties.getProperty("machine.hostname"));
+        String legacyHostname = configuredId == null
+                ? legacyIdentity(properties.getProperty("machine.hostname")) : null;
         boolean hasExplicitId = configuredId != null;
         String resolvedId = hasExplicitId ? configuredId : legacyHostname;
 
@@ -118,6 +118,16 @@ public final class NodeContext {
 
     public boolean hasExplicitRoles() {
         return explicitRoles;
+    }
+
+    private static String legacyIdentity(String hostname) {
+        try {
+            return NodeIdentity.optional(hostname);
+        } catch (IllegalArgumentException invalidLegacyHostname) {
+            LOGGER.log(Level.WARNING,
+                    "machine.hostname is not a portable node id; configure node.id explicitly");
+            return null;
+        }
     }
 
     private static String trimToNull(String value) {
