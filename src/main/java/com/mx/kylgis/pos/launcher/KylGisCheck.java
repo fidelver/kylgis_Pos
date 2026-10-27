@@ -10,6 +10,7 @@ import com.mx.kylgis.pos.runtime.RuntimeCapability;
 import com.mx.kylgis.pos.runtime.RuntimeCapabilityRegistry;
 import com.mx.kylgis.pos.runtime.RuntimeLaunchContext;
 import com.mx.kylgis.pos.runtime.JavaRuntimeSupport;
+import com.mx.kylgis.pos.hardware.PeripheralCapabilityReport;
 import java.io.File;
 import java.util.List;
 
@@ -45,6 +46,10 @@ public final class KylGisCheck {
                 return 1;
             }
             line("provisioning", provisioning(config));
+            for (java.util.Map.Entry<String, String> peripheral
+                    : PeripheralCapabilityReport.inspect(config).entrySet()) {
+                line("peripheral." + peripheral.getKey(), peripheral.getValue());
+            }
 
             String bundleDir = System.getProperty("kylgis.bundle.dir");
             if (bundleDir != null && !bundleDir.trim().isEmpty()) {
