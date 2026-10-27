@@ -584,7 +584,8 @@ public class TicketParser extends DefaultHandler {
     }
 
     private boolean isMissingLocaleValue(String value, String key) {
-        return value == null || value.equals("** " + key + " **") || value.equals("** label." + key + " **");
+        return value == null || value.equals("** " + key + " **")
+                || value.equals("** label." + key + " **");
     }
 
     private int parseInt(String sValue, int iDefault) {
