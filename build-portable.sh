@@ -10,7 +10,8 @@ MVN="${MAVEN_BIN:-mvn}"
 major="$("$JAVA" -version 2>&1 | awk -F'[".]' '/version/ {print ($2 == 1 ? $3 : $2); exit}')"
 [[ "$major" == "21" ]] || { echo "ERROR: JDK 21 required; detected $major" >&2; exit 3; }
 [[ -x "$JPACKAGE" ]] || { echo "ERROR: jpackage is missing from JDK 21" >&2; exit 4; }
-if ! git diff --quiet -- || ! git diff --cached --quiet -- || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+GIT="git -c safe.directory=$ROOT"
+if ! $GIT diff --quiet -- || ! $GIT diff --cached --quiet -- || [[ -n "$($GIT ls-files --others --exclude-standard)" ]]; then
   echo "ERROR: worktree must be clean for a reproducible package" >&2; exit 5
 fi
 "$MVN" -DskipTests clean package
