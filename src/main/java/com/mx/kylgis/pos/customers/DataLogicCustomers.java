@@ -189,7 +189,8 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
         return new StaticSentence(s
             , new QBFBuilder("SELECT "
                     + "ID, TAXID, SEARCHKEY, NAME, "
-                    + "POSTAL, EMAIL, PHONE, IMAGE "
+                    + "POSTAL, ADDRESS, ADDRESS2, CITY, REGION, COUNTRY, "
+                    + "PHONE, EMAIL, IMAGE "
                     + "FROM customers "
                     + "WHERE VISIBLE = " + s.DB.TRUE() + " AND ?(QBF_FILTER) ORDER BY NAME"
                 , new String[] {"TAXID", "SEARCHKEY", "NAME", "POSTAL", "PHONE", "EMAIL"})
@@ -206,9 +207,14 @@ public class DataLogicCustomers extends BeanFactoryDataSingle {
                 c.setSearchkey(dr.getString(3));
                 c.setName(dr.getString(4));
                 c.setPcode(dr.getString(5));
-                c.setPhone1(dr.getString(6));
-                c.setCemail(dr.getString(7));
-                c.setImage(ImageUtils.readImage(dr.getBytes(8)));
+                c.setAddress(dr.getString(6));
+                c.setAddress2(dr.getString(7));
+                c.setCity(dr.getString(8));
+                c.setRegion(dr.getString(9));
+                c.setCountry(dr.getString(10));
+                c.setPhone1(dr.getString(11));
+                c.setCemail(dr.getString(12));
+                c.setImage(ImageUtils.readImage(dr.getBytes(13)));
 //                c.setCurDebt(dr.getDouble(9));
 
             return c;                

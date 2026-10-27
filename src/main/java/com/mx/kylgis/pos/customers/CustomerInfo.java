@@ -37,6 +37,11 @@ public class CustomerInfo implements Serializable {
     protected String taxid;
     protected String name;
     protected String postal;
+    protected String address;
+    protected String address2;
+    protected String city;
+    protected String region;
+    protected String country;
     protected String phone;
     protected String email;
     protected BufferedImage image; 
@@ -51,6 +56,11 @@ public class CustomerInfo implements Serializable {
         this.taxid = null;
         this.name = null;
         this.postal = null;
+        this.address = null;
+        this.address2 = null;
+        this.city = null;
+        this.region = null;
+        this.country = null;
         this.phone = null;
         this.email = null;
         this.image = null;
@@ -107,6 +117,46 @@ public class CustomerInfo implements Serializable {
     }   
     public void setPcode(String postal) {
         this.postal = postal;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getAddress2() {
+        return address2;
+    }
+
+    public void setAddress2(String address2) {
+        this.address2 = address2;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
     
     /**
