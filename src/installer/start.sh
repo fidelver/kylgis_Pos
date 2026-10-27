@@ -10,10 +10,8 @@ case "$OS/$ARCH" in
     Darwin/i?86|Darwin/x86_64|Darwin/amd64) NATIVE="$DIR/lib/Mac_OS_X" ;;
 esac
 
-# WebLaF 1.2.9 embeds XStream 1.4.9 and needs reflective access to a
-# handful of JDK internals on modular Java (9+). JDK_JAVA_OPTIONS is ignored
-# by Java 8, but Java 9+ consumes these flags before the application starts,
-# so one launcher remains compatible with both runtime families.
+# KylGis POS requires Java 21. WebLaF 1.2.9 embeds XStream and needs
+# explicit reflective access to selected JDK internals on the modular runtime.
 KYLGIS_MODULAR_OPENS="--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.desktop/java.awt.font=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED"
 if [ -n "${JDK_JAVA_OPTIONS:-}" ]; then
     JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS $KYLGIS_MODULAR_OPENS"
@@ -21,6 +19,15 @@ else
     JDK_JAVA_OPTIONS="$KYLGIS_MODULAR_OPENS"
 fi
 export JDK_JAVA_OPTIONS
+
+if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    PATH="$JAVA_HOME/bin:$PATH"
+fi
+JAVA_MAJOR=$(java -version 2>&1 | awk -F'[".]' '/version/ {print ($2 == 1 ? $3 : $2); exit}')
+case "$JAVA_MAJOR" in
+    21) ;;
+    *) echo "ERROR: KylGis POS requires Java 21; detected ${JAVA_MAJOR:-unknown}" >&2; exit 64 ;;
+esac
 
 if [ -n "$NATIVE" ] && [ -d "$NATIVE" ]; then
     exec java -Xms512m -Xmx1024m "-splash:$DIR/kylgispos_splash_dark.png" \
